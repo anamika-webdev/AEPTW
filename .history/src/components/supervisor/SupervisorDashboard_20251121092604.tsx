@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, FileText, Clock, CheckCircle, PlayCircle, XCircle, CalendarClock, X as CloseIcon } from 'lucide-react';
+import { Users, FileText, Clock, CheckCircle, PlayCircle, XCircle, MoreVertical, CalendarClock, X as CloseIcon } from 'lucide-react';
 import { StatCard } from '../shared/StatCard';
 import { StatusBadge } from '../shared/StatusBadge';
 import { Button } from '../ui/button';
@@ -14,6 +14,7 @@ interface SupervisorDashboardProps {
 }
 
 export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashboardProps) {
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [ptwData, setPTWData] = useState<PTW[]>(mockPTWs);
   
   // Modal states
@@ -39,6 +40,7 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
     if (ptw) {
       setSelectedPTW(ptw);
       setExtendModalOpen(true);
+      setOpenActionMenu(null);
     }
   };
 
@@ -47,6 +49,7 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
     if (ptw) {
       setSelectedPTW(ptw);
       setCloseModalOpen(true);
+      setOpenActionMenu(null);
     }
   };
 
@@ -60,6 +63,7 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
           ...ptw,
           status: 'extended' as const,
           endDate: data.newEndDate,
+          // In real app, store extension data
           extensionData: {
             originalEndDate: ptw.endDate,
             newEndDate: data.newEndDate,
@@ -75,7 +79,10 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
     });
 
     setPTWData(updatedPTWs);
+    
+    // Show success notification
     alert(`✅ PTW ${selectedPTW.ptwNumber} has been extended successfully!\n\nNew End Date: ${data.newEndDate}\nNew End Time: ${data.newEndTime}\n\nThe PTW has been moved to the "PTW Extended" section.`);
+    
     setExtendModalOpen(false);
     setSelectedPTW(null);
   };
@@ -89,6 +96,7 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
         return {
           ...ptw,
           status: 'closed' as const,
+          // In real app, store closure data
           closureData: {
             completionNotes: data.completionNotes,
             safetyIssues: data.safetyIssues,
@@ -102,7 +110,10 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
     });
 
     setPTWData(updatedPTWs);
+    
+    // Show success notification
     alert(`✅ PTW ${selectedPTW.ptwNumber} has been closed successfully!\n\nAll work has been completed and documented.\n\nThe PTW has been moved to the "Closed PTWs" section.`);
+    
     setCloseModalOpen(false);
     setSelectedPTW(null);
   };
@@ -117,6 +128,52 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
     };
     return colors[category as keyof typeof colors] || 'bg-blue-100 text-blue-700';
   };
+
+  // Action Menu Component
+  const ActionMenu = ({ ptwId, ptwNumber }: { ptwId: string; ptwNumber: string }) => (
+    <div className="relative">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpenActionMenu(openActionMenu === ptwId ? null : ptwId);
+        }}
+        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+      >
+        <MoreVertical className="w-4 h-4 text-slate-600" />
+      </button>
+      
+      {openActionMenu === ptwId && (
+        <>
+          <div 
+            className="fixed inset-0 z-10" 
+            onClick={() => setOpenActionMenu(null)}
+          />
+          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleExtendPTWClick(ptwId);
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <CalendarClock className="w-4 h-4 text-blue-600" />
+              Extend PTW
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClosePTWClick(ptwId);
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <CloseIcon className="w-4 h-4 text-red-600" />
+              Close PTW
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   const PTWTable = ({ ptws, emptyMessage }: { ptws: typeof myPTWs; emptyMessage: string }) => (
     <>
@@ -194,7 +251,7 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
     </>
   );
 
-  // In Progress PTW Table with Direct Action Buttons
+  // In Progress PTW Table with Actions
   const InProgressPTWTable = ({ ptws, emptyMessage }: { ptws: typeof myPTWs; emptyMessage: string }) => (
     <>
       {/* Desktop Table */}
@@ -214,7 +271,10 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
             </thead>
             <tbody className="divide-y divide-slate-200">
               {ptws.map((ptw) => (
-                <tr key={ptw.id} className="hover:bg-slate-50">
+                <tr
+                  key={ptw.id}
+                  className="hover:bg-slate-50"
+                >
                   <td 
                     className="px-3 py-3 text-sm text-slate-900 cursor-pointer"
                     onClick={() => onPTWSelect(ptw.id)}
@@ -254,28 +314,7 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
                     <StatusBadge status={ptw.status} />
                   </td>
                   <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleExtendPTWClick(ptw.id);
-                        }}
-                        className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors flex items-center gap-1.5"
-                      >
-                        <CalendarClock className="w-3.5 h-3.5" />
-                        Extend
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleClosePTWClick(ptw.id);
-                        }}
-                        className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition-colors flex items-center gap-1.5"
-                      >
-                        <CloseIcon className="w-3.5 h-3.5" />
-                        Close
-                      </button>
-                    </div>
+                    <ActionMenu ptwId={ptw.id} ptwNumber={ptw.ptwNumber} />
                   </td>
                 </tr>
               ))}
@@ -294,19 +333,21 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
               key={ptw.id}
               className="p-4 bg-slate-50 rounded-lg"
             >
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-2">
                 <button
                   onClick={() => onPTWSelect(ptw.id)}
                   className="text-left flex-1"
                 >
-                  <p className="text-slate-900 font-medium">{ptw.ptwNumber}</p>
+                  <p className="text-slate-900">{ptw.ptwNumber}</p>
                 </button>
-                <StatusBadge status={ptw.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={ptw.status} />
+                  <ActionMenu ptwId={ptw.id} ptwNumber={ptw.ptwNumber} />
+                </div>
               </div>
-              
               <button
                 onClick={() => onPTWSelect(ptw.id)}
-                className="w-full text-left mb-3"
+                className="w-full text-left"
               >
                 <div className="space-y-1 text-sm text-slate-600">
                   <div className="flex items-center gap-2">
@@ -319,30 +360,6 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
                   <p>📅 {ptw.startDate}</p>
                 </div>
               </button>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-3 border-t border-slate-200">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleExtendPTWClick(ptw.id);
-                  }}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors flex items-center justify-center gap-2"
-                >
-                  <CalendarClock className="w-4 h-4" />
-                  Extend
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClosePTWClick(ptw.id);
-                  }}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition-colors flex items-center justify-center gap-2"
-                >
-                  <CloseIcon className="w-4 h-4" />
-                  Close
-                </button>
-              </div>
             </div>
           ))
         ) : (
@@ -554,11 +571,11 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
         <PTWTable ptws={approvedPTWs} emptyMessage="No approved permits" />
       </div>
 
-      {/* In Progress PTWs with Direct Action Buttons */}
+      {/* In Progress PTWs with Action Menu */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+        <div className="flex items-center justify-between mb-4">
           <h3 className="text-slate-900">In Progress PTWs</h3>
-          <span className="text-sm text-slate-500">Click buttons to extend or close permits</span>
+          <span className="text-sm text-slate-500">Use actions to extend or close permits</span>
         </div>
         <InProgressPTWTable ptws={inProgressPTWs} emptyMessage="No permits in progress" />
       </div>
@@ -656,7 +673,7 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
             onExtend={handleExtendPTW}
             ptwNumber={selectedPTW.ptwNumber}
             currentEndDate={selectedPTW.endDate}
-            currentEndTime="17:00"
+            currentEndTime="17:00" // In real app, get from PTW data
           />
 
           <ClosePTWModal

@@ -323,38 +323,8 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
         {currentStep === 2 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Issued To & Workers Assignment</h2>
-             {/* NEW SECTION: Issued To */}
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 space-y-4">
-              <h3 className="text-slate-900 font-medium flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
-                Issued To (Permit Recipient)
-              </h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="issuedToName">Name *</Label>
-                  <Input
-                    id="issuedToName"
-                    value={formData.issuedToName}
-                    onChange={(e) => setFormData({ ...formData, issuedToName: e.target.value })}
-                    placeholder="e.g., XYZ pvt ltd."
-                    className="bg-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="issuedToContact">Contact Number *</Label>
-                  <Input
-                    id="issuedToContact"
-                    value={formData.issuedToContact}
-                    onChange={(e) => setFormData({ ...formData, issuedToContact: e.target.value })}
-                    placeholder="e.g., +91 9876543210"
-                    className="bg-white"
-                  />
-                </div>
-              </div>
-              <p className="text-sm text-slate-600">
-                The person to whom this permit is issued (usually the work supervisor or contractor lead)
-              </p>
-            </div>
+
+            
             <p className="text-slate-600">Select the workers who will be performing this work</p>
             
             <div className="grid md:grid-cols-2 gap-4">
@@ -428,7 +398,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                         id={`name-${index}`}
                         value={worker.name}
                         onChange={(e) => updateNewWorker(index, 'name', e.target.value)}
-                        placeholder="e.g., Rahul Mishra"
+                        placeholder="e.g., John Doe"
                       />
                     </div>
                     <div>
@@ -446,7 +416,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                         id={`email-${index}`}
                         value={worker.email}
                         onChange={(e) => updateNewWorker(index, 'email', e.target.value)}
-                        placeholder="e.g., rahul.mishra@example.com"
+                        placeholder="e.g., john.doe@example.com"
                       />
                     </div>
                     <div className="flex items-center gap-4">

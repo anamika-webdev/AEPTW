@@ -428,7 +428,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                         id={`name-${index}`}
                         value={worker.name}
                         onChange={(e) => updateNewWorker(index, 'name', e.target.value)}
-                        placeholder="e.g., Rahul Mishra"
+                        placeholder="e.g., John Doe"
                       />
                     </div>
                     <div>
@@ -446,7 +446,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                         id={`email-${index}`}
                         value={worker.email}
                         onChange={(e) => updateNewWorker(index, 'email', e.target.value)}
-                        placeholder="e.g., rahul.mishra@example.com"
+                        placeholder="e.g., john.doe@example.com"
                       />
                     </div>
                     <div className="flex items-center gap-4">

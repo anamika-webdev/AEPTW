@@ -35,6 +35,8 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
     
     // Workers
     selectedWorkers: [] as string[],
+    issuedToName: '',      // NEW: Issued To Name
+    issuedToContact: '',   // NEW: Issued To Contact
     
     // Hazards & Controls
     hazards: [] as string[],
@@ -192,8 +194,8 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
             
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <Label htmlFor="category">Permit Category *</Label>
-                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
+                <Label htmlFor="category">PTW Category *</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
@@ -206,42 +208,29 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                   </SelectContent>
                 </Select>
               </div>
-               <div>
-                <Label htmlFor="Issue department">Issue department *</Label>
-                <Select value={formData.Department} onValueChange={(val) => setFormData({ ...formData, Department: val })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Issue department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="General">WHS</SelectItem>
-                    <SelectItem value="Height">SLP</SelectItem>
-                    <SelectItem value="Electrical">RME</SelectItem>
-                    <SelectItem value="Hot Work">Ops Tech IT</SelectItem>
-                    <SelectItem value="Confined Space">Operation</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
               <div>
                 <Label htmlFor="site">Site *</Label>
-                <Select value={formData.site} onValueChange={(val) => setFormData({ ...formData, site: val })}>
+                <Select value={formData.site} onValueChange={(value) => setFormData({ ...formData, site: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select site" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Mumbai Data Center">Mumbai Data Center</SelectItem>
-                    <SelectItem value="Bangalore Tech Park">Bangalore Tech Park</SelectItem>
-                    <SelectItem value="Delhi Telecom Hub">Delhi Telecom Hub</SelectItem>
+                    <SelectItem value="Delhi Tower Site">Delhi Tower Site</SelectItem>
+                    <SelectItem value="Bangalore Hub">Bangalore Hub</SelectItem>
+                    <SelectItem value="Chennai Facility">Chennai Facility</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="location">Job Location *</Label>
+              <div className="md:col-span-2">
+                <Label htmlFor="location">Specific Location *</Label>
                 <Input
                   id="location"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., Building A - Roof"
+                  placeholder="e.g., Building A, Floor 3, Server Room"
                 />
               </div>
 
@@ -319,11 +308,13 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
           </div>
         )}
 
-        {/* Step 2:Issued To & Assign Workers */}
+        {/* Step 2: Assign Workers */}
         {currentStep === 2 && (
           <div className="space-y-6">
-            <h2 className="text-slate-900">Issued To & Workers Assignment</h2>
-             {/* NEW SECTION: Issued To */}
+            <h2 className="text-slate-900">Assign Workers</h2>
+            <p className="text-slate-600">Select the workers who will be performing this work</p>
+            
+            {/* NEW SECTION: Issued To */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 space-y-4">
               <h3 className="text-slate-900 font-medium flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
@@ -336,7 +327,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                     id="issuedToName"
                     value={formData.issuedToName}
                     onChange={(e) => setFormData({ ...formData, issuedToName: e.target.value })}
-                    placeholder="e.g., XYZ pvt ltd."
+                    placeholder="e.g., Rajesh Kumar"
                     className="bg-white"
                   />
                 </div>
@@ -355,8 +346,8 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                 The person to whom this permit is issued (usually the work supervisor or contractor lead)
               </p>
             </div>
-            <p className="text-slate-600">Select the workers who will be performing this work</p>
             
+            {/* Worker Selection Mode */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="flex items-center gap-4">
                 <Checkbox
@@ -421,14 +412,14 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                   </Button>
                 </div>
                 {newWorkers.map((worker, index) => (
-                  <div key={index} className="grid md:grid-cols-2 gap-4">
+                  <div key={index} className="grid md:grid-cols-3 gap-4 p-4 border border-slate-200 rounded-lg">
                     <div>
                       <Label htmlFor={`name-${index}`}>Name *</Label>
                       <Input
                         id={`name-${index}`}
                         value={worker.name}
                         onChange={(e) => updateNewWorker(index, 'name', e.target.value)}
-                        placeholder="e.g., Rahul Mishra"
+                        placeholder="e.g., John Doe"
                       />
                     </div>
                     <div>
@@ -446,17 +437,17 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                         id={`email-${index}`}
                         value={worker.email}
                         onChange={(e) => updateNewWorker(index, 'email', e.target.value)}
-                        placeholder="e.g., rahul.mishra@example.com"
+                        placeholder="e.g., john.doe@example.com"
                       />
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="md:col-span-3 flex items-center gap-4">
                       <Button
                         onClick={() => removeNewWorker(index)}
                         variant="outline"
                         size="sm"
                         className="gap-2"
                       >
-                        Remove
+                        Remove Worker
                       </Button>
                     </div>
                   </div>
@@ -487,55 +478,52 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                       checked={formData.hazards.includes(hazard)}
                       onCheckedChange={() => toggleHazard(hazard)}
                     />
-                    <span className="text-sm text-slate-700">{hazard}</span>
+                    <span className="text-slate-900">{hazard}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             <div>
-              <Label htmlFor="controlMeasures">Control Measures *</Label>
+              <Label htmlFor="controlMeasures">Control Measures & Safety Procedures *</Label>
               <Textarea
                 id="controlMeasures"
                 value={formData.controlMeasures}
                 onChange={(e) => setFormData({ ...formData, controlMeasures: e.target.value })}
-                placeholder="Describe the control measures to mitigate identified hazards..."
+                placeholder="Describe the control measures and safety procedures to mitigate identified hazards..."
                 rows={6}
               />
-              <br/>
-              <Label htmlFor="controlMeasures">Other Hazards *</Label>
-              <Textarea
-                id="otherHazards"
-                value={formData.controlMeasures}
-                onChange={(e) => setFormData({ ...formData, otheerhazards: e.target.value })}
-                placeholder="Describe the other hazards to be identified..."
-                rows={6}
-              />
-              <p className="text-sm text-slate-500 mt-2">
-                Describe all safety measures, procedures, and precautions to be taken
-              </p>
             </div>
           </div>
         )}
 
-        {/* Step 4: PPE & SWMS File */}
+        {/* Step 4: PPE & SWMS Upload */}
         {currentStep === 4 && (
           <div className="space-y-6">
-            <h2 className="text-slate-900">PPE Requirements & SWMS Upload</h2>
+            <h2 className="text-slate-900">Personal Protective Equipment & Documentation</h2>
             
             <div>
-              <Label>Required Personal Protective Equipment (PPE) *</Label>
-              <p className="text-sm text-slate-500 mb-4">Select all required PPE for this work</p>
+              <Label>Required PPE *</Label>
+              <p className="text-sm text-slate-600 mb-4">Select all required protective equipment</p>
               <PPESelector
-                selected={formData.ppe}
-                onChange={(ppe) => setFormData({ ...formData, ppe })}
+                selectedItems={formData.ppe}
+                onChange={(items) => setFormData({ ...formData, ppe: items })}
               />
             </div>
 
             <div>
-              <Label htmlFor="swms">Upload SWMS Document</Label>
+              <Label htmlFor="swms">Safe Work Method Statement (SWMS)</Label>
               <div className="mt-2">
-                <label className="flex items-center justify-center gap-3 p-8 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all">
+                <label className="flex items-center gap-3 p-4 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-slate-400 transition-colors">
+                  <Upload className="w-5 h-5 text-slate-400" />
+                  <div className="flex-1">
+                    {formData.swmsFile ? (
+                      <p className="text-slate-900">{formData.swmsFile.name}</p>
+                    ) : (
+                      <p className="text-slate-600">Click to upload SWMS document</p>
+                    )}
+                    <p className="text-sm text-slate-500">PDF, DOC, or DOCX (Max 10MB)</p>
+                  </div>
                   <input
                     id="swms"
                     type="file"
@@ -543,20 +531,6 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                     onChange={handleFileUpload}
                     className="hidden"
                   />
-                  <Upload className="w-6 h-6 text-slate-400" />
-                  <div className="text-center">
-                    {formData.swmsFile ? (
-                      <>
-                        <p className="text-slate-900">{formData.swmsFile.name}</p>
-                        <p className="text-sm text-green-600">File uploaded successfully</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-slate-900">Click to upload SWMS file</p>
-                        <p className="text-sm text-slate-500">PDF, DOC, DOCX up to 10MB</p>
-                      </>
-                    )}
-                  </div>
                 </label>
               </div>
             </div>
@@ -569,168 +543,120 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
             <h2 className="text-slate-900">Work Requirements Checklist</h2>
             
             {/* General Requirements */}
-            <div className="border border-slate-200 rounded-lg p-6">
-              <h3 className="text-slate-900 mb-4">General Requirements</h3>
-              <div>
+            <div>
+              <h3 className="text-slate-900 mb-4 pb-2 border-b border-slate-200">General Requirements</h3>
+              <div className="space-y-2">
                 <RequirementRow
-                  label="Work area inspected and clear of hazards"
-                  value={formData.generalReqs['inspected'] || 'na'}
-                  onChange={(val) => setFormData(prev => ({
-                    ...prev,
-                    generalReqs: { ...prev.generalReqs, inspected: val }
-                  }))}
+                  label="Site induction completed"
+                  value={formData.generalReqs.induction || 'na'}
+                  onChange={(val) => setFormData(prev => ({ ...prev, generalReqs: { ...prev.generalReqs, induction: val } }))}
                 />
                 <RequirementRow
-                  label="Emergency procedures reviewed with workers"
-                  value={formData.generalReqs['emergency'] || 'na'}
-                  onChange={(val) => setFormData(prev => ({
-                    ...prev,
-                    generalReqs: { ...prev.generalReqs, emergency: val }
-                  }))}
+                  label="Emergency procedures understood"
+                  value={formData.generalReqs.emergency || 'na'}
+                  onChange={(val) => setFormData(prev => ({ ...prev, generalReqs: { ...prev.generalReqs, emergency: val } }))}
                 />
                 <RequirementRow
-                  label="Workers trained for the specific task"
-                  value={formData.generalReqs['trained'] || 'na'}
-                  onChange={(val) => setFormData(prev => ({
-                    ...prev,
-                    generalReqs: { ...prev.generalReqs, trained: val }
-                  }))}
+                  label="First aid kit available"
+                  value={formData.generalReqs.firstAid || 'na'}
+                  onChange={(val) => setFormData(prev => ({ ...prev, generalReqs: { ...prev.generalReqs, firstAid: val } }))}
                 />
                 <RequirementRow
-                  label="First aid kit available nearby"
-                  value={formData.generalReqs['firstaid'] || 'na'}
-                  onChange={(val) => setFormData(prev => ({
-                    ...prev,
-                    generalReqs: { ...prev.generalReqs, firstaid: val }
-                  }))}
+                  label="Area barricaded/isolated"
+                  value={formData.generalReqs.barricaded || 'na'}
+                  onChange={(val) => setFormData(prev => ({ ...prev, generalReqs: { ...prev.generalReqs, barricaded: val } }))}
                 />
               </div>
             </div>
 
-            {/* Conditional Requirements based on category */}
-            {formData.category === 'Height' && (
-              <div className="border border-slate-200 rounded-lg p-6">
-                <h3 className="text-slate-900 mb-4">Height Work Requirements</h3>
-                <div>
+            {/* Category-specific requirements based on selected category */}
+            {formData.category === 'Hot Work' && (
+              <div>
+                <h3 className="text-slate-900 mb-4 pb-2 border-b border-slate-200">Hot Work Requirements</h3>
+                <div className="space-y-2">
                   <RequirementRow
-                    label="Fall protection equipment inspected"
-                    value={formData.heightReqs['fallProtection'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      heightReqs: { ...prev.heightReqs, fallProtection: val }
-                    }))}
+                    label="Fire extinguisher available"
+                    value={formData.hotWorkReqs.extinguisher || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, hotWorkReqs: { ...prev.hotWorkReqs, extinguisher: val } }))}
                   />
                   <RequirementRow
-                    label="Anchor points verified and secure"
-                    value={formData.heightReqs['anchorPoints'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      heightReqs: { ...prev.heightReqs, anchorPoints: val }
-                    }))}
+                    label="Fire watch assigned"
+                    value={formData.hotWorkReqs.fireWatch || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, hotWorkReqs: { ...prev.hotWorkReqs, fireWatch: val } }))}
                   />
                   <RequirementRow
-                    label="Guardrails installed where required"
-                    value={formData.heightReqs['guardrails'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      heightReqs: { ...prev.heightReqs, guardrails: val }
-                    }))}
+                    label="Flammable materials removed"
+                    value={formData.hotWorkReqs.flammables || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, hotWorkReqs: { ...prev.hotWorkReqs, flammables: val } }))}
                   />
                 </div>
               </div>
             )}
 
             {formData.category === 'Electrical' && (
-              <div className="border border-slate-200 rounded-lg p-6">
-                <h3 className="text-slate-900 mb-4">Electrical Work Requirements</h3>
-                <div>
+              <div>
+                <h3 className="text-slate-900 mb-4 pb-2 border-b border-slate-200">Electrical Work Requirements</h3>
+                <div className="space-y-2">
                   <RequirementRow
-                    label="Lockout/Tagout procedures implemented"
-                    value={formData.electricalReqs['lockout'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      electricalReqs: { ...prev.electricalReqs, lockout: val }
-                    }))}
+                    label="Power isolated and locked out"
+                    value={formData.electricalReqs.lockout || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, electricalReqs: { ...prev.electricalReqs, lockout: val } }))}
                   />
                   <RequirementRow
-                    label="Voltage testing completed"
-                    value={formData.electricalReqs['voltageTesting'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      electricalReqs: { ...prev.electricalReqs, voltageTesting: val }
-                    }))}
+                    label="Voltage tested"
+                    value={formData.electricalReqs.tested || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, electricalReqs: { ...prev.electricalReqs, tested: val } }))}
                   />
                   <RequirementRow
                     label="Insulated tools available"
-                    value={formData.electricalReqs['insulatedTools'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      electricalReqs: { ...prev.electricalReqs, insulatedTools: val }
-                    }))}
+                    value={formData.electricalReqs.tools || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, electricalReqs: { ...prev.electricalReqs, tools: val } }))}
                   />
                 </div>
               </div>
             )}
 
-            {formData.category === 'Hot Work' && (
-              <div className="border border-slate-200 rounded-lg p-6">
-                <h3 className="text-slate-900 mb-4">Hot Work Requirements</h3>
-                <div>
+            {formData.category === 'Height' && (
+              <div>
+                <h3 className="text-slate-900 mb-4 pb-2 border-b border-slate-200">Height Work Requirements</h3>
+                <div className="space-y-2">
                   <RequirementRow
-                    label="Fire watch assigned"
-                    value={formData.hotWorkReqs['fireWatch'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      hotWorkReqs: { ...prev.hotWorkReqs, fireWatch: val }
-                    }))}
+                    label="Fall protection equipment inspected"
+                    value={formData.heightReqs.fallProtection || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, heightReqs: { ...prev.heightReqs, fallProtection: val } }))}
                   />
                   <RequirementRow
-                    label="Fire extinguisher readily available"
-                    value={formData.hotWorkReqs['fireExtinguisher'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      hotWorkReqs: { ...prev.hotWorkReqs, fireExtinguisher: val }
-                    }))}
+                    label="Scaffold tagged and certified"
+                    value={formData.heightReqs.scaffold || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, heightReqs: { ...prev.heightReqs, scaffold: val } }))}
                   />
                   <RequirementRow
-                    label="Combustible materials removed from area"
-                    value={formData.hotWorkReqs['combustibleRemoval'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      hotWorkReqs: { ...prev.hotWorkReqs, combustibleRemoval: val }
-                    }))}
+                    label="Weather conditions suitable"
+                    value={formData.heightReqs.weather || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, heightReqs: { ...prev.heightReqs, weather: val } }))}
                   />
                 </div>
               </div>
             )}
 
             {formData.category === 'Confined Space' && (
-              <div className="border border-slate-200 rounded-lg p-6">
-                <h3 className="text-slate-900 mb-4">Confined Space Requirements</h3>
-                <div>
+              <div>
+                <h3 className="text-slate-900 mb-4 pb-2 border-b border-slate-200">Confined Space Requirements</h3>
+                <div className="space-y-2">
                   <RequirementRow
-                    label="Atmospheric testing completed"
-                    value={formData.confinedSpaceReqs['atmTesting'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      confinedSpaceReqs: { ...prev.confinedSpaceReqs, atmTesting: val }
-                    }))}
+                    label="Atmosphere tested"
+                    value={formData.confinedSpaceReqs.atmosphere || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, confinedSpaceReqs: { ...prev.confinedSpaceReqs, atmosphere: val } }))}
                   />
                   <RequirementRow
-                    label="Continuous gas monitoring in place"
-                    value={formData.confinedSpaceReqs['gasMonitoring'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      confinedSpaceReqs: { ...prev.confinedSpaceReqs, gasMonitoring: val }
-                    }))}
+                    label="Ventilation adequate"
+                    value={formData.confinedSpaceReqs.ventilation || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, confinedSpaceReqs: { ...prev.confinedSpaceReqs, ventilation: val } }))}
                   />
                   <RequirementRow
                     label="Rescue plan established"
-                    value={formData.confinedSpaceReqs['rescuePlan'] || 'na'}
-                    onChange={(val) => setFormData(prev => ({
-                      ...prev,
-                      confinedSpaceReqs: { ...prev.confinedSpaceReqs, rescuePlan: val }
-                    }))}
+                    value={formData.confinedSpaceReqs.rescue || 'na'}
+                    onChange={(val) => setFormData(prev => ({ ...prev, confinedSpaceReqs: { ...prev.confinedSpaceReqs, rescue: val } }))}
                   />
                 </div>
               </div>
@@ -744,112 +670,97 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
             <h2 className="text-slate-900">Review & Submit</h2>
             
             {/* Summary */}
-            <div className="bg-slate-50 rounded-lg p-6 space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Category</p>
-                  <p className="text-slate-900">{formData.category || 'Not set'}</p>
+            <div className="space-y-4">
+              <div className="bg-slate-50 rounded-lg p-4">
+                <h3 className="text-slate-900 mb-2">Basic Information</h3>
+                <div className="text-sm text-slate-600 space-y-1">
+                  <p><strong>Category:</strong> {formData.category || 'Not specified'}</p>
+                  <p><strong>Site:</strong> {formData.site || 'Not specified'}</p>
+                  <p><strong>Location:</strong> {formData.location || 'Not specified'}</p>
+                  <p><strong>Duration:</strong> {formData.startDate} {formData.startTime} - {formData.endDate} {formData.endTime}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Site & Location</p>
-                  <p className="text-slate-900">{formData.site} - {formData.location}</p>
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-4">
+                <h3 className="text-slate-900 mb-2">Issued To</h3>
+                <div className="text-sm text-slate-600 space-y-1">
+                  <p><strong>Name:</strong> {formData.issuedToName || 'Not specified'}</p>
+                  <p><strong>Contact:</strong> {formData.issuedToContact || 'Not specified'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Work Period</p>
-                  <p className="text-slate-900">
-                    {formData.startDate} {formData.startTime} - {formData.endDate} {formData.endTime}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Assigned Workers</p>
-                  <p className="text-slate-900">{formData.selectedWorkers.length} workers</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Hazards Identified</p>
-                  <p className="text-slate-900">{formData.hazards.length} hazards</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">PPE Required</p>
-                  <p className="text-slate-900">{formData.ppe.length} items</p>
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-4">
+                <h3 className="text-slate-900 mb-2">Assigned Workers</h3>
+                <p className="text-sm text-slate-600">
+                  {formData.selectedWorkers.length} worker(s) selected
+                  {newWorkers.length > 0 && `, ${newWorkers.length} new worker(s) added`}
+                </p>
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-4">
+                <h3 className="text-slate-900 mb-2">Hazards & Controls</h3>
+                <p className="text-sm text-slate-600">{formData.hazards.length} hazard(s) identified</p>
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-4">
+                <h3 className="text-slate-900 mb-2">PPE & Documentation</h3>
+                <div className="text-sm text-slate-600 space-y-1">
+                  <p>{formData.ppe.length} PPE item(s) required</p>
+                  <p>SWMS: {formData.swmsFile ? formData.swmsFile.name : 'Not uploaded'}</p>
                 </div>
               </div>
             </div>
 
-            {/* Approvals */}
-            <div className="space-y-4">
-              <h3 className="text-slate-900">Required Approvals</h3>
-              
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="border border-slate-200 rounded-lg p-4">
-                  <p className="text-sm text-slate-600 mb-3">Area In-Charge Signature</p>
-                  <Button
-                    onClick={() => {
-                      setShowSignature(true);
-                      setSignatureType('areaInCharge');
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2"
-                  >
-                    {formData.areaInChargeSignature ? (
-                      <>
-                        <Check className="w-4 h-4 text-green-600" />
-                        Signed
-                      </>
-                    ) : (
-                      'Add Signature'
-                    )}
-                  </Button>
-                </div>
+            {/* Required Approvals */}
+            <div>
+              <h3 className="text-slate-900 mb-4">Required Approvals</h3>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    setShowSignature(true);
+                    setSignatureType('areaInCharge');
+                  }}
+                  variant="outline"
+                  className="w-full justify-between"
+                >
+                  <span>Area In-Charge Signature</span>
+                  {formData.areaInChargeSignature && (
+                    <Check className="w-4 h-4 text-green-600" />
+                  )}
+                </Button>
 
-                <div className="border border-slate-200 rounded-lg p-4">
-                  <p className="text-sm text-slate-600 mb-3">Safety In-Charge Signature</p>
-                  <Button
-                    onClick={() => {
-                      setShowSignature(true);
-                      setSignatureType('safetyInCharge');
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2"
-                  >
-                    {formData.safetyInChargeSignature ? (
-                      <>
-                        <Check className="w-4 h-4 text-green-600" />
-                        Signed
-                      </>
-                    ) : (
-                      'Add Signature'
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => {
+                    setShowSignature(true);
+                    setSignatureType('safetyInCharge');
+                  }}
+                  variant="outline"
+                  className="w-full justify-between"
+                >
+                  <span>Safety In-Charge Signature</span>
+                  {formData.safetyInChargeSignature && (
+                    <Check className="w-4 h-4 text-green-600" />
+                  )}
+                </Button>
 
-                <div className="border border-slate-200 rounded-lg p-4">
-                  <p className="text-sm text-slate-600 mb-3">Site Leader Signature</p>
-                  <Button
-                    onClick={() => {
-                      setShowSignature(true);
-                      setSignatureType('siteLeader');
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2"
-                  >
-                    {formData.siteLeaderSignature ? (
-                      <>
-                        <Check className="w-4 h-4 text-green-600" />
-                        Signed
-                      </>
-                    ) : (
-                      'Add Signature'
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => {
+                    setShowSignature(true);
+                    setSignatureType('siteLeader');
+                  }}
+                  variant="outline"
+                  className="w-full justify-between"
+                >
+                  <span>Site Leader Signature</span>
+                  {formData.siteLeaderSignature && (
+                    <Check className="w-4 h-4 text-green-600" />
+                  )}
+                </Button>
               </div>
             </div>
 
             {/* Declaration */}
-            <div className="border-2 border-blue-200 bg-blue-50 rounded-lg p-6">
+            <div className="border-t border-slate-200 pt-6">
               <label className="flex items-start gap-3 cursor-pointer">
                 <Checkbox
                   checked={formData.declaration}

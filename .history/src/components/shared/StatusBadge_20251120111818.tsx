@@ -1,4 +1,4 @@
-export type PTWStatus = 'initiated' | 'pending' | 'approved' | 'rejected' | 'in-progress' | 'completed' | 'closed' | 'expired' | 'extended';
+export type PTWStatus = 'initiated' | 'pending' | 'approved' | 'rejected' | 'in-progress' | 'completed' | 'closed' | 'expired';
 
 interface StatusBadgeProps {
   status: PTWStatus;
@@ -37,10 +37,6 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     expired: {
       label: 'Expired',
       classes: 'bg-orange-100 text-orange-700 border-orange-200',
-    },
-    extended: {
-      label: 'Extended',
-      classes: 'bg-indigo-100 text-indigo-700 border-indigo-200',
     },
   };
 
