@@ -118,7 +118,7 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
     return colors[category as keyof typeof colors] || 'bg-blue-100 text-blue-700';
   };
 
-  const PTWTable = ({ ptws, emptyMessage, showCloseButton = false }: { ptws: typeof myPTWs; emptyMessage: string; showCloseButton?: boolean }) => (
+  const PTWTable = ({ ptws, emptyMessage }: { ptws: typeof myPTWs; emptyMessage: string }) => (
     <>
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto">
@@ -132,36 +132,27 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
                 <th className="px-3 py-3 text-left text-xs text-slate-600">Workers</th>
                 <th className="px-3 py-3 text-left text-xs text-slate-600">Start Date</th>
                 <th className="px-3 py-3 text-left text-xs text-slate-600">Status</th>
-                {showCloseButton && (
-                  <th className="px-3 py-3 text-left text-xs text-slate-600">Action</th>
-                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {ptws.map((ptw) => (
                 <tr
                   key={ptw.id}
+                  onClick={() => onPTWSelect(ptw.id)}
                   className="hover:bg-slate-50 cursor-pointer"
                 >
-                  <td className="px-3 py-3 text-sm text-slate-900" onClick={() => onPTWSelect(ptw.id)}>{ptw.ptwNumber}</td>
-                  <td className="px-3 py-3" onClick={() => onPTWSelect(ptw.id)}>
+                  <td className="px-3 py-3 text-sm text-slate-900">{ptw.ptwNumber}</td>
+                  <td className="px-3 py-3">
                     <span className={`px-2 py-1 rounded text-xs ${getCategoryColor(ptw.category)}`}>
                       {ptw.category}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-sm text-slate-600" onClick={() => onPTWSelect(ptw.id)}>{ptw.location}</td>
-                  <td className="px-3 py-3 text-sm text-slate-600" onClick={() => onPTWSelect(ptw.id)}>{ptw.assignedWorkers.length}</td>
-                  <td className="px-3 py-3 text-sm text-slate-600" onClick={() => onPTWSelect(ptw.id)}>{ptw.startDate}</td>
-                  <td className="px-3 py-3" onClick={() => onPTWSelect(ptw.id)}>
+                  <td className="px-3 py-3 text-sm text-slate-600">{ptw.location}</td>
+                  <td className="px-3 py-3 text-sm text-slate-600">{ptw.assignedWorkers.length}</td>
+                  <td className="px-3 py-3 text-sm text-slate-600">{ptw.startDate}</td>
+                  <td className="px-3 py-3">
                     <StatusBadge status={ptw.status} />
                   </td>
-                  {showCloseButton && (
-                    <td className="px-3 py-3">
-                      <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); handleClosePTWClick(ptw.id); }}>
-                        Close
-                      </Button>
-                    </td>
-                  )}
                 </tr>
               ))}
             </tbody>
@@ -592,7 +583,7 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
             Total: <span className="font-semibold text-indigo-600">{extendedPTWs.length}</span>
           </div>
         </div>
-        <PTWTable ptws={extendedPTWs} emptyMessage="No extended permits" showCloseButton />
+        <PTWTable ptws={extendedPTWs} emptyMessage="No extended permits" />
       </div>
 
       {/* All Permits - Comprehensive View */}
@@ -638,6 +629,10 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-red-400"></span>
               <span>Rejected</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-orange-400"></span>
+              <span>Expired</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-indigo-400"></span>

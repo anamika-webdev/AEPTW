@@ -82,7 +82,7 @@ export default function App() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-600 transition-colors">
                 <span className="text-green-600 group-hover:text-white transition-colors text-2xl"></span>
               </div>
-              <h3 className="text-slate-900 mb-2">EPTW</h3>
+              <h3 className="text-slate-900 mb-2">Supervisor</h3>
               <p className="text-slate-600 text-sm">Create and manage PTW permits</p>
             </button>
 

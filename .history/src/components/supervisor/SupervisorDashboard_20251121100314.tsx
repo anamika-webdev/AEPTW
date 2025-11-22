@@ -640,6 +640,10 @@ export function SupervisorDashboard({ onNavigate, onPTWSelect }: SupervisorDashb
               <span>Rejected</span>
             </div>
             <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-orange-400"></span>
+              <span>Expired</span>
+            </div>
+            <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-indigo-400"></span>
               <span>Extended</span>
             </div>
