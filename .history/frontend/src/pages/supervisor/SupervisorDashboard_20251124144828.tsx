@@ -241,7 +241,7 @@ export default function SupervisorDashboard({ onNavigate, onPTWSelect }: any) {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {permitStatusData.map((index) => (
+                    {permitStatusData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

@@ -18,7 +18,7 @@ interface CreatePermitProps {
 export default function CreatePermit({ onBack }: CreatePermitProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [sites, setSites] = useState<any[]>([]);
-  const [_workers, setWorkers] = useState<any[]>([]);
+  const [workers, setWorkers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -102,15 +102,16 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
 
     try {
       const permitData = {
-  site_id: parseInt(formData.site_id),
-  permit_type: formData.permit_type as 'General' | 'Height' | 'Hot_Work' | 'Electrical' | 'Confined_Space',
-  work_location: formData.work_location,
-  work_description: formData.work_description,
-  start_time: formData.start_time,
-  end_time: formData.end_time,
-  receiver_name: formData.receiver_name,
-  status: 'Pending_Approval' as const,
-};
+        site_id: parseInt(formData.site_id),
+        permit_type: formData.permit_type,
+        work_location: formData.work_location,
+        work_description: formData.work_description,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        receiver_name: formData.receiver_name,
+        status: 'Pending_Approval',
+      };
+
       await permitService.create(permitData);
       setSuccess('Permit created successfully and submitted for approval!');
       

@@ -193,13 +193,12 @@ export default function SupervisorDashboard({ onNavigate, onPTWSelect }: any) {
           <CardContent>
             <div className="text-3xl font-bold text-indigo-600">{stats.assignedWorkers}</div>
             <Button 
-              variant="ghost" 
+              variant="link" 
               className="h-auto p-0 mt-2 text-xs"
               onClick={() => onNavigate('worker-list')}
             >
               View Workers →
             </Button>
-            
           </CardContent>
         </Card>
       </div>
@@ -241,7 +240,7 @@ export default function SupervisorDashboard({ onNavigate, onPTWSelect }: any) {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {permitStatusData.map((index) => (
+                    {permitStatusData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

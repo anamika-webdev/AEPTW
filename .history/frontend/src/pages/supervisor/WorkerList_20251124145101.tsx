@@ -15,7 +15,7 @@ interface Worker {
   created_at: string;
 }
 
-export default function WorkerList({ onNavigate: _onNavigate }: any) {
+export default function WorkerList({ onNavigate }: any) {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [filteredWorkers, setFilteredWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
