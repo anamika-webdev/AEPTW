@@ -1,3 +1,4 @@
+import React from 'react';
 import { X, LayoutDashboard, FileText, Users, Building2 } from 'lucide-react';
 
 interface User {
@@ -6,7 +7,7 @@ interface User {
   full_name: string;
   email: string;
   role: string; // Database role
-  frontendRole?: 'Admin' | 'Supervisor' | 'Worker'; // Mapped role
+  frontendRole?: 'Admin' | 'Supervisor'; // Mapped role
   department?: string;
 }
 

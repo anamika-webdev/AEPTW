@@ -5,21 +5,20 @@ import { SupervisorDashboard } from './components/supervisor/SupervisorDashboard
 import Sidebar from './components/common/Sidebar';
 import Header from './components/common/Header';
 
-// User interface that matches backend response
+// Types
 interface User {
   id: number;
   login_id: string;
   full_name: string;
   email: string;
   role: string; // Database role: Admin, Approver_Safety, Approver_AreaManager, Requester
-  frontendRole?: 'Admin' | 'Supervisor' | 'Worker'; // Mapped role for UI
+  frontendRole?: 'Admin' | 'Supervisor'; // Mapped role for UI
   department?: string;
-  signature_url?: string;
   created_at?: string;
 }
 
 // Role Mapping Function
-function mapDatabaseRoleToFrontend(dbRole: string): 'Admin' | 'Supervisor' | 'Worker' {
+function mapDatabaseRoleToFrontend(dbRole: string): 'Admin' | 'Supervisor' {
   // Map all roles to Supervisor except Admin
   if (dbRole === 'Admin') {
     return 'Admin';

@@ -1,29 +1,10 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-
-// User interface
-interface User {
-  id: number;
-  login_id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  frontendRole?: 'Admin' | 'Supervisor' | 'Worker';
-  department?: string;
-  auth_provider?: 'local' | 'google';
-  created_at?: string;
-}
+import { User } from '../../types';
+import { mapDatabaseRoleToFrontend } from '../../utils/roleMapper';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
-}
-
-// Role mapping function
-function mapDatabaseRoleToFrontend(dbRole: string): 'Admin' | 'Supervisor' | 'Worker' {
-  if (dbRole === 'Admin') {
-    return 'Admin';
-  }
-  return 'Supervisor';
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
@@ -34,7 +15,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-  // Regular login with password
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -57,8 +37,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         
         console.log('Login successful:', {
           databaseRole: user.role,
-          frontendRole: mappedUser.frontendRole,
-          authProvider: user.auth_provider || 'local'
+          frontendRole: mappedUser.frontendRole
         });
         
         localStorage.setItem('token', token);
@@ -68,24 +47,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      const errorMessage = err.response?.data?.message;
-      
-      if (err.response?.status === 401) {
-        setError('Invalid login credentials. Please check your Login ID and password.');
-      } else if (err.response?.status === 400) {
-        setError(errorMessage || 'Please enter both Login ID and password.');
-      } else {
-        setError('Login failed. Please try again or contact support.');
-      }
+      setError(
+        err.response?.data?.message || 
+        'Login failed. Please check your credentials.'
+      );
     } finally {
       setLoading(false);
     }
-  };
-
-  // SSO login
-  const handleSSOLogin = () => {
-    // Redirect to backend Google OAuth endpoint
-    window.location.href = `${API_BASE_URL}/v1/auth/google`;
   };
 
   return (
@@ -156,12 +124,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="p-4 border border-red-200 rounded-lg bg-red-50">
               <div className="flex">
                 <svg 
-                  className="flex-shrink-0 w-5 h-5 text-red-400" 
+                  className="w-5 h-5 text-red-400" 
                   viewBox="0 0 20 20" 
                   fill="currentColor"
                 >
@@ -176,7 +143,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             </div>
           )}
 
-          {/* Submit Button */}
           <div>
             <button
               type="submit"
@@ -213,42 +179,22 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </div>
         </form>
 
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+        {/* Demo Credentials */}
+        <div className="p-4 mt-6 border border-gray-200 rounded-lg bg-gray-50">
+          <p className="mb-2 text-xs font-semibold text-gray-700">Test Credentials:</p>
+          <div className="space-y-1 text-xs text-gray-600">
+            <p>• <span className="font-medium">Admin:</span> admin / 123</p>
+            <p>• <span className="font-medium">Safety Officer:</span> safe1 / 123</p>
+            <p>• <span className="font-medium">Area Manager:</span> area1 / 123</p>
+            <p>• <span className="font-medium">Requester:</span> request1 / 123</p>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 text-gray-500 bg-white">Or</span>
-          </div>
-        </div>
-
-        {/* SSO Button */}
-        <div>
-          <button
-            type="button"
-            onClick={handleSSOLogin}
-            className="flex items-center justify-center w-full gap-3 px-4 py-3 font-medium text-gray-700 transition-colors duration-200 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50"
-          >
-            <svg 
-              className="w-5 h-5 text-blue-600" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" 
-              />
-            </svg>
-            <span>Sign in with SSO</span>
-          </button>
+          <p className="mt-2 text-xs italic text-gray-500">
+            All non-admin users access Supervisor dashboard
+          </p>
         </div>
 
         {/* Footer */}
-        <div className="mt-6 text-xs text-center text-gray-500">
+        <div className="text-xs text-center text-gray-500">
           <p>© 2024 Amazon EPTW. All rights reserved.</p>
           <p className="mt-1">Secured by Amazon Web Services</p>
         </div>
