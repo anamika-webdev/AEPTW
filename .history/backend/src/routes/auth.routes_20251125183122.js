@@ -14,32 +14,25 @@ const JWT_EXPIRY = '7d';
 // ============================================
 router.post('/register', async (req, res) => {
   try {
-    console.log('\n========================================');
-    console.log('📝 REGISTRATION REQUEST');
-    console.log('========================================');
-    console.log('Body:', {
+    console.log('📝 Registration request received:', {
       login_id: req.body.login_id,
       email: req.body.email,
-      full_name: req.body.full_name,
-      role: req.body.role,
-      department: req.body.department
+      role: req.body.role
     });
 
     // Validate required fields
     const { login_id, full_name, email, password, role, department } = req.body;
     
     if (!login_id || !full_name || !email || !password || !role) {
-      console.log('❌ Missing required fields');
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: login_id, full_name, email, password, role'
+        message: 'Missing required fields'
       });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.log('❌ Invalid email format:', email);
       return res.status(400).json({
         success: false,
         message: 'Invalid email format'
@@ -49,7 +42,6 @@ router.post('/register', async (req, res) => {
     // Validate role
     const validRoles = ['Requester', 'Approver_AreaManager', 'Approver_Safety', 'Admin'];
     if (!validRoles.includes(role)) {
-      console.log('❌ Invalid role:', role);
       return res.status(400).json({
         success: false,
         message: `Invalid role. Must be one of: ${validRoles.join(', ')}`
@@ -72,7 +64,7 @@ router.post('/register', async (req, res) => {
       
       return res.status(409).json({
         success: false,
-        message: `User with this ${conflictField} already exists. ${conflictField === 'email' ? 'Please use a different email or try logging in.' : 'Please choose a different login ID.'}`
+        message: `User with this ${conflictField} already exists`
       });
     }
 
@@ -82,7 +74,7 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    console.log('💾 Inserting new user into database...');
+    console.log('💾 Inserting new user...');
 
     // Insert new user
     const [result] = await pool.query(
@@ -93,11 +85,7 @@ router.post('/register', async (req, res) => {
 
     const userId = result.insertId;
 
-    console.log('✅ User created successfully!');
-    console.log('   User ID:', userId);
-    console.log('   Login ID:', login_id);
-    console.log('   Email:', email);
-    console.log('   Role:', role);
+    console.log('✅ User created successfully:', { userId, login_id, email, role });
 
     // Generate JWT token
     const token = jwt.sign(
@@ -110,8 +98,6 @@ router.post('/register', async (req, res) => {
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }
     );
-
-    console.log('🔑 JWT token generated');
 
     // Return success response
     res.status(201).json({
@@ -131,11 +117,9 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('\n❌ REGISTRATION ERROR:');
-    console.error('Error name:', error.name);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
-    console.error('Full error:', error);
+    console.error('❌ Registration error:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
     
     res.status(500).json({
       success: false,
@@ -150,91 +134,61 @@ router.post('/register', async (req, res) => {
 // ============================================
 router.post('/login', async (req, res) => {
   try {
-    console.log('\n========================================');
-    console.log('🔐 LOGIN REQUEST');
-    console.log('========================================');
-    console.log('Body:', {
-      login_id: req.body.login_id,
-      password: req.body.password ? '***' : 'MISSING'
+    console.log('🔐 Login request received:', {
+      login_id: req.body.login_id
     });
 
     const { login_id, password } = req.body;
 
     // Validate required fields
     if (!login_id || !password) {
-      console.log('❌ Missing credentials');
       return res.status(400).json({
         success: false,
         message: 'Login ID and password are required'
       });
     }
 
-    console.log('🔍 Looking up user in database...');
-    console.log('   Login ID:', login_id.trim());
+    console.log('🔍 Looking up user...');
 
     // Get user from database
-    let users;
-    try {
-      [users] = await pool.query(
-        'SELECT id, login_id, full_name, email, password_hash, role, department, auth_provider FROM users WHERE login_id = ?',
-        [login_id.trim()]
-      );
-      console.log('   Query executed successfully');
-      console.log('   Found users:', users.length);
-    } catch (dbError) {
-      console.error('❌ Database query error:', dbError);
-      throw dbError;
-    }
+    const [users] = await pool.query(
+      'SELECT id, login_id, full_name, email, password_hash, role, department, auth_provider FROM users WHERE login_id = ?',
+      [login_id.trim()]
+    );
 
     if (users.length === 0) {
       console.log('⚠️ User not found:', login_id);
       return res.status(401).json({
         success: false,
-        message: 'Invalid login ID or password'
+        message: 'Invalid login credentials'
       });
     }
 
     const user = users[0];
-    console.log('✓ User found:');
-    console.log('   ID:', user.id);
-    console.log('   Login ID:', user.login_id);
-    console.log('   Email:', user.email);
-    console.log('   Role:', user.role);
-    console.log('   Has password:', user.password_hash ? 'YES' : 'NO');
 
     // Check if password exists
     if (!user.password_hash) {
-      console.log('⚠️ No password hash found for user');
+      console.log('⚠️ No password set for user:', login_id);
       return res.status(401).json({
         success: false,
-        message: 'Invalid login ID or password. This account may need to be re-created.'
+        message: 'Invalid login credentials'
       });
     }
 
     console.log('🔐 Verifying password...');
 
     // Verify password
-    let isPasswordValid;
-    try {
-      isPasswordValid = await bcrypt.compare(password, user.password_hash);
-      console.log('   Password verification result:', isPasswordValid);
-    } catch (bcryptError) {
-      console.error('❌ Bcrypt comparison error:', bcryptError);
-      throw bcryptError;
-    }
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
       console.log('⚠️ Invalid password for user:', login_id);
       return res.status(401).json({
         success: false,
-        message: 'Invalid login ID or password'
+        message: 'Invalid login credentials'
       });
     }
 
-    console.log('✅ Login successful!');
-    console.log('   User ID:', user.id);
-    console.log('   Login ID:', user.login_id);
-    console.log('   Role:', user.role);
+    console.log('✅ Login successful:', { userId: user.id, login_id: user.login_id, role: user.role });
 
     // Generate JWT token
     const token = jwt.sign(
@@ -248,22 +202,14 @@ router.post('/login', async (req, res) => {
       { expiresIn: JWT_EXPIRY }
     );
 
-    console.log('🔑 JWT token generated');
-
     // Update last login
-    try {
-      await pool.query(
-        'UPDATE users SET updated_at = NOW() WHERE id = ?',
-        [user.id]
-      );
-      console.log('✓ Updated last login timestamp');
-    } catch (updateError) {
-      console.error('⚠️ Failed to update last login:', updateError);
-      // Don't fail the login if we can't update the timestamp
-    }
+    await pool.query(
+      'UPDATE users SET updated_at = NOW() WHERE id = ?',
+      [user.id]
+    );
 
     // Return success response
-    const response = {
+    res.json({
       success: true,
       message: 'Login successful',
       data: {
@@ -277,21 +223,13 @@ router.post('/login', async (req, res) => {
           department: user.department
         }
       }
-    };
-
-    console.log('📤 Sending response...');
-    res.json(response);
+    });
 
   } catch (error) {
-    console.error('\n❌ LOGIN ERROR:');
-    console.error('Error name:', error.name);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
-    console.error('Stack trace:', error.stack);
-    
+    console.error('❌ Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Login failed due to server error',
+      message: 'Login failed',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
@@ -302,27 +240,19 @@ router.post('/login', async (req, res) => {
 // ============================================
 router.get('/me', async (req, res) => {
   try {
-    console.log('\n========================================');
-    console.log('👤 GET CURRENT USER');
-    console.log('========================================');
-
     // Get token from header
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-      console.log('❌ No token provided');
       return res.status(401).json({
         success: false,
         message: 'Access token required'
       });
     }
 
-    console.log('🔍 Verifying token...');
-
     // Verify token
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log('✓ Token valid for user ID:', decoded.userId);
 
     // Get user from database
     const [users] = await pool.query(
@@ -331,14 +261,11 @@ router.get('/me', async (req, res) => {
     );
 
     if (users.length === 0) {
-      console.log('⚠️ User not found for ID:', decoded.userId);
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-
-    console.log('✅ User found:', users[0].login_id);
 
     res.json({
       success: true,
@@ -348,7 +275,7 @@ router.get('/me', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('\n❌ GET USER ERROR:', error.message);
+    console.error('❌ Get user error:', error);
     
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
@@ -376,9 +303,8 @@ router.get('/me', async (req, res) => {
 // ============================================
 router.post('/logout', async (req, res) => {
   try {
-    console.log('\n========================================');
-    console.log('🚪 LOGOUT REQUEST');
-    console.log('========================================');
+    // In a stateless JWT system, logout is typically handled client-side
+    // by removing the token from storage
     
     res.json({
       success: true,

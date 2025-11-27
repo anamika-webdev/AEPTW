@@ -2,17 +2,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Upload, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, Upload, FileText } from 'lucide-react';
 
 interface CreatePermitProps {
   onBack: () => void;
-}
-
-interface NewWorker {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
 }
 
 export default function CreatePermit({ onBack }: CreatePermitProps) {
@@ -34,7 +27,6 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
     issuedToContact: '',
     workerType: 'existing', // 'existing' or 'new'
     selectedWorkers: [] as number[],
-    newWorkers: [] as NewWorker[],
     
     // Step 3: Hazards
     identifiedHazards: [] as string[],
@@ -48,13 +40,6 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
     
     // Step 5: Requirements
     requirements: {} as { [key: string]: string },
-  });
-
-  // New worker form state
-  const [newWorkerForm, setNewWorkerForm] = useState({
-    name: '',
-    phone: '',
-    email: '',
   });
 
   const permitCategories = [
@@ -110,71 +95,12 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
     { id: 6, name: 'Arun Nair', email: 'arun.nair@telecom.in', avatar: 'A' },
   ];
 
-  // Category-specific requirements
-  const requirementsByCategory = {
-    General: [
-      'Job Location has been checked and verified to conduct the activity.',
-      'Area has been barricaded to eliminate the possibilities of unauthorize entry.',
-      'Caution board has been displayed.',
-      'PPE\'s available as per job requirement.',
-      'Information of work has been communicated to the affected team.',
-      'Tools to be inspected for safe use.',
-    ],
-    Hot_Work: [
-      'No hot work to be carried out at site during fire impairment.',
-      'Area barrication.',
-      'Authorize/Certified welder',
-      'Area clearance of 11mt',
-      'Fire Blanket availability',
-      'Fire Extinguisher availability (CO2/DCP)',
-      'No flammable and combustible material in the vicinity of hot work',
-      'Welding machine earthing to be ensured',
-      'Face shield, welding gloves, apron must be provided to welder.',
-      'Cable condition to be checked.',
-      'Fire watcher/fire fighter/first aider/AED certified person availability',
-    ],
-    Electrical: [
-      'Area Barrication',
-      'Wiremen License',
-      'Supervisory License',
-      'Approved "A" class contractor.',
-      'Electrical approved PPE\'s',
-      'De-energized of electrical equipment.',
-      'LOTO',
-      'Fire fighter/first aider/AED certified person availability',
-      'Insulated tools provided.',
-    ],
-    Height: [
-      'Area Barrication',
-      'Vertigo (Height Phobia)/Acrophobic',
-      'Pre use inspection of scaffolding/fullbody hardness/ A typeladder / FRP ladder/ Scissor lift/Boom lift/Hydra/Crane.',
-      'TPI certificate lifting tools and tackles',
-      'PPE\'s must be inspected and certified.',
-      'Anchorage point availability',
-      'Rescue plan available.',
-      'Supervision available.',
-      'Bottom support of ladders/scaffolding to be available.',
-    ],
-    Confined_Space: [
-      'Area Barrication',
-      'Person NOT Claustrophobic',
-      'Confined Space Number & Name',
-      'LEL Checking',
-      'Flameproof handlamp provided (if requirement)',
-      'Force air ventilation provided (if required)',
-      'O2 Level (19.5 To 23.5%)',
-      'CO & H2S Value',
-      'Tripod stand availability.',
-      'Service/Area and energy isolation',
-      'Mechanical equipment lockout',
-      'Rescue plan available',
-      'GFCI provided for electrical tools',
-      'Entrant name',
-      'Attendant name',
-      'Supervisor name',
-      'Stand-by person name',
-    ],
-  };
+  const generalRequirements = [
+    'Work area inspected and clear of hazards',
+    'Emergency procedures reviewed with workers',
+    'Workers trained for the specific task',
+    'First aid kit available nearby',
+  ];
 
   const steps = [
     { number: 1, title: 'Basic Info', id: 'basic' },
@@ -216,34 +142,6 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
     }));
   };
 
-  const handleAddNewWorker = () => {
-    if (!newWorkerForm.name || !newWorkerForm.phone || !newWorkerForm.email) {
-      alert('Please fill in all worker fields');
-      return;
-    }
-
-    const newWorker: NewWorker = {
-      id: Date.now().toString(),
-      name: newWorkerForm.name,
-      phone: newWorkerForm.phone,
-      email: newWorkerForm.email,
-    };
-
-    setFormData(prev => ({
-      ...prev,
-      newWorkers: [...prev.newWorkers, newWorker],
-    }));
-
-    setNewWorkerForm({ name: '', phone: '', email: '' });
-  };
-
-  const handleRemoveNewWorker = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      newWorkers: prev.newWorkers.filter(w => w.id !== id),
-    }));
-  };
-
   const handleRequirementChange = (question: string, answer: string) => {
     setFormData(prev => ({
       ...prev,
@@ -272,23 +170,6 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
   };
 
   const progressPercentage = ((currentStep - 1) / 5) * 100;
-
-  // Get requirements based on selected category
-  const getCurrentRequirements = () => {
-    const category = formData.permitCategory || 'General';
-    return requirementsByCategory[category as keyof typeof requirementsByCategory] || requirementsByCategory.General;
-  };
-
-  const getCategoryTitle = () => {
-    const titles = {
-      General: 'General Work Requirement',
-      Hot_Work: 'Hot Work Requirement',
-      Electrical: 'Electrical Work Requirement',
-      Height: 'Height Work Requirement',
-      Confined_Space: 'Confined Space Work Requirement',
-    };
-    return titles[formData.permitCategory as keyof typeof titles] || 'General Work Requirement';
-  };
 
   return (
     <div className="min-h-screen p-4 bg-gray-50 sm:p-6 lg:p-8">
@@ -495,7 +376,7 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
                   <div className="flex gap-4 mb-4">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
-                        type="checkbox"
+                        type="radio"
                         checked={formData.workerType === 'existing'}
                         onChange={() => handleInputChange('workerType', 'existing')}
                         className="w-4 h-4 text-blue-600"
@@ -504,7 +385,7 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
-                        type="checkbox"
+                        type="radio"
                         checked={formData.workerType === 'new'}
                         onChange={() => handleInputChange('workerType', 'new')}
                         className="w-4 h-4 text-blue-600"
@@ -513,116 +394,32 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
                     </label>
                   </div>
 
-                  {/* Existing Workers Grid */}
-                  {formData.workerType === 'existing' && (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {workers.map((worker) => (
-                        <label
-                          key={worker.id}
-                          className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                            formData.selectedWorkers.includes(worker.id)
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.selectedWorkers.includes(worker.id)}
-                            onChange={() => toggleWorker(worker.id)}
-                            className="w-4 h-4 text-blue-600"
-                          />
-                          <div className="flex items-center justify-center w-10 h-10 text-white bg-orange-500 rounded-full">
-                            <span className="font-bold">{worker.avatar}</span>
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900">{worker.name}</p>
-                            <p className="text-sm text-gray-600">{worker.email}</p>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* New Workers Form */}
-                  {formData.workerType === 'new' && (
-                    <div className="space-y-4">
-                      <div className="p-4 border-2 border-gray-200 rounded-lg">
-                        <h4 className="mb-4 font-semibold text-gray-900">Add New Worker</h4>
-                        
-                        <div className="grid gap-4 mb-4 md:grid-cols-3">
-                          <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-700">Name *</label>
-                            <input
-                              type="text"
-                              value={newWorkerForm.name}
-                              onChange={(e) => setNewWorkerForm(prev => ({ ...prev, name: e.target.value }))}
-                              placeholder="e.g., Rahul Mishra"
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-700">Phone *</label>
-                            <input
-                              type="tel"
-                              value={newWorkerForm.phone}
-                              onChange={(e) => setNewWorkerForm(prev => ({ ...prev, phone: e.target.value }))}
-                              placeholder="e.g., +1234567890"
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-700">Email *</label>
-                            <input
-                              type="email"
-                              value={newWorkerForm.email}
-                              onChange={(e) => setNewWorkerForm(prev => ({ ...prev, email: e.target.value }))}
-                              placeholder="e.g., rahul.mishra@example.com"
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {workers.map((worker) => (
+                      <label
+                        key={worker.id}
+                        className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          formData.selectedWorkers.includes(worker.id)
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.selectedWorkers.includes(worker.id)}
+                          onChange={() => toggleWorker(worker.id)}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <div className="flex items-center justify-center w-10 h-10 text-white bg-orange-500 rounded-full">
+                          <span className="font-bold">{worker.avatar}</span>
                         </div>
-
-                        <Button
-                          onClick={handleAddNewWorker}
-                          variant="outline"
-                          className="w-full text-green-600 border-green-600 hover:bg-green-50"
-                        >
-                          Add Worker
-                        </Button>
-                      </div>
-
-                      {/* List of Added New Workers */}
-                      {formData.newWorkers.length > 0 && (
-                        <div className="space-y-3">
-                          <h4 className="font-semibold text-gray-900">Added Workers ({formData.newWorkers.length})</h4>
-                          {formData.newWorkers.map((worker) => (
-                            <div key={worker.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center w-10 h-10 text-white bg-orange-500 rounded-full">
-                                  <span className="font-bold">{worker.name.charAt(0)}</span>
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-gray-900">{worker.name}</p>
-                                  <p className="text-sm text-gray-600">{worker.email} • {worker.phone}</p>
-                                </div>
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRemoveNewWorker(worker.id)}
-                                className="text-red-600 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                Remove
-                              </Button>
-                            </div>
-                          ))}
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">{worker.name}</p>
+                          <p className="text-sm text-gray-600">{worker.email}</p>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -749,21 +546,14 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-gray-900">Work Requirements Checklist</h2>
 
-                <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-                  <p className="text-sm text-blue-800">
-                    <strong>Selected Category:</strong> {formData.permitCategory || 'General'} - 
-                    Complete the following requirements checklist
-                  </p>
-                </div>
-
                 <div className="p-4 rounded-lg bg-gray-50">
-                  <h3 className="mb-4 text-lg font-semibold text-gray-900">{getCategoryTitle()}</h3>
+                  <h3 className="mb-4 font-semibold text-gray-900">General Requirements</h3>
                   
                   <div className="space-y-4">
-                    {getCurrentRequirements().map((question, index) => (
-                      <div key={index} className="flex items-start justify-between gap-4 p-3 bg-white border border-gray-200 rounded-lg">
-                        <span className="flex-1 text-sm text-gray-900">{question}</span>
-                        <div className="flex gap-2 shrink-0">
+                    {generalRequirements.map((question, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                        <span className="text-sm text-gray-900">{question}</span>
+                        <div className="flex gap-2">
                           {['YES', 'NO', 'NA'].map((answer) => (
                             <button
                               key={answer}
@@ -813,11 +603,7 @@ export default function CreatePermit({ onBack }: CreatePermitProps) {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-500">Assigned Workers</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {formData.workerType === 'existing' 
-                          ? `${formData.selectedWorkers.length} workers` 
-                          : `${formData.newWorkers.length} new workers`}
-                      </p>
+                      <p className="text-sm font-semibold text-gray-900">{formData.selectedWorkers.length} workers</p>
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-500">Hazards Identified</p>

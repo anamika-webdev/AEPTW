@@ -1,0 +1,484 @@
+// frontend/src/pages/supervisor/CreatePTW.tsx
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { 
+  ArrowLeft,
+  ArrowRight,
+  Save,
+  FileText,
+  AlertTriangle,
+  Shield,
+  Clock,
+  MapPin,
+  Users,
+  CheckCircle
+} from 'lucide-react';
+
+interface PPEItem {
+  id: string;
+  label: string;
+  selected: boolean;
+}
+
+interface Hazard {
+  id: string;
+  name: string;
+  selected: boolean;
+}
+
+export default function CreatePTW() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState({
+    permitType: 'General',
+    workDescription: '',
+    workLocation: '',
+    department: '',
+    validFrom: '',
+    validTo: '',
+    estimatedDuration: '',
+    numberOfWorkers: 1,
+    selectedWorkers: [] as string[],
+    selectedPPE: [] as PPEItem[],
+    selectedHazards: [] as Hazard[],
+    safetyMeasures: '',
+    emergencyContact: '',
+    supervisorNotes: '',
+  });
+
+  const permitTypes = [
+    { value: 'General', label: 'General Work', color: 'blue' },
+    { value: 'Hot_Work', label: 'Hot Work', color: 'red' },
+    { value: 'Height', label: 'Work at Height', color: 'orange' },
+    { value: 'Electrical', label: 'Electrical Work', color: 'purple' },
+    { value: 'Confined_Space', label: 'Confined Space', color: 'green' },
+  ];
+
+  const availablePPE: PPEItem[] = [
+    { id: 'helmet', label: 'Safety Helmet', selected: false },
+    { id: 'gloves', label: 'Safety Gloves', selected: false },
+    { id: 'goggles', label: 'Safety Goggles', selected: false },
+    { id: 'boots', label: 'Safety Boots', selected: false },
+    { id: 'vest', label: 'High-Vis Vest', selected: false },
+    { id: 'harness', label: 'Safety Harness', selected: false },
+    { id: 'mask', label: 'Respirator Mask', selected: false },
+    { id: 'earprotection', label: 'Ear Protection', selected: false },
+  ];
+
+  const availableHazards: Hazard[] = [
+    { id: 'fire', name: 'Fire Risk', selected: false },
+    { id: 'fall', name: 'Fall from Height', selected: false },
+    { id: 'electric', name: 'Electrical Shock', selected: false },
+    { id: 'chemical', name: 'Chemical Exposure', selected: false },
+    { id: 'noise', name: 'High Noise Level', selected: false },
+    { id: 'confined', name: 'Confined Space', selected: false },
+    { id: 'moving', name: 'Moving Machinery', selected: false },
+    { id: 'hot', name: 'Hot Surface', selected: false },
+  ];
+
+  const steps = [
+    { number: 1, title: 'Basic Info', icon: FileText },
+    { number: 2, title: 'Work Details', icon: MapPin },
+    { number: 3, title: 'Hazards & PPE', icon: AlertTriangle },
+    { number: 4, title: 'Workers', icon: Users },
+    { number: 5, title: 'Review', icon: CheckCircle },
+  ];
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleNext = () => {
+    if (currentStep < 5) setCurrentStep(currentStep + 1);
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
+  };
+
+  const handleSubmit = () => {
+    console.log('Submitting PTW:', formData);
+    // TODO: API call to create permit
+    alert('Permit created successfully! (Backend integration pending)');
+  };
+
+  const StepIndicator = () => (
+    <div className="mb-8">
+      <div className="flex items-center justify-between">
+        {steps.map((step, index) => {
+          const Icon = step.icon;
+          const isActive = currentStep === step.number;
+          const isCompleted = currentStep > step.number;
+          
+          return (
+            <div key={step.number} className="flex items-center flex-1">
+              <div className="flex flex-col items-center flex-1">
+                <div className={`
+                  w-12 h-12 rounded-full flex items-center justify-center font-semibold
+                  transition-all duration-300
+                  ${isActive ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white scale-110 shadow-lg' : ''}
+                  ${isCompleted ? 'bg-green-600 text-white' : ''}
+                  ${!isActive && !isCompleted ? 'bg-gray-200 text-gray-600' : ''}
+                `}>
+                  {isCompleted ? <CheckCircle className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
+                </div>
+                <p className={`mt-2 text-xs font-medium ${isActive ? 'text-blue-600' : 'text-gray-600'}`}>
+                  {step.title}
+                </p>
+              </div>
+              {index < steps.length - 1 && (
+                <div className={`h-1 flex-1 mx-2 rounded ${isCompleted ? 'bg-green-600' : 'bg-gray-200'}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen p-4 bg-gray-50 sm:p-6 lg:p-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => window.history.back()}
+              className="p-2 text-gray-600 transition-colors bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Create New Permit</h1>
+              <p className="mt-1 text-sm text-gray-600">Complete all steps to create a Permit to Work</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm">
+            <Save className="w-4 h-4 mr-2" />
+            Save Draft
+          </Button>
+        </div>
+
+        {/* Step Indicator */}
+        <StepIndicator />
+
+        {/* Form Content */}
+        <Card className="shadow-lg">
+          <CardContent className="p-8">
+            {/* Step 1: Basic Info */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="mb-4 text-xl font-bold text-gray-900">Basic Information</h2>
+                  <p className="text-sm text-gray-600">Select permit type and provide basic details</p>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Permit Type *</label>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                    {permitTypes.map((type) => (
+                      <button
+                        key={type.value}
+                        onClick={() => handleInputChange('permitType', type.value)}
+                        className={`
+                          p-4 border-2 rounded-lg text-left transition-all
+                          ${formData.permitType === type.value 
+                            ? 'border-blue-600 bg-blue-50 shadow-md' 
+                            : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }
+                        `}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full bg-${type.color}-600`} />
+                          <span className="font-semibold text-gray-900">{type.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Department *</label>
+                    <select
+                      value={formData.department}
+                      onChange={(e) => handleInputChange('department', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Department</option>
+                      <option value="Maintenance">Maintenance</option>
+                      <option value="Production">Production</option>
+                      <option value="Quality">Quality Control</option>
+                      <option value="Warehouse">Warehouse</option>
+                      <option value="Engineering">Engineering</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Estimated Duration *</label>
+                    <input
+                      type="text"
+                      value={formData.estimatedDuration}
+                      onChange={(e) => handleInputChange('estimatedDuration', e.target.value)}
+                      placeholder="e.g., 4 hours"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Work Details */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="mb-4 text-xl font-bold text-gray-900">Work Details</h2>
+                  <p className="text-sm text-gray-600">Provide detailed information about the work</p>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Work Description *</label>
+                  <textarea
+                    value={formData.workDescription}
+                    onChange={(e) => handleInputChange('workDescription', e.target.value)}
+                    rows={4}
+                    placeholder="Describe the work to be performed in detail..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Work Location *</label>
+                  <input
+                    type="text"
+                    value={formData.workLocation}
+                    onChange={(e) => handleInputChange('workLocation', e.target.value)}
+                    placeholder="e.g., Building A, Floor 2, Section 3"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Valid From *</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.validFrom}
+                      onChange={(e) => handleInputChange('validFrom', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Valid To *</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.validTo}
+                      onChange={(e) => handleInputChange('validTo', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Emergency Contact</label>
+                  <input
+                    type="text"
+                    value={formData.emergencyContact}
+                    onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
+                    placeholder="Emergency contact name and phone"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Hazards & PPE */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="mb-4 text-xl font-bold text-gray-900">Hazards & Safety Equipment</h2>
+                  <p className="text-sm text-gray-600">Identify hazards and select required PPE</p>
+                </div>
+
+                <div>
+                  <label className="block mb-3 text-sm font-medium text-gray-700">
+                    <AlertTriangle className="inline w-4 h-4 mr-1 text-orange-600" />
+                    Identified Hazards
+                  </label>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    {availableHazards.map((hazard) => (
+                      <label
+                        key={hazard.id}
+                        className="flex items-center p-3 space-x-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-gray-900">{hazard.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-3 text-sm font-medium text-gray-700">
+                    <Shield className="inline w-4 h-4 mr-1 text-blue-600" />
+                    Required PPE *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    {availablePPE.map((ppe) => (
+                      <label
+                        key={ppe.id}
+                        className="flex items-center p-3 space-x-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-gray-900">{ppe.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Safety Measures & Precautions</label>
+                  <textarea
+                    value={formData.safetyMeasures}
+                    onChange={(e) => handleInputChange('safetyMeasures', e.target.value)}
+                    rows={4}
+                    placeholder="Describe safety measures and precautions to be taken..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Workers */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="mb-4 text-xl font-bold text-gray-900">Assign Workers</h2>
+                  <p className="text-sm text-gray-600">Select workers for this permit</p>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Number of Workers *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.numberOfWorkers}
+                    onChange={(e) => handleInputChange('numberOfWorkers', parseInt(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Select Workers</label>
+                  <div className="p-4 space-y-2 border-2 border-gray-200 rounded-lg">
+                    {['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson'].map((worker) => (
+                      <label key={worker} className="flex items-center p-3 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="ml-3 text-sm font-medium text-gray-900">{worker}</span>
+                        <span className="ml-auto text-xs text-gray-500">ID: EMP{Math.floor(Math.random() * 9000) + 1000}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Supervisor Notes</label>
+                  <textarea
+                    value={formData.supervisorNotes}
+                    onChange={(e) => handleInputChange('supervisorNotes', e.target.value)}
+                    rows={3}
+                    placeholder="Additional notes for workers..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Review */}
+            {currentStep === 5 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="mb-4 text-xl font-bold text-gray-900">Review & Submit</h2>
+                  <p className="text-sm text-gray-600">Review all details before submitting</p>
+                </div>
+
+                <div className="p-6 space-y-4 rounded-lg bg-gray-50">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Permit Type</p>
+                      <p className="text-sm font-semibold text-gray-900">{formData.permitType.replace('_', ' ')}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Department</p>
+                      <p className="text-sm font-semibold text-gray-900">{formData.department || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Location</p>
+                      <p className="text-sm font-semibold text-gray-900">{formData.workLocation || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">Duration</p>
+                      <p className="text-sm font-semibold text-gray-900">{formData.estimatedDuration || 'Not specified'}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Work Description</p>
+                    <p className="text-sm text-gray-900">{formData.workDescription || 'Not specified'}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Number of Workers</p>
+                    <p className="text-sm font-semibold text-gray-900">{formData.numberOfWorkers}</p>
+                  </div>
+                </div>
+
+                <div className="p-4 border-l-4 border-blue-600 rounded bg-blue-50">
+                  <p className="text-sm font-medium text-blue-900">
+                    <Clock className="inline w-4 h-4 mr-1" />
+                    This permit will be sent for approval after submission
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between mt-6">
+          <Button
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+            className="px-6"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Previous
+          </Button>
+
+          {currentStep < 5 ? (
+            <Button onClick={handleNext} className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600">
+              Next
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} className="px-8 bg-gradient-to-r from-green-600 to-emerald-600">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Submit Permit
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

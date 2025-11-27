@@ -12,8 +12,7 @@ import {
   User,
   Filter,
   Download,
-  MoreVertical,
-  X
+  MoreVertical
 } from 'lucide-react';
 
 interface Worker {
@@ -34,20 +33,9 @@ export default function WorkerList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [showAddModal, setShowAddModal] = useState(false);
-  
-  // New worker form
-  const [newWorker, setNewWorker] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    department: '',
-    position: '',
-    employeeId: '',
-  });
 
   // Mock data
-  const [workers, setWorkers] = useState<Worker[]>([
+  const workers: Worker[] = [
     {
       id: 1,
       employeeId: 'EMP1001',
@@ -126,7 +114,7 @@ export default function WorkerList() {
       completedPermits: 31,
       joinedDate: '2022-11-20',
     },
-  ]);
+  ];
 
   const filteredWorkers = workers.filter(worker => {
     const matchesSearch = 
@@ -142,44 +130,6 @@ export default function WorkerList() {
 
   const departments = ['all', ...Array.from(new Set(workers.map(w => w.department)))];
 
-  const handleAddWorker = () => {
-    if (!newWorker.name || !newWorker.email || !newWorker.phone || !newWorker.department || !newWorker.position) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    const worker: Worker = {
-      id: workers.length + 1,
-      employeeId: newWorker.employeeId || `EMP${1000 + workers.length + 1}`,
-      name: newWorker.name,
-      email: newWorker.email,
-      phone: newWorker.phone,
-      department: newWorker.department,
-      position: newWorker.position,
-      status: 'active',
-      assignedPermits: 0,
-      completedPermits: 0,
-      joinedDate: new Date().toISOString().split('T')[0],
-    };
-
-    setWorkers([...workers, worker]);
-    setShowAddModal(false);
-    setNewWorker({
-      name: '',
-      email: '',
-      phone: '',
-      department: '',
-      position: '',
-      employeeId: '',
-    });
-  };
-
-  const handleDeleteWorker = (id: number) => {
-    if (confirm('Are you sure you want to delete this worker?')) {
-      setWorkers(workers.filter(w => w.id !== id));
-    }
-  };
-
   return (
     <div className="min-h-screen p-4 bg-gray-50 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
@@ -191,10 +141,7 @@ export default function WorkerList() {
               Manage and assign workers to permits
             </p>
           </div>
-          <Button 
-            onClick={() => setShowAddModal(true)}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-          >
+          <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
             <Plus className="w-4 h-4 mr-2" />
             Add Worker
           </Button>
@@ -396,11 +343,7 @@ export default function WorkerList() {
                             <Button variant="outline" size="sm">
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleDeleteWorker(worker.id)}
-                            >
+                            <Button variant="outline" size="sm">
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </Button>
                             <Button variant="outline" size="sm">
@@ -435,113 +378,6 @@ export default function WorkerList() {
           </div>
         )}
       </div>
-
-      {/* Add Worker Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Add New Worker</h2>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="p-2 text-gray-400 transition-colors rounded-lg hover:bg-gray-100 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Employee ID</label>
-                  <input
-                    type="text"
-                    value={newWorker.employeeId}
-                    onChange={(e) => setNewWorker({...newWorker, employeeId: e.target.value})}
-                    placeholder="Auto-generated if empty"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Full Name *</label>
-                  <input
-                    type="text"
-                    value={newWorker.name}
-                    onChange={(e) => setNewWorker({...newWorker, name: e.target.value})}
-                    placeholder="John Doe"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Email *</label>
-                  <input
-                    type="email"
-                    value={newWorker.email}
-                    onChange={(e) => setNewWorker({...newWorker, email: e.target.value})}
-                    placeholder="john.doe@company.com"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Phone *</label>
-                  <input
-                    type="tel"
-                    value={newWorker.phone}
-                    onChange={(e) => setNewWorker({...newWorker, phone: e.target.value})}
-                    placeholder="+1 234-567-8900"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Department *</label>
-                  <select
-                    value={newWorker.department}
-                    onChange={(e) => setNewWorker({...newWorker, department: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select Department</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Production">Production</option>
-                    <option value="Quality">Quality</option>
-                    <option value="Warehouse">Warehouse</option>
-                    <option value="Engineering">Engineering</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Position *</label>
-                  <input
-                    type="text"
-                    value={newWorker.position}
-                    onChange={(e) => setNewWorker({...newWorker, position: e.target.value})}
-                    placeholder="Technician"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" onClick={() => setShowAddModal(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddWorker} className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Worker
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -12,12 +12,13 @@ import AllPermits from './pages/admin/AllPermits';
 
 // Supervisor Pages
 import { SupervisorDashboard } from './components/supervisor/SupervisorDashboard';
-import CreatePermit from './pages/supervisor/CreatePermit';
+import CreatePermit from './pages/supervisor/CreatePermit'; // ← Using your existing file
 import WorkerList from './pages/supervisor/WorkerList';
 
 // Common Components
 import Sidebar from './components/common/Sidebar';
 import Header from './components/common/Header';
+import UserProfile from './components/common/UserProfile';
 
 // User interface
 interface User {
@@ -36,8 +37,9 @@ type PageType =
   | 'site-management' 
   | 'user-management' 
   | 'all-permits'
-  | 'create-permit'
-  | 'worker-list';
+  | 'create-permit'  // ← Changed from 'create-ptw'
+  | 'worker-list'
+  | 'profile';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -108,6 +110,23 @@ function App() {
   const renderPage = () => {
     console.log('📄 Rendering page:', currentPage, 'Role:', frontendRole);
 
+    // Profile page
+    if (currentPage === 'profile') {
+      return (
+        <div className="max-w-4xl p-6 mx-auto">
+          <div className="mb-6">
+            <button
+              onClick={() => handleNavigate('dashboard')}
+              className="text-sm text-blue-600 transition-colors hover:text-blue-700 hover:underline"
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
+          <UserProfile user={currentUser} variant="card" />
+        </div>
+      );
+    }
+
     // Admin pages
     if (frontendRole === 'admin') {
       switch (currentPage) {
@@ -132,16 +151,16 @@ function App() {
     if (frontendRole === 'supervisor') {
       switch (currentPage) {
         case 'dashboard':
-          return <SupervisorDashboard onNavigate={handleNavigate} />;
+          return <SupervisorDashboard />;
         
-        case 'create-permit':
+        case 'create-permit':  // ← Changed from 'create-ptw'
           return <CreatePermit onBack={() => handleNavigate('dashboard')} />;
         
         case 'worker-list':
           return <WorkerList />;
         
         default:
-          return <SupervisorDashboard onNavigate={handleNavigate} />;
+          return <SupervisorDashboard />;
       }
     }
 
@@ -156,7 +175,7 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-100">
       {/* Sidebar */}
       <Sidebar 
         currentUser={currentUser}
@@ -168,16 +187,31 @@ function App() {
       />
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 overflow-hidden lg:ml-56">
-        {/* Header with profile dropdown */}
+      <div className="flex flex-col flex-1 overflow-hidden lg:ml-64">
+        {/* Header */}
         <Header 
           currentUser={currentUser}
           onMenuClick={() => setIsMobileMenuOpen(true)}
           onLogout={handleLogout}
         />
 
+        {/* User Profile Banner (shows when not on profile/create pages) */}
+        {currentPage !== 'profile' && currentPage !== 'create-permit' && (
+          <div className="p-4 bg-white border-b border-gray-200">
+            <div className="flex items-center justify-between mx-auto max-w-7xl">
+              <UserProfile user={currentUser} variant="inline" />
+              <button
+                onClick={() => handleNavigate('profile')}
+                className="px-4 py-2 text-sm font-medium text-blue-600 transition-colors border border-blue-200 rounded-lg bg-blue-50 hover:bg-blue-100"
+              >
+                View Full Profile
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-slate-50">
           {renderPage()}
         </main>
       </div>
