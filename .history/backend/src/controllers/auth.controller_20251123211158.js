@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { generateToken, generateRefreshToken } = require('../utils/jwtUtils');
 
 // @desc    Login user with credentials
-// @route   POST /api/v1/auth/login
+// @route   POST /api/auth/login
 // @access  Public
 const login = async (req, res, next) => {
   try {
@@ -62,7 +62,7 @@ const login = async (req, res, next) => {
 };
 
 // @desc    Google OAuth callback
-// @route   GET /api/v1/auth/google/callback
+// @route   GET /api/auth/google/callback
 // @access  Public
 const googleCallback = async (req, res) => {
   try {
@@ -80,7 +80,7 @@ const googleCallback = async (req, res) => {
 };
 
 // @desc    Get current logged in user
-// @route   GET /api/v1/auth/me
+// @route   GET /api/auth/me
 // @access  Private
 const getMe = async (req, res, next) => {
   try {
@@ -96,7 +96,7 @@ const getMe = async (req, res, next) => {
 };
 
 // @desc    Logout user
-// @route   POST /api/v1/auth/logout
+// @route   POST /api/auth/logout
 // @access  Private
 const logout = async (req, res, next) => {
   try {
@@ -112,7 +112,7 @@ const logout = async (req, res, next) => {
 };
 
 // @desc    Refresh access token
-// @route   POST /api/v1/auth/refresh
+// @route   POST /api/auth/refresh
 // @access  Public
 const refreshToken = async (req, res, next) => {
   try {

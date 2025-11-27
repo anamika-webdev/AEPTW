@@ -61,10 +61,8 @@ export default function AllPermits() {
       const data = await response.json();
       setPermits(data.permits);
       
-      // Extract unique sites for filter dropdown - FIXED TypeScript error
-      const uniqueSites: string[] = Array.from(
-        new Set(data.permits.map((p: Permit) => p.site))
-      ) as string[];
+      // Extract unique sites for filter dropdown
+      const uniqueSites = Array.from(new Set(data.permits.map((p: Permit) => p.site)));
       setSites(uniqueSites);
       
       setLastUpdated(new Date());

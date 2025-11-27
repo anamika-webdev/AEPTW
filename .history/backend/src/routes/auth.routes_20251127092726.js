@@ -1,9 +1,9 @@
-// backend/src/routes/auth.routes.js
+// backend/routes/auth.routes.js
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const pool = require('../config/database');  // Updated path for src/ structure
+const pool = require('../config/database');
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -14,7 +14,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Login ID and password are required' });
     }
 
-    // Get user from database
+    // For demo purposes, check default credentials
+    // In production, this should verify against hashed passwords in database
     const [users] = await pool.query(
       'SELECT id, login_id, full_name, email, role, department FROM users WHERE login_id = ?',
       [login_id]
@@ -26,8 +27,7 @@ router.post('/login', async (req, res) => {
 
     const user = users[0];
 
-    // For demo: accept any password
-    // In production, verify with bcrypt:
+    // For demo: accept any password (in production, verify with bcrypt)
     // const isValidPassword = await bcrypt.compare(password, user.password_hash);
     // if (!isValidPassword) {
     //   return res.status(401).json({ error: 'Invalid credentials' });
@@ -41,7 +41,7 @@ router.post('/login', async (req, res) => {
         role: user.role,
         department: user.department
       },
-      process.env.JWT_SECRET || 'default_secret_change_in_production',
+      process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
@@ -62,7 +62,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/register
+// POST /api/auth/register (for adding new admin users)
 router.post('/register', async (req, res) => {
   try {
     const { login_id, full_name, email, password, role, department } = req.body;
@@ -71,7 +71,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    // Check if user exists
+    // Check if user already exists
     const [existing] = await pool.query(
       'SELECT id FROM users WHERE login_id = ? OR email = ?',
       [login_id, email]
@@ -81,10 +81,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Hash password (for production)
-    // const passwordHash = await bcrypt.hash(password, 10);
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
 
-    // Insert new user
+    // Insert new user (Note: adjust table schema to include password_hash column)
     const [result] = await pool.query(
       'INSERT INTO users (login_id, full_name, email, role, department) VALUES (?, ?, ?, ?, ?)',
       [login_id, full_name, email, role || 'Requester', department]
@@ -100,7 +100,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// GET /api/auth/me
+// GET /api/auth/me (verify token and get current user)
 router.get('/me', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -109,7 +109,7 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret_change_in_production');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     const [users] = await pool.query(
       'SELECT id, login_id, full_name, email, role, department FROM users WHERE id = ?',

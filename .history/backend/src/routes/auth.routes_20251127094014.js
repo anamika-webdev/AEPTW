@@ -1,9 +1,9 @@
-// backend/src/routes/auth.routes.js
+// backend/routes/auth.routes.js
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const pool = require('../config/database');  // Updated path for src/ structure
+const pool = require('../config/database');
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {

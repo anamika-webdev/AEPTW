@@ -24,7 +24,7 @@ const query = (sql, params) => {
 };
 
 // ============================================
-// POST /api/v1/auth/register - User Registration
+// POST /api/auth/register - User Registration
 // ============================================
 router.post('/register', async (req, res) => {
   try {
@@ -175,7 +175,7 @@ router.post('/register', async (req, res) => {
 });
 
 // ============================================
-// POST /api/v1/auth/login - User Login
+// POST /api/auth/login - User Login
 // ============================================
 router.post('/login', async (req, res) => {
   try {
@@ -263,7 +263,7 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================
-// GET /api/v1/auth/verify - Verify JWT Token
+// GET /api/auth/verify - Verify JWT Token
 // ============================================
 router.get('/verify', async (req, res) => {
   try {
@@ -321,7 +321,7 @@ router.get('/verify', async (req, res) => {
 });
 
 // ============================================
-// POST /api/v1/auth/logout
+// POST /api/auth/logout
 // ============================================
 router.post('/logout', (req, res) => {
   res.json({

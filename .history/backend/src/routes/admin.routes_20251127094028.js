@@ -1,63 +1,75 @@
-// backend/src/routes/admin.routes.js
+// backend/routes/admin.routes.complete.js
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/database');  // Updated path for src/ structure
-const { authenticateToken, isAdmin } = require('../middleware/auth.middleware');  // Updated path
+const pool = require('../config/database');
+const { authenticateToken, isAdmin } = require('../middleware/auth.middleware');
 
-// All routes require authentication
+// Apply authentication to all admin routes
 router.use(authenticateToken);
 
 // GET /api/admin/stats - Dashboard statistics
 router.get('/stats', async (req, res) => {
   try {
-    // Total sites
-    const [totalSitesResult] = await pool.query('SELECT COUNT(*) as count FROM sites');
-    const totalSites = totalSitesResult[0].count;
+    // Get total sites
+    const [sitesResult] = await pool.query('SELECT COUNT(*) as count FROM sites');
+    const totalSites = sitesResult[0].count;
 
-    // New sites this month
-    const [newSitesResult] = await pool.query(
-      'SELECT COUNT(*) as count FROM sites WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())'
-    );
+    // Get sites with new count this month
+    const [newSitesResult] = await pool.query(`
+      SELECT COUNT(*) as count FROM sites 
+      WHERE MONTH(CURRENT_DATE) = MONTH(CURRENT_DATE)
+    `);
     const newSites = newSitesResult[0].count;
 
-    // Total workers
-    const [totalWorkersResult] = await pool.query(
+    // Get total workers (Requester role)
+    const [workersResult] = await pool.query(
       "SELECT COUNT(*) as count FROM users WHERE role = 'Requester'"
     );
-    const totalWorkers = totalWorkersResult[0].count;
-    const activeWorkers = totalWorkers; // Simplified
+    const totalWorkers = workersResult[0].count;
 
-    // Total supervisors
-    const [totalSupervisorsResult] = await pool.query(
+    // Get active workers (can be determined by recent activity)
+    const [activeWorkersResult] = await pool.query(
+      "SELECT COUNT(*) as count FROM users WHERE role = 'Requester'"
+    );
+    const activeWorkers = activeWorkersResult[0].count;
+
+    // Get total supervisors (Approver roles)
+    const [supervisorsResult] = await pool.query(
       "SELECT COUNT(*) as count FROM users WHERE role IN ('Approver_AreaManager', 'Approver_Safety')"
     );
-    const totalSupervisors = totalSupervisorsResult[0].count;
+    const totalSupervisors = supervisorsResult[0].count;
 
-    // Total PTW
-    const [totalPTWResult] = await pool.query('SELECT COUNT(*) as count FROM permits');
-    const totalPTW = totalPTWResult[0].count;
+    // Get total PTW issued
+    const [ptwResult] = await pool.query('SELECT COUNT(*) as count FROM permits');
+    const totalPTW = ptwResult[0].count;
 
-    // PTW this month
-    const [ptwThisMonthResult] = await pool.query(
-      'SELECT COUNT(*) as count FROM permits WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())'
-    );
-    const ptwThisMonth = ptwThisMonthResult[0].count;
+    // Get PTW issued this month
+    const [ptwMonthResult] = await pool.query(`
+      SELECT COUNT(*) as count FROM permits 
+      WHERE MONTH(created_at) = MONTH(CURRENT_DATE) 
+      AND YEAR(created_at) = YEAR(CURRENT_DATE)
+    `);
+    const ptwThisMonth = ptwMonthResult[0].count;
+    
+    // Calculate percentage increase
+    const ptwIncrease = totalPTW > 0 ? Math.round((ptwThisMonth / totalPTW) * 100) : 0;
 
-    // Calculate increase percentage
-    const ptwIncrease = totalPTW > 0 ? ((ptwThisMonth / totalPTW) * 100).toFixed(1) : 0;
+    // Get PTW by category with percentages
+    const [categoryResult] = await pool.query(`
+      SELECT 
+        permit_type as name, 
+        COUNT(*) as value 
+      FROM permits 
+      GROUP BY permit_type
+    `);
 
-    // PTW by category
-    const [categoryResults] = await pool.query(
-      'SELECT permit_type, COUNT(*) as count FROM permits GROUP BY permit_type'
-    );
-
-    const categoryData = categoryResults.map(row => ({
-      name: row.permit_type,
-      value: row.count,
-      percentage: totalPTW > 0 ? ((row.count / totalPTW) * 100).toFixed(1) : 0
+    const categoryData = categoryResult.map(row => ({
+      name: row.name,
+      value: row.value,
+      percentage: totalPTW > 0 ? Math.round((row.value / totalPTW) * 100) : 0
     }));
 
-    // Recent PTWs (last 5)
+    // Get recent PTWs (last 5)
     const [recentPTWs] = await pool.query(`
       SELECT 
         p.id,
@@ -82,13 +94,13 @@ router.get('/stats', async (req, res) => {
         activeWorkers,
         totalSupervisors,
         totalPTW,
-        ptwIncrease: parseFloat(ptwIncrease)
+        ptwIncrease
       },
       categoryData,
       recentPTWs
     });
   } catch (error) {
-    console.error('Error fetching stats:', error);
+    console.error('Error fetching admin stats:', error);
     res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 });
@@ -97,7 +109,7 @@ router.get('/stats', async (req, res) => {
 router.get('/permits', async (req, res) => {
   try {
     const { site, status, category, startDate, endDate } = req.query;
-
+    
     let query = `
       SELECT 
         p.id,
@@ -109,8 +121,9 @@ router.get('/permits', async (req, res) => {
         u.full_name as issuer,
         DATE_FORMAT(p.start_time, '%Y-%m-%d') as startDate,
         DATE_FORMAT(p.end_time, '%Y-%m-%d') as endDate,
-        DATE_FORMAT(p.created_at, '%Y-%m-%d') as createdDate,
-        p.status
+        DATE_FORMAT(p.created_at, 'Created %Y-%m-%d') as createdDate,
+        p.status,
+        p.created_at
       FROM permits p
       JOIN sites s ON p.site_id = s.id
       JOIN users u ON p.created_by_user_id = u.id
@@ -155,13 +168,18 @@ router.get('/permits', async (req, res) => {
   }
 });
 
-// GET /api/admin/permits/:id - Single permit details
+// GET /api/admin/permits/:id - Get single permit details
 router.get('/permits/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
     const [permits] = await pool.query(`
-      SELECT p.*, s.name as site_name, s.address, u.full_name, u.email
+      SELECT 
+        p.*,
+        s.name as site_name,
+        s.address as site_address,
+        u.full_name as created_by_name,
+        u.email as created_by_email
       FROM permits p
       JOIN sites s ON p.site_id = s.id
       JOIN users u ON p.created_by_user_id = u.id
@@ -172,13 +190,10 @@ router.get('/permits/:id', async (req, res) => {
       return res.status(404).json({ error: 'Permit not found' });
     }
 
-    const permit = permits[0];
-
     // Get team members
-    const [teamMembers] = await pool.query(
-      'SELECT * FROM permit_team_members WHERE permit_id = ?',
-      [id]
-    );
+    const [teamMembers] = await pool.query(`
+      SELECT * FROM permit_team_members WHERE permit_id = ?
+    `, [id]);
 
     // Get hazards
     const [hazards] = await pool.query(`
@@ -196,14 +211,16 @@ router.get('/permits/:id', async (req, res) => {
 
     // Get approvals
     const [approvals] = await pool.query(`
-      SELECT pa.*, u.full_name
+      SELECT 
+        pa.*,
+        u.full_name as approver_name
       FROM permit_approvals pa
       JOIN users u ON pa.approver_user_id = u.id
       WHERE pa.permit_id = ?
     `, [id]);
 
     res.json({
-      permit,
+      permit: permits[0],
       teamMembers,
       hazards,
       ppe,
@@ -228,7 +245,7 @@ router.get('/users', async (req, res) => {
         email,
         role,
         department as site,
-        created_at
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') as created_at
       FROM users
       WHERE 1=1
     `;
@@ -260,46 +277,43 @@ router.post('/users', async (req, res) => {
       return res.status(400).json({ error: 'Full name, email, and site are required' });
     }
 
-    // Map type to role
-    const roleMap = {
+    // Map frontend type to database role
+    const roleMapping = {
       'Worker': 'Requester',
       'Supervisor': 'Approver_AreaManager',
       'Safety': 'Approver_Safety',
       'Admin': 'Admin'
     };
 
-    const role = roleMap[type] || 'Requester';
+    const role = roleMapping[type] || 'Requester';
 
-    // Generate login_id
-    const login_id = fullName.toLowerCase().replace(/\s+/g, '').substring(0, 10) + 
-                     Math.floor(Math.random() * 1000);
+    // Generate unique login_id
+    const loginId = fullName.toLowerCase()
+      .replace(/\s+/g, '')
+      .substring(0, 10) + 
+      Math.floor(Math.random() * 1000);
 
-    // Check if user exists
+    // Check if login_id or email already exists
     const [existing] = await pool.query(
       'SELECT id FROM users WHERE login_id = ? OR email = ?',
-      [login_id, email]
+      [loginId, email]
     );
 
     if (existing.length > 0) {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
 
-    // Insert user
     const [result] = await pool.query(
       'INSERT INTO users (login_id, full_name, email, role, department) VALUES (?, ?, ?, ?, ?)',
-      [login_id, fullName, email, role, site]
+      [loginId, fullName, email, role, site]
     );
 
-    res.status(201).json({
-      user: {
-        id: result.insertId,
-        login_id,
-        name: fullName,
-        email,
-        role,
-        site
-      }
-    });
+    const [newUser] = await pool.query(
+      'SELECT id, login_id, full_name as name, email, role, department as site FROM users WHERE id = ?',
+      [result.insertId]
+    );
+
+    res.status(201).json({ user: newUser[0] });
   } catch (error) {
     console.error('Error adding user:', error);
     res.status(500).json({ error: 'Failed to add user' });
@@ -312,37 +326,34 @@ router.put('/users/:id', async (req, res) => {
     const { id } = req.params;
     const { fullName, email, role, department } = req.body;
 
-    const updates = [];
+    const updateFields = [];
     const params = [];
 
     if (fullName) {
-      updates.push('full_name = ?');
+      updateFields.push('full_name = ?');
       params.push(fullName);
     }
-
     if (email) {
-      updates.push('email = ?');
+      updateFields.push('email = ?');
       params.push(email);
     }
-
     if (role) {
-      updates.push('role = ?');
+      updateFields.push('role = ?');
       params.push(role);
     }
-
     if (department) {
-      updates.push('department = ?');
+      updateFields.push('department = ?');
       params.push(department);
     }
 
-    if (updates.length === 0) {
+    if (updateFields.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
     params.push(id);
 
     const [result] = await pool.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
       params
     );
 
@@ -350,12 +361,12 @@ router.put('/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const [users] = await pool.query(
+    const [updatedUser] = await pool.query(
       'SELECT id, login_id, full_name as name, email, role, department as site FROM users WHERE id = ?',
       [id]
     );
 
-    res.json({ user: users[0] });
+    res.json({ user: updatedUser[0] });
   } catch (error) {
     console.error('Error updating user:', error);
     res.status(500).json({ error: 'Failed to update user' });
@@ -401,19 +412,15 @@ router.get('/sites', async (req, res) => {
         s.site_code,
         s.name,
         s.address as location,
-        COUNT(p.id) as permit_count
+        COUNT(p.id) as permit_count,
+        'active' as status
       FROM sites s
       LEFT JOIN permits p ON s.id = p.site_id
-      GROUP BY s.id
+      GROUP BY s.id, s.site_code, s.name, s.address
       ORDER BY s.id ASC
     `);
 
-    const sitesWithStatus = sites.map(site => ({
-      ...site,
-      status: 'active'
-    }));
-
-    res.json({ sites: sitesWithStatus });
+    res.json({ sites });
   } catch (error) {
     console.error('Error fetching sites:', error);
     res.status(500).json({ error: 'Failed to fetch sites' });
@@ -429,33 +436,40 @@ router.post('/sites', async (req, res) => {
       return res.status(400).json({ error: 'Name and location are required' });
     }
 
-    // Generate site_code
-    const site_code = name.substring(0, 4).toUpperCase() + Math.floor(Math.random() * 100);
+    // Generate unique site_code
+    const siteCode = name.substring(0, 4).toUpperCase() + 
+      Math.floor(Math.random() * 100);
 
-    // Check if site code exists
+    // Check if site_code already exists
     const [existing] = await pool.query(
       'SELECT id FROM sites WHERE site_code = ?',
-      [site_code]
+      [siteCode]
     );
 
     if (existing.length > 0) {
-      return res.status(400).json({ error: 'Site code already exists. Please try again.' });
+      return res.status(400).json({ error: 'Site code already exists' });
     }
 
-    // Insert site
     const [result] = await pool.query(
       'INSERT INTO sites (site_code, name, address) VALUES (?, ?, ?)',
-      [site_code, name, location]
+      [siteCode, name, location]
     );
 
-    res.status(201).json({
+    const [newSite] = await pool.query(
+      `SELECT 
+        id, 
+        site_code, 
+        name, 
+        address as location,
+        'active' as status
+      FROM sites WHERE id = ?`,
+      [result.insertId]
+    );
+
+    res.status(201).json({ 
       site: {
-        id: result.insertId,
-        site_code,
-        name,
-        location,
+        ...newSite[0],
         area,
-        status: 'active',
         permit_count: 0
       }
     });
@@ -471,27 +485,26 @@ router.put('/sites/:id', async (req, res) => {
     const { id } = req.params;
     const { name, location } = req.body;
 
-    const updates = [];
+    const updateFields = [];
     const params = [];
 
     if (name) {
-      updates.push('name = ?');
+      updateFields.push('name = ?');
       params.push(name);
     }
-
     if (location) {
-      updates.push('address = ?');
+      updateFields.push('address = ?');
       params.push(location);
     }
 
-    if (updates.length === 0) {
+    if (updateFields.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
     params.push(id);
 
     const [result] = await pool.query(
-      `UPDATE sites SET ${updates.join(', ')} WHERE id = ?`,
+      `UPDATE sites SET ${updateFields.join(', ')} WHERE id = ?`,
       params
     );
 
@@ -499,12 +512,12 @@ router.put('/sites/:id', async (req, res) => {
       return res.status(404).json({ error: 'Site not found' });
     }
 
-    const [sites] = await pool.query(
+    const [updatedSite] = await pool.query(
       'SELECT id, site_code, name, address as location FROM sites WHERE id = ?',
       [id]
     );
 
-    res.json({ site: { ...sites[0], status: 'active' } });
+    res.json({ site: updatedSite[0] });
   } catch (error) {
     console.error('Error updating site:', error);
     res.status(500).json({ error: 'Failed to update site' });
@@ -516,12 +529,12 @@ router.delete('/sites/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if site has any permits
+    // Check if site has permits
     const [permits] = await pool.query(
       'SELECT COUNT(*) as count FROM permits WHERE site_id = ?',
       [id]
     );
-
+    
     if (permits[0].count > 0) {
       return res.status(400).json({ 
         error: `Cannot delete site with ${permits[0].count} existing permit(s)` 
@@ -558,29 +571,29 @@ router.get('/analytics', async (req, res) => {
         COUNT(*) as count
       FROM permits
       WHERE created_at >= DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY)
-      GROUP BY date
+      GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d')
       ORDER BY date ASC
     `);
 
     // Permits by site
     const [siteData] = await pool.query(`
       SELECT 
-        s.name,
+        s.name as site,
         COUNT(p.id) as count
       FROM sites s
       LEFT JOIN permits p ON s.id = p.site_id
-      GROUP BY s.id
+      GROUP BY s.id, s.name
       ORDER BY count DESC
     `);
 
     // Top issuers
     const [issuerData] = await pool.query(`
       SELECT 
-        u.full_name,
+        u.full_name as name,
         COUNT(p.id) as count
       FROM users u
       LEFT JOIN permits p ON u.id = p.created_by_user_id
-      GROUP BY u.id
+      GROUP BY u.id, u.full_name
       ORDER BY count DESC
       LIMIT 10
     `);

@@ -10,7 +10,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true
 }));
 app.use(express.json());
@@ -22,9 +22,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Import routes - UPDATED to use src/ folder
-const authRoutes = require('./src/routes/auth.routes');
-const adminRoutes = require('./src/routes/admin.routes');
+// Import routes
+const authRoutes = require('./routes/auth.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 // API Routes
 app.use('/api/auth', authRoutes);

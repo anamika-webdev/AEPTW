@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 const JWT_EXPIRY = '7d';
 
 // ============================================
-// POST /api/v1/auth/register - User Registration
+// POST /api/auth/register - User Registration
 // ============================================
 router.post('/register', async (req, res) => {
   try {
@@ -146,7 +146,7 @@ router.post('/register', async (req, res) => {
 });
 
 // ============================================
-// POST /api/v1/auth/login - User Login
+// POST /api/auth/login - User Login
 // ============================================
 router.post('/login', async (req, res) => {
   try {
@@ -298,7 +298,7 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================
-// GET /api/v1/auth/me - Get Current User
+// GET /api/auth/me - Get Current User
 // ============================================
 router.get('/me', async (req, res) => {
   try {
@@ -372,7 +372,7 @@ router.get('/me', async (req, res) => {
 });
 
 // ============================================
-// POST /api/v1/auth/logout - User Logout
+// POST /api/auth/logout - User Logout
 // ============================================
 router.post('/logout', async (req, res) => {
   try {
