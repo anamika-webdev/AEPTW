@@ -38,78 +38,71 @@ interface CreatePTWProps {
 const PPEIcon = ({ name }: { name: string }) => {
   const icons: Record<string, JSX.Element> = {
     'Safety Helmet': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 13h16M4 13v1a7 7 0 0 0 7 7h2a7 7 0 0 0 7-7v-1"/>
-        <path d="M12 2a8 8 0 0 0-8 8v3h16v-3a8 8 0 0 0-8-8z"/>
-        <path d="M9 13v2m6-2v2"/>
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 2C8.5 2 5.5 4.5 5 8v3h14V8c-.5-3.5-3.5-6-7-6z"/>
+        <path d="M4 11h16v2H4z"/>
+        <path d="M5 13v3c0 1.5 1 3 2 4h10c1-1 2-2.5 2-4v-3"/>
       </svg>
     ),
     'Safety Vest': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M7 5L5 7v15h5V8L7 5zM17 5l2 2v15h-5V8l3-3z"/>
-        <path d="M10 8v14h4V8"/>
-        <circle cx="12" cy="5" r="2" fill="currentColor"/>
-        <path d="M6 12h4m4 0h4M6 16h4m4 0h4"/>
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 2L8 6v16h8V6l-4-4z"/>
+        <path d="M8 10h8M8 14h8M8 18h8"/>
+        <circle cx="12" cy="7" r="1.5" fill="currentColor"/>
       </svg>
     ),
     'Safety Gloves': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 7V4a2 2 0 0 0-2-2h-3v5m0 0V2H9a2 2 0 0 0-2 2v3"/>
-        <path d="M7 7h10v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7z"/>
-        <path d="M9 10v4m2-4v4m2-4v4m2-4v4"/>
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M18 8V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4"/>
+        <rect x="6" y="8" width="12" height="14" rx="2"/>
+        <path d="M10 8v6M14 8v6"/>
       </svg>
     ),
     'Safety Boots': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 20h14v2H5z"/>
-        <path d="M8 20V9a3 3 0 0 1 3-3h2a3 3 0 0 1 3 3v11"/>
-        <path d="M11 6h4M8 11h8M8 15h8"/>
-        <circle cx="10" cy="18" r="0.5" fill="currentColor"/>
-        <circle cx="14" cy="18" r="0.5" fill="currentColor"/>
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M4 18h16v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3z"/>
+        <path d="M8 18V8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v10"/>
+        <path d="M12 8h4"/>
       </svg>
     ),
     'Safety Glasses': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 10h4a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3H2"/>
-        <path d="M22 10h-4a3 3 0 0 0-3 3v0a3 3 0 0 0 3 3h4"/>
-        <path d="M9 13h6"/>
-        <path d="M6 10c0-2 1-4 6-4s6 2 6 4"/>
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+        <circle cx="8" cy="12" r="3"/>
+        <circle cx="16" cy="12" r="3"/>
       </svg>
     ),
     'Face Mask': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 11h18v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5v-5z"/>
-        <path d="M7 11V8a5 5 0 0 1 10 0v3"/>
-        <path d="M7 14h10M7 17h10"/>
-        <circle cx="9" cy="8" r="0.5" fill="currentColor"/>
-        <circle cx="15" cy="8" r="0.5" fill="currentColor"/>
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 11c0-1 1-2 2-2h14c1 0 2 1 2 2v4c0 3-2 5-5 5H8c-3 0-5-2-5-5v-4z"/>
+        <path d="M7 9V7a5 5 0 0 1 10 0v2"/>
+        <path d="M8 13h8M8 16h8"/>
       </svg>
     ),
     'Ear Protection': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 12h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"/>
-        <path d="M20 12h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"/>
-        <path d="M6 12V8a6 6 0 0 1 12 0v4"/>
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 8a6 6 0 0 1 12 0"/>
+        <rect x="4" y="10" width="4" height="8" rx="2"/>
+        <rect x="16" y="10" width="4" height="8" rx="2"/>
       </svg>
     ),
     'Safety Harness': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="4" r="2"/>
-        <path d="M12 6v3"/>
-        <path d="M8 9l4 2 4-2"/>
-        <path d="M10 11v10"/>
-        <path d="M14 11v10"/>
-        <path d="M8 21h8"/>
-        <path d="M12 11v4"/>
-        <circle cx="12" cy="17" r="1" fill="currentColor"/>
+        <path d="M12 6v4"/>
+        <path d="M8 10l4 2 4-2"/>
+        <path d="M10 12v8"/>
+        <path d="M14 12v8"/>
+        <path d="M8 20h8"/>
+        <path d="M12 10v2"/>
       </svg>
     ),
   };
 
   return icons[name] || (
-    <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10"/>
-      <path d="M12 6v6l4 4"/>
+      <path d="M12 6v6l4 2"/>
     </svg>
   );
 };
@@ -901,29 +894,19 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     key={ppe.id}
                     type="button"
                     onClick={() => togglePPE(ppe.id)}
-                    className={`relative flex flex-col items-center gap-3 p-4 border-2 rounded-lg transition-all ${
+                    className={`flex flex-col items-center gap-2 p-4 border-2 rounded-lg transition-all ${
                       formData.selectedPPE.includes(ppe.id)
-                        ? 'border-green-500 bg-green-50 shadow-md'
-                        : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-600'
                     }`}
                   >
-                    <div className={`transition-colors ${
-                      formData.selectedPPE.includes(ppe.id) 
-                        ? 'text-green-600' 
-                        : 'text-slate-600'
-                    }`}>
+                    <div className={formData.selectedPPE.includes(ppe.id) ? 'text-green-600' : 'text-slate-500'}>
                       <PPEIcon name={ppe.name} />
                     </div>
-                    <span className={`text-xs font-medium text-center ${
-                      formData.selectedPPE.includes(ppe.id)
-                        ? 'text-green-700'
-                        : 'text-slate-700'
-                    }`}>
-                      {ppe.name}
-                    </span>
+                    <span className="text-xs font-medium text-center text-slate-700">{ppe.name}</span>
                     {formData.selectedPPE.includes(ppe.id) && (
-                      <div className="absolute p-1 bg-green-600 rounded-full top-2 right-2">
-                        <Check className="w-3 h-3 text-white" />
+                      <div className="absolute top-2 right-2">
+                        <Check className="w-5 h-5 text-green-600 bg-white rounded-full p-0.5" />
                       </div>
                     )}
                   </button>

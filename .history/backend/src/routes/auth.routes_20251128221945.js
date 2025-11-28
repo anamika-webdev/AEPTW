@@ -1,4 +1,4 @@
-// backend/routes/auth.routes.js
+// backend/src/routes/auth.routes.js
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
@@ -10,8 +10,13 @@ router.post('/login', async (req, res) => {
   try {
     const { login_id, password } = req.body;
 
+    console.log('Login attempt for:', login_id);
+
     if (!login_id || !password) {
-      return res.status(400).json({ error: 'Login ID and password are required' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Login ID and password are required' 
+      });
     }
 
     // Get user from database
@@ -21,16 +26,21 @@ router.post('/login', async (req, res) => {
     );
 
     if (users.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      console.log('User not found:', login_id);
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid credentials' 
+      });
     }
 
     const user = users[0];
+    console.log('User found:', user.login_id, 'Role:', user.role);
 
     // For demo: accept any password
     // In production, verify with bcrypt:
     // const isValidPassword = await bcrypt.compare(password, user.password_hash);
     // if (!isValidPassword) {
-    //   return res.status(401).json({ error: 'Invalid credentials' });
+    //   return res.status(401).json({ success: false, message: 'Invalid credentials' });
     // }
 
     // Generate JWT token
@@ -45,20 +55,31 @@ router.post('/login', async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
+    console.log('Login successful for:', user.login_id);
+
+    // Return response in the format frontend expects
     res.json({
-      token,
-      user: {
-        id: user.id,
-        login_id: user.login_id,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role,
-        department: user.department
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        user: {
+          id: user.id,
+          login_id: user.login_id,
+          full_name: user.full_name,
+          email: user.email,
+          role: user.role,
+          department: user.department
+        }
       }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Login failed',
+      error: error.message 
+    });
   }
 });
 
@@ -67,8 +88,13 @@ router.post('/register', async (req, res) => {
   try {
     const { login_id, full_name, email, password, role, department } = req.body;
 
+    console.log('Registration attempt:', { login_id, email, role });
+
     if (!login_id || !full_name || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'All fields are required' 
+      });
     }
 
     // Check if user exists
@@ -78,7 +104,10 @@ router.post('/register', async (req, res) => {
     );
 
     if (existing.length > 0) {
-      return res.status(400).json({ error: 'User already exists' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'User already exists' 
+      });
     }
 
     // Hash password (for production)
@@ -90,13 +119,30 @@ router.post('/register', async (req, res) => {
       [login_id, full_name, email, role || 'Requester', department]
     );
 
+    console.log('User registered successfully:', login_id);
+
+    // Return response in the format frontend expects
     res.status(201).json({
+      success: true,
       message: 'User registered successfully',
-      userId: result.insertId
+      data: {
+        user: {
+          id: result.insertId,
+          login_id,
+          full_name,
+          email,
+          role: role || 'Requester',
+          department
+        }
+      }
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Registration failed',
+      error: error.message 
+    });
   }
 });
 
@@ -106,7 +152,10 @@ router.get('/me', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     
     if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided' 
+      });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret_change_in_production');
@@ -117,13 +166,25 @@ router.get('/me', async (req, res) => {
     );
 
     if (users.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
     }
 
-    res.json({ user: users[0] });
+    res.json({ 
+      success: true,
+      data: {
+        user: users[0] 
+      }
+    });
   } catch (error) {
     console.error('Token verification error:', error);
-    res.status(403).json({ error: 'Invalid token' });
+    res.status(403).json({ 
+      success: false,
+      message: 'Invalid token',
+      error: error.message 
+    });
   }
 });
 

@@ -34,89 +34,10 @@ interface CreatePTWProps {
   onSuccess?: () => void;
 }
 
-// PPE SVG Icons Component
-const PPEIcon = ({ name }: { name: string }) => {
-  const icons: Record<string, JSX.Element> = {
-    'Safety Helmet': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 13h16M4 13v1a7 7 0 0 0 7 7h2a7 7 0 0 0 7-7v-1"/>
-        <path d="M12 2a8 8 0 0 0-8 8v3h16v-3a8 8 0 0 0-8-8z"/>
-        <path d="M9 13v2m6-2v2"/>
-      </svg>
-    ),
-    'Safety Vest': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M7 5L5 7v15h5V8L7 5zM17 5l2 2v15h-5V8l3-3z"/>
-        <path d="M10 8v14h4V8"/>
-        <circle cx="12" cy="5" r="2" fill="currentColor"/>
-        <path d="M6 12h4m4 0h4M6 16h4m4 0h4"/>
-      </svg>
-    ),
-    'Safety Gloves': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 7V4a2 2 0 0 0-2-2h-3v5m0 0V2H9a2 2 0 0 0-2 2v3"/>
-        <path d="M7 7h10v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7z"/>
-        <path d="M9 10v4m2-4v4m2-4v4m2-4v4"/>
-      </svg>
-    ),
-    'Safety Boots': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 20h14v2H5z"/>
-        <path d="M8 20V9a3 3 0 0 1 3-3h2a3 3 0 0 1 3 3v11"/>
-        <path d="M11 6h4M8 11h8M8 15h8"/>
-        <circle cx="10" cy="18" r="0.5" fill="currentColor"/>
-        <circle cx="14" cy="18" r="0.5" fill="currentColor"/>
-      </svg>
-    ),
-    'Safety Glasses': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 10h4a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3H2"/>
-        <path d="M22 10h-4a3 3 0 0 0-3 3v0a3 3 0 0 0 3 3h4"/>
-        <path d="M9 13h6"/>
-        <path d="M6 10c0-2 1-4 6-4s6 2 6 4"/>
-      </svg>
-    ),
-    'Face Mask': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 11h18v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5v-5z"/>
-        <path d="M7 11V8a5 5 0 0 1 10 0v3"/>
-        <path d="M7 14h10M7 17h10"/>
-        <circle cx="9" cy="8" r="0.5" fill="currentColor"/>
-        <circle cx="15" cy="8" r="0.5" fill="currentColor"/>
-      </svg>
-    ),
-    'Ear Protection': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 12h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"/>
-        <path d="M20 12h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"/>
-        <path d="M6 12V8a6 6 0 0 1 12 0v4"/>
-      </svg>
-    ),
-    'Safety Harness': (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="4" r="2"/>
-        <path d="M12 6v3"/>
-        <path d="M8 9l4 2 4-2"/>
-        <path d="M10 11v10"/>
-        <path d="M14 11v10"/>
-        <path d="M8 21h8"/>
-        <path d="M12 11v4"/>
-        <circle cx="12" cy="17" r="1" fill="currentColor"/>
-      </svg>
-    ),
-  };
-
-  return icons[name] || (
-    <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M12 6v6l4 4"/>
-    </svg>
-  );
-};
-
 export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [showSignature, setShowSignature] = useState(false);
+  const [signatureType, setSignatureType] = useState<string>('');
   const [workerSelectionMode, setWorkerSelectionMode] = useState<'existing' | 'new'>('existing');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -249,9 +170,13 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
     setIsSubmitting(true);
     try {
-      // Upload SWMS file if present (currently not used in final submission)
+      // Upload SWMS file if present
+      let swmsUrl = '';
       if (formData.swmsFile) {
-        await uploadAPI.uploadSWMS(formData.swmsFile);
+        const uploadRes = await uploadAPI.uploadSWMS(formData.swmsFile);
+        if (uploadRes.success && uploadRes.data) {
+          swmsUrl = uploadRes.data.url;
+        }
       }
 
       // Prepare team members data
@@ -398,12 +323,13 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
   interface RequirementRowProps {
+    questionId: number;
     label: string;
     value: ChecklistResponse | undefined;
     onChange: (value: ChecklistResponse) => void;
   }
 
-  const RequirementRow = ({ label, value, onChange }: RequirementRowProps) => (
+  const RequirementRow = ({ questionId, label, value, onChange }: RequirementRowProps) => (
     <div className="flex items-center justify-between py-3 border-b border-slate-100">
       <span className="text-sm text-slate-700">{label}</span>
       <div className="flex gap-2">
@@ -485,11 +411,11 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="General">General Work</SelectItem>
-                    <SelectItem value="Height">Work at Height</SelectItem>
-                    <SelectItem value="Electrical">Electrical Work</SelectItem>
-                    <SelectItem value="Hot_Work">Hot Work</SelectItem>
-                    <SelectItem value="Confined_Space">Confined Space</SelectItem>
+                    <SelectItem value="General Work">General Work</SelectItem>
+                    <SelectItem value="Work at Height">Work at Height</SelectItem>
+                    <SelectItem value="Electrical Work">Electrical Work</SelectItem>
+                    <SelectItem value="Hot Work">Hot Work</SelectItem>
+                    <SelectItem value="Confined Space">Confined Space</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -506,7 +432,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                   <SelectContent>
                     {sites.map(site => (
                       <SelectItem key={site.id} value={site.id.toString()}>
-                        {site.name}
+                        {site.site_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -587,7 +513,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     <SelectItem value="0">No Vendor</SelectItem>
                     {vendors.map(vendor => (
                       <SelectItem key={vendor.id} value={vendor.id.toString()}>
-                        {vendor.company_name}
+                        {vendor.vendor_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -607,8 +533,11 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               <div className="flex items-center gap-4">
                 <Button
                   type="button"
-                  onClick={() => setShowSignature(true)}
-                  variant={formData.issuerSignature ? 'outline' : 'primary'}
+                  onClick={() => {
+                    setSignatureType('issuer');
+                    setShowSignature(true);
+                  }}
+                  variant={formData.issuerSignature ? 'outline' : 'default'}
                   className="gap-2"
                 >
                   <FileText className="w-4 h-4" />
@@ -804,9 +733,9 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                               <SelectContent>
                                 <SelectItem value="Worker">Worker</SelectItem>
                                 <SelectItem value="Supervisor">Supervisor</SelectItem>
-                                <SelectItem value="Fire_Watcher">Fire Watcher</SelectItem>
-                                <SelectItem value="Entrant">Entrant</SelectItem>
-                                <SelectItem value="Standby">Standby</SelectItem>
+                                <SelectItem value="Technician">Technician</SelectItem>
+                                <SelectItem value="Engineer">Engineer</SelectItem>
+                                <SelectItem value="Contractor">Contractor</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -849,7 +778,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                       checked={formData.selectedHazards.includes(hazard.id)}
                       onCheckedChange={() => toggleHazard(hazard.id)}
                     />
-                    <span className="text-sm text-slate-700">{hazard.name}</span>
+                    <span className="text-sm text-slate-700">{hazard.hazard_name}</span>
                   </label>
                 ))}
               </div>
@@ -877,7 +806,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               />
             </div>
 
-            {/* Simplified Safety Measures Note */}
+            {/* Simplified Safety Measures Note - UPDATED */}
             <div className="p-5 border-2 rounded-lg bg-amber-50 border-amber-300">
               <p className="text-sm font-medium text-slate-800">
                 <span className="font-bold text-amber-800">Note:</span> Describe all safety measures, procedures, and precautions to be taken.
@@ -901,30 +830,16 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     key={ppe.id}
                     type="button"
                     onClick={() => togglePPE(ppe.id)}
-                    className={`relative flex flex-col items-center gap-3 p-4 border-2 rounded-lg transition-all ${
+                    className={`flex flex-col items-center gap-2 p-4 border-2 rounded-lg transition-all ${
                       formData.selectedPPE.includes(ppe.id)
-                        ? 'border-green-500 bg-green-50 shadow-md'
-                        : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <div className={`transition-colors ${
-                      formData.selectedPPE.includes(ppe.id) 
-                        ? 'text-green-600' 
-                        : 'text-slate-600'
-                    }`}>
-                      <PPEIcon name={ppe.name} />
-                    </div>
-                    <span className={`text-xs font-medium text-center ${
-                      formData.selectedPPE.includes(ppe.id)
-                        ? 'text-green-700'
-                        : 'text-slate-700'
-                    }`}>
-                      {ppe.name}
-                    </span>
+                    <div className="text-3xl">{ppe.icon || '🦺'}</div>
+                    <span className="text-xs text-center text-slate-700">{ppe.ppe_name}</span>
                     {formData.selectedPPE.includes(ppe.id) && (
-                      <div className="absolute p-1 bg-green-600 rounded-full top-2 right-2">
-                        <Check className="w-3 h-3 text-white" />
-                      </div>
+                      <Check className="w-4 h-4 text-green-600" />
                     )}
                   </button>
                 ))}
@@ -979,6 +894,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                   {checklistQuestions.map((question) => (
                     <RequirementRow
                       key={question.id}
+                      questionId={question.id}
                       label={question.question_text}
                       value={formData.checklistResponses[question.id]}
                       onChange={(value) =>
@@ -1023,7 +939,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <div>
                   <p className="text-sm text-slate-500">Site</p>
                   <p className="font-medium text-slate-900">
-                    {sites.find(s => s.id === formData.site_id)?.name || 'Not selected'}
+                    {sites.find(s => s.id === formData.site_id)?.site_name || 'Not selected'}
                   </p>
                 </div>
                 <div>

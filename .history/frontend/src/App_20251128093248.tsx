@@ -13,7 +13,7 @@ import AllPermits from './pages/admin/AllPermits';
 // Supervisor Pages
 import { SupervisorDashboard } from './components/supervisor/SupervisorDashboard';
 import { CreatePTW } from './components/supervisor/CreatePTW';
-import { WorkerList } from './components/supervisor/WorkerList';
+import WorkerList from './pages/supervisor/WorkerList';
 
 // Common Components
 import Sidebar from './components/common/Sidebar';
@@ -118,7 +118,7 @@ function App() {
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           {/* Admin Pages */}
           {currentPage === 'dashboard' && currentUser.role === 'Admin' && (
-            <AdminDashboard />
+            <AdminDashboard onNavigate={handleNavigate} />
           )}
           {currentPage === 'site-management' && <SiteManagement />}
           {currentPage === 'user-management' && <UserManagement />}
@@ -134,9 +134,7 @@ function App() {
               onSuccess={() => handleNavigate('dashboard')}
             />
           )}
-          {currentPage === 'worker-list' && (
-            <WorkerList onBack={() => handleNavigate('dashboard')} />
-          )}
+          {currentPage === 'worker-list' && <WorkerList onNavigate={handleNavigate} />}
         </main>
       </div>
     </div>

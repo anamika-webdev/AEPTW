@@ -10,10 +10,10 @@ import SiteManagement from './pages/admin/SiteManagement';
 import UserManagement from './pages/admin/UserManagement';
 import AllPermits from './pages/admin/AllPermits';
 
-// Supervisor Pages
+// Supervisor Pages - CORRECTED IMPORTS
 import { SupervisorDashboard } from './components/supervisor/SupervisorDashboard';
-import { CreatePTW } from './components/supervisor/CreatePTW';
-import { WorkerList } from './components/supervisor/WorkerList';
+import { CreatePTW } from './components/supervisor/CreatePTW';  // ← CHANGED FROM CreatePermit
+import WorkerList from './pages/supervisor/WorkerList';
 
 // Common Components
 import Sidebar from './components/common/Sidebar';
@@ -96,29 +96,28 @@ function App() {
     );
   }
 
-  // Main app interface
+  // Main app interface - CORRECTED
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar
-        currentUser={currentUser}
         currentPage={currentPage}
         onNavigate={handleNavigate}
         onLogout={handleLogout}
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuClose={() => setIsMobileMenuOpen(false)}
+        userRole={currentUser.role}
       />
 
       <div className="flex flex-col flex-1 lg:ml-64">
         <Header
-          currentUser={currentUser}
-          onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          onLogout={handleLogout}
+          onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          userName={currentUser.full_name}
         />
 
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           {/* Admin Pages */}
           {currentPage === 'dashboard' && currentUser.role === 'Admin' && (
-            <AdminDashboard />
+            <AdminDashboard onNavigate={handleNavigate} />
           )}
           {currentPage === 'site-management' && <SiteManagement />}
           {currentPage === 'user-management' && <UserManagement />}
@@ -126,7 +125,7 @@ function App() {
 
           {/* Supervisor Pages */}
           {currentPage === 'dashboard' && currentUser.role !== 'Admin' && (
-            <SupervisorDashboard onNavigate={handleNavigate} />
+            <SupervisorDashboard onNavigate={handleNavigate} onPTWSelect={() => {}} />
           )}
           {currentPage === 'create-permit' && (
             <CreatePTW 
@@ -134,9 +133,7 @@ function App() {
               onSuccess={() => handleNavigate('dashboard')}
             />
           )}
-          {currentPage === 'worker-list' && (
-            <WorkerList onBack={() => handleNavigate('dashboard')} />
-          )}
+          {currentPage === 'worker-list' && <WorkerList onNavigate={handleNavigate} />}
         </main>
       </div>
     </div>
