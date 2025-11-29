@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const pool = require('../config/database');
 
 // @desc    Get all vendors
 // @route   GET /api/v1/vendors

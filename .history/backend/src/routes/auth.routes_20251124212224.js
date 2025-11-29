@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { pool } = require('../config/database');
+const pool = require('../config/database');
 const passport = require('../config/passport');
 
 // ==================== LOCAL LOGIN (Email/Password) ====================

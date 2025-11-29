@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 
 // @desc    Get all users

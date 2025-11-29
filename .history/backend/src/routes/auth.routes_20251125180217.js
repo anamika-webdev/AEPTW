@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { pool } = require('../config/database'); // ✅ Import pool correctly
+const pool = require('../config/database'); // ✅ Import pool correctly
 
 // JWT Secret from environment
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';

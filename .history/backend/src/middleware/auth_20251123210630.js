@@ -1,5 +1,5 @@
 const { verifyToken } = require('../utils/jwtUtils');
-const { pool } = require('../config/database');
+const pool = require('../config/database');
 
 // Verify JWT token from header
 const authenticate = async (req, res, next) => {

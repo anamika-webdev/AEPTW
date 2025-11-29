@@ -1,7 +1,7 @@
 // userRoutes.js
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../config/database');
+const pool = require('../config/database');
 const { authenticateToken, authorize } = require('../middleware/auth');
 
 router.get('/', authenticateToken, async (req, res) => {

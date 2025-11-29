@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const pool = require('../config/database');
 
 // @desc    Get all permits with filters
 // @route   GET /api/v1/permits
