@@ -30,12 +30,8 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load user ONCE on mount
   useEffect(() => {
-    if (isInitialized) return; // Prevent running multiple times
-    
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
     
@@ -44,13 +40,10 @@ function App() {
         setCurrentUser(JSON.parse(userStr));
       } catch (error) {
         console.error('Error parsing user:', error);
-        localStorage.clear();
-        sessionStorage.clear();
+        handleLogout();
       }
     }
-    
-    setIsInitialized(true);
-  }, [isInitialized]); // Only run when isInitialized changes
+  }, []);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -69,18 +62,6 @@ function App() {
     setIsMobileMenuOpen(false);
   };
 
-  // Show loading while initializing
-  if (!isInitialized) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-12 h-12 mx-auto border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!currentUser) {
     return (
       <Router>
@@ -95,20 +76,9 @@ function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar 
-        currentUser={currentUser} 
-        currentPage={currentPage} 
-        onNavigate={handleNavigate} 
-        onLogout={handleLogout} 
-        isMobileMenuOpen={isMobileMenuOpen} 
-        onMobileMenuClose={() => setIsMobileMenuOpen(false)} 
-      />
+      <Sidebar currentUser={currentUser} currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} isMobileMenuOpen={isMobileMenuOpen} onMobileMenuClose={() => setIsMobileMenuOpen(false)} />
       <div className="flex flex-col flex-1 lg:ml-64">
-        <Header 
-          currentUser={currentUser} 
-          onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-          onLogout={handleLogout} 
-        />
+        <Header currentUser={currentUser} onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} onLogout={handleLogout} />
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           {currentPage === 'dashboard' && currentUser.role === 'Admin' && <AdminDashboard />}
           {currentPage === 'site-management' && <SiteManagement />}

@@ -1,4 +1,4 @@
-
+@'
 // backend/src/middleware/auth.middleware.js
 const jwt = require('jsonwebtoken');
 
@@ -39,3 +39,6 @@ const isAdmin = (req, res, next) => {
 };
 
 module.exports = { authenticateToken, isAdmin };
+'@ | Out-File -FilePath "backend\src\middleware\auth.middleware.js" -Encoding UTF8 -Force
+
+Write-Host "✅ Fixed auth.middleware.js" -ForegroundColor Green
