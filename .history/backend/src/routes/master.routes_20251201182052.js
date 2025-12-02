@@ -9,14 +9,26 @@ router.use(authenticateToken);
 
 // ============= HAZARDS =============
 
-// GET /api/master/hazards
+// GET /api/master/hazards - Get all hazards
 router.get('/hazards', async (req, res) => {
   try {
-    console.log('📥 GET /api/master/hazards');
+    const { permit_type } = req.query;
     
-    const [hazards] = await pool.query('SELECT * FROM master_hazards ORDER BY id');
+    console.log('📥 GET /api/master/hazards - Fetching hazards from admin database...');
     
-    console.log(`✅ Fetched ${hazards.length} hazards`);
+    let query = 'SELECT * FROM master_hazards WHERE 1=1';
+    const params = [];
+    
+    if (permit_type) {
+      query += ' AND permit_type = ?';
+      params.push(permit_type);
+    }
+    
+    query += ' ORDER BY id';
+    
+    const [hazards] = await pool.query(query, params);
+    
+    console.log(`✅ Successfully fetched ${hazards.length} hazards from admin database`);
     
     res.json({
       success: true,
@@ -24,34 +36,10 @@ router.get('/hazards', async (req, res) => {
       data: hazards
     });
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('❌ Error fetching hazards:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching hazards',
-      error: error.message
-    });
-  }
-});
-
-// GET /api/master/ppe
-router.get('/ppe', async (req, res) => {
-  try {
-    console.log('📥 GET /api/master/ppe');
-    
-    const [ppe] = await pool.query('SELECT * FROM master_ppe ORDER BY id');
-    
-    console.log(`✅ Fetched ${ppe.length} PPE items`);
-    
-    res.json({
-      success: true,
-      count: ppe.length,
-      data: ppe
-    });
-  } catch (error) {
-    console.error('❌ Error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching PPE',
+      message: 'Error fetching hazards from database',
       error: error.message
     });
   }

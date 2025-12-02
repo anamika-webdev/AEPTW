@@ -237,7 +237,7 @@ router.post('/', async (req, res) => {
         safety_officer_id, site_leader_id, issuer_signature,
         area_manager_signature, safety_officer_signature,
         site_leader_signature, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', NOW())
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending_Approval', NOW())
     `, [
       newSerialNumber, site_id, created_by_user_id, permit_type_string,
       work_location || '', work_description || '', start_time, end_time,
@@ -371,55 +371,7 @@ router.put('/:id/status', async (req, res) => {
     });
   }
 });
-// POST /api/permits/:id/request-extension
-router.post('/:id/request-extension', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { new_end_time, reason } = req.body;
-    
-    await pool.query(
-      `UPDATE permits SET status = 'Extension_Requested', end_time = ? WHERE id = ?`,
-      [new_end_time, id]
-    );
-    
-    // Optionally log extension request
-    await pool.query(
-      `INSERT INTO permit_extensions (permit_id, new_end_time, reason, requested_at) 
-       VALUES (?, ?, ?, NOW())`,
-      [id, new_end_time, reason]
-    );
-    
-    res.json({ success: true, message: 'Extension requested successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
-// POST /api/permits/:id/close
-router.post('/:id/close', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { housekeeping_done, tools_removed, locks_removed, area_restored, remarks } = req.body;
-    
-    await pool.query(
-      `UPDATE permits SET status = 'Closed', updated_at = NOW() WHERE id = ?`,
-      [id]
-    );
-    
-    // Log closure details
-    await pool.query(
-      `INSERT INTO permit_closure (
-        permit_id, housekeeping_done, tools_removed, 
-        locks_removed, area_restored, remarks, closed_at
-      ) VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-      [id, housekeeping_done, tools_removed, locks_removed, area_restored, remarks]
-    );
-    
-    res.json({ success: true, message: 'Permit closed successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 // DELETE /api/permits/:id - Delete permit
 router.delete('/:id', async (req, res) => {
   const connection = await pool.getConnection();

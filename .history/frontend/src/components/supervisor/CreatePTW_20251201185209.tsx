@@ -1,5 +1,5 @@
 // src/components/supervisor/CreatePTW.tsx - COMPLETE UPDATED VERSION WITH FIXES
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Upload, FileText, Check, AlertTriangle, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';

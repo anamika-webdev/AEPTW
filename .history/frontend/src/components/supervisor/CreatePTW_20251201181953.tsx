@@ -1,5 +1,5 @@
 // src/components/supervisor/CreatePTW.tsx - COMPLETE UPDATED VERSION WITH FIXES
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Upload, FileText, Check, AlertTriangle, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -225,115 +225,65 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     loadCorrectChecklistQuestions();
   }, []);
 
-const loadMasterData = async () => {
-  setIsLoading(true);
-  try {
-    console.log('🔄 Loading master data from admin database...');
-    
-    // ✅ FIXED: Each API call has its own error handler
-    const [sitesRes, hazardsRes, ppeRes, workersRes] = await Promise.all([
-      sitesAPI.getAll().catch(err => {
-        console.error('❌ Sites API error:', err);
-        return { success: false, data: [] };
-      }),
-      masterDataAPI.getHazards().catch(err => {
-        console.error('❌ Hazards API error:', err);
-        return { success: false, data: [] };
-      }),
-      masterDataAPI.getPPE().catch(err => {
-        console.error('❌ PPE API error:', err);
-        return { success: false, data: [] };
-      }),
-      usersAPI.getWorkers().catch(err => {
-        console.error('❌ Workers API error:', err);
-        return { success: false, data: [] };
-      }),
-    ]);
+  const loadMasterData = async () => {
+    setIsLoading(true);
+    try {
+      console.log('🔄 Loading master data...');
+      
+      const [sitesRes, hazardsRes, ppeRes, workersRes] = await Promise.all([
+        sitesAPI.getAll(),
+        masterDataAPI.getHazards(),
+        masterDataAPI.getPPE(),
+        usersAPI.getWorkers(),
+      ]);
 
-    console.log('📍 Sites API Response:', sitesRes);
-    
-    // ✅ FIXED: Proper null checks and array validation
-    if (sitesRes.success && sitesRes.data) {
-      console.log('✅ Sites loaded:', sitesRes.data.length);
-      setSites(Array.isArray(sitesRes.data) ? sitesRes.data : []);
-    } else {
-      console.warn('⚠️ Sites not loaded');
-      setSites([]);
-    }
-    
-    if (hazardsRes.success && hazardsRes.data) {
-      console.log('✅ Hazards loaded:', hazardsRes.data.length);
-      setHazards(Array.isArray(hazardsRes.data) ? hazardsRes.data : []);
-    } else {
-      console.warn('⚠️ Hazards not loaded');
-      setHazards([]);
-    }
-    
-    if (ppeRes.success && ppeRes.data) {
-      console.log('✅ PPE loaded:', ppeRes.data.length);
-      setPPEItems(Array.isArray(ppeRes.data) ? ppeRes.data : []);
-    } else {
-      console.warn('⚠️ PPE not loaded');
-      setPPEItems([]);
-    }
-    
-    if (workersRes.success && workersRes.data) {
-      console.log('✅ Workers loaded:', workersRes.data.length);
-      setWorkers(Array.isArray(workersRes.data) ? workersRes.data : []);
-    } else {
-      console.warn('⚠️ Workers not loaded');
-      setWorkers([]);
-    }
-    
-    // ✅ FIXED: Don't show error if at least some data loaded
-    const hasData = sitesRes.success || hazardsRes.success || ppeRes.success || workersRes.success;
-    if (!hasData) {
+      console.log('📍 Sites API Response:', sitesRes);
+      
+      if (sitesRes.success && sitesRes.data) {
+        console.log('✅ Sites loaded:', sitesRes.data);
+        setSites(Array.isArray(sitesRes.data) ? sitesRes.data : []);
+      } else {
+        console.warn('⚠️ Sites not loaded, response:', sitesRes);
+        setSites([]);
+      }
+      
+      if (hazardsRes.success && hazardsRes.data) {
+        console.log('✅ Hazards loaded:', hazardsRes.data.length);
+        setHazards(hazardsRes.data);
+      }
+      
+      if (ppeRes.success && ppeRes.data) {
+        console.log('✅ PPE loaded:', ppeRes.data.length);
+        setPPEItems(ppeRes.data);
+      }
+      
+      if (workersRes.success && workersRes.data) {
+        console.log('✅ Workers loaded:', workersRes.data.length);
+        setWorkers(workersRes.data);
+      }
+    } catch (error) {
+      console.error('❌ Error loading master data:', error);
       alert('Failed to load form data. Please refresh the page.');
+    } finally {
+      setIsLoading(false);
     }
-    
-  } catch (error) {
-    console.error('❌ Error loading master data:', error);
-    alert('Failed to load form data. Please refresh the page.');
-  } finally {
-    setIsLoading(false);
-  }
-};
- const loadApprovers = async () => {
-  try {
-    console.log('🔄 Loading approvers...');
-    
-    // ✅ FIXED: Each API call has its own error handler
-    const [amRes, soRes, slRes] = await Promise.all([
-      usersAPI.getApprovers('Approver_AreaManager').catch(err => {
-        console.error('❌ Area Managers API error:', err);
-        return { success: false, data: [] };
-      }),
-      usersAPI.getApprovers('Approver_Safety').catch(err => {
-        console.error('❌ Safety Officers API error:', err);
-        return { success: false, data: [] };
-      }),
-      usersAPI.getApprovers('Approver_SiteLeader').catch(err => {
-        console.error('❌ Site Leaders API error:', err);
-        return { success: false, data: [] };
-      }),
-    ]);
+  };
 
-    if (amRes.success && amRes.data) {
-      console.log('✅ Area Managers loaded:', amRes.data.length);
-      setAreaManagers(Array.isArray(amRes.data) ? amRes.data : []);
+  const loadApprovers = async () => {
+    try {
+      const [amRes, soRes, slRes] = await Promise.all([
+        usersAPI.getApprovers('Approver_AreaManager'),
+        usersAPI.getApprovers('Approver_Safety'),
+        usersAPI.getApprovers('Approver_SiteLeader'),
+      ]);
+
+      if (amRes.success && amRes.data) setAreaManagers(amRes.data);
+      if (soRes.success && soRes.data) setSafetyOfficers(soRes.data);
+      if (slRes.success && slRes.data) setSiteLeaders(slRes.data);
+    } catch (error) {
+      console.error('Error loading approvers:', error);
     }
-    if (soRes.success && soRes.data) {
-      console.log('✅ Safety Officers loaded:', soRes.data.length);
-      setSafetyOfficers(Array.isArray(soRes.data) ? soRes.data : []);
-    }
-    if (slRes.success && slRes.data) {
-      console.log('✅ Site Leaders loaded:', slRes.data.length);
-      setSiteLeaders(Array.isArray(slRes.data) ? slRes.data : []);
-    }
-  } catch (error) {
-    console.error('❌ Error loading approvers:', error);
-  }
-};
+  };
 
   const loadCorrectChecklistQuestions = () => {
     const correctQuestions: Record<PermitType, Array<{question: string; isTextInput: boolean}>> = {
@@ -429,24 +379,18 @@ const loadMasterData = async () => {
     }));
   };
 
-const handleNext = () => {
-  console.log('📍 Current Step:', currentStep);
-  console.log('📋 Checklist Questions:', checklistQuestions.length);
-  
-  if (currentStep === 1) {
-    if (formData.categories.length === 0) {
-      alert('Please select at least one permit category');
-      return;
+  const handleNext = () => {
+    if (currentStep === 1) {
+      if (formData.categories.length === 0) {
+        alert('Please select at least one permit category');
+        return;
+      }
     }
-  }
-  
-  if (currentStep < totalSteps) {
-    console.log('✅ Moving to step:', currentStep + 1);
-    setCurrentStep(currentStep + 1);
-  } else {
-    console.log('⚠️ Already at last step:', currentStep);
-  }
-};
+    
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
 
   const handleBack = () => {
     if (currentStep > 1) {
@@ -459,16 +403,7 @@ const handleNext = () => {
       alert('Please accept the declaration to submit');
       return;
     }
-// ✅ ADD THESE VALIDATION CHECKS:
-  if (formData.categories.length === 0) {
-    alert('Please select at least one permit category');
-    return;
-  }
 
-  if (!formData.site_id || formData.site_id === 0) {
-    alert('Please select a site');
-    return;
-  }
     setIsSubmitting(true);
     try {
       let swmsUrl = '';
@@ -518,10 +453,10 @@ const handleNext = () => {
       });
 
       const permitData = {
-        site_id: formData.site_id, 
+        site_id: formData.site_id || 1,
         permit_types: formData.categories,
-        work_location: formData.location || 'Location not specified',  // ✅ Better default
-        work_description: formData.workDescription || 'Description not provided',  // ✅ Better default
+        work_location: formData.location || 'Test Location',
+        work_description: formData.workDescription || 'Test Work Description',
         start_time: formData.startDate && formData.startTime 
           ? `${formData.startDate}T${formData.startTime}:00` 
           : new Date().toISOString(),

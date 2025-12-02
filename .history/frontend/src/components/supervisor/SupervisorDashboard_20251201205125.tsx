@@ -1,7 +1,7 @@
-// frontend/src/components/supervisor/SupervisorDashboard.tsx - WITH PTW EXTENDED TABLE
+// frontend/src/components/supervisor/SupervisorDashboard.tsx - WITH WORKING BUTTONS
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { FileText, Users, CheckCircle2, Clock, XCircle, Play, Eye, ArrowRight } from 'lucide-react';
+import { FileText, Users, CheckCircle2, Clock, XCircle, Play, Eye, ArrowRight, CheckSquare } from 'lucide-react';
 import { dashboardAPI, permitsAPI } from '../../services/api';
 import type { Permit, SupervisorDashboardStats } from '../../types';
 
@@ -97,11 +97,7 @@ export function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
   );
   
   const inProgressPermits = allPermits.filter(p => 
-    p.status === 'Active'
-  );
-  
-  const extendedPermits = allPermits.filter(p => 
-    p.status === 'Extension_Requested'
+    p.status === 'Active' || p.status === 'Extension_Requested'
   );
   
   const closedPermits = allPermits.filter(p => 
@@ -111,12 +107,14 @@ export function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
   // Handler functions
   const handleViewPermit = (permit: Permit) => {
     console.log('📄 Viewing permit:', permit.id);
+    // Navigate to permit detail page (you'll create this)
     onNavigate('permit-detail', { permitId: permit.id });
   };
 
   const handleExtendPermit = async (permit: Permit) => {
     console.log('⏱️ Extending permit:', permit.id);
     
+    // Simple prompt for now - you can make a modal later
     const newEndTime = prompt('Enter new end date/time (YYYY-MM-DD HH:MM):');
     const reason = prompt('Enter reason for extension:');
     
@@ -133,7 +131,7 @@ export function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
 
       if (response.success) {
         alert('✅ Extension requested successfully!');
-        loadDashboardData();
+        loadDashboardData(); // Reload data
       } else {
         alert('❌ Failed to request extension: ' + response.message);
       }
@@ -154,6 +152,7 @@ export function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
 
     if (!confirmClose) return;
 
+    // Closure checklist
     const housekeepingDone = confirm('✓ Housekeeping completed?');
     const toolsRemoved = confirm('✓ Tools and equipment removed?');
     const locksRemoved = confirm('✓ Locks/tags removed?');
@@ -171,7 +170,7 @@ export function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
 
       if (response.success) {
         alert('✅ Permit closed successfully!');
-        loadDashboardData();
+        loadDashboardData(); // Reload data
       } else {
         alert('❌ Failed to close permit: ' + response.message);
       }
@@ -186,7 +185,7 @@ export function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
       'Draft': { label: 'Draft', className: 'bg-slate-100 text-slate-800' },
       'Pending_Approval': { label: 'Pending', className: 'bg-amber-100 text-amber-800' },
       'Active': { label: 'Active', className: 'bg-green-100 text-green-800' },
-      'Extension_Requested': { label: 'Extended', className: 'bg-purple-100 text-purple-800' },
+      'Extension_Requested': { label: 'Extension', className: 'bg-purple-100 text-purple-800' },
       'Suspended': { label: 'Suspended', className: 'bg-orange-100 text-orange-800' },
       'Closed': { label: 'Closed', className: 'bg-blue-100 text-blue-800' },
       'Cancelled': { label: 'Cancelled', className: 'bg-red-100 text-red-800' },
@@ -474,87 +473,6 @@ export function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
       {/* In Progress PTWs - Special table with Extend/Close buttons */}
       <InProgressTable permits={inProgressPermits} />
 
-      {/* PTW Extended - NEW TABLE! */}
-      <div className="overflow-hidden bg-white border border-purple-200 rounded-lg shadow-sm">
-        <div className="p-4 border-b border-purple-200 bg-purple-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">PTW Extended</h2>
-              <p className="text-sm text-slate-600">{extendedPermits.length} permit(s) with extension requests</p>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1 text-sm font-medium text-purple-700 border border-purple-200 rounded-full bg-purple-50">
-              <Clock className="w-4 h-4" />
-              Extension Requested
-            </div>
-          </div>
-        </div>
-
-        {extendedPermits.length === 0 ? (
-          <div className="p-8 text-center">
-            <Clock className="w-12 h-12 mx-auto mb-3 text-purple-300" />
-            <p className="font-medium text-slate-600">No extension requests</p>
-            <p className="text-sm text-slate-500">Permits requesting time extensions will appear here</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-purple-50">
-                <tr>
-                  <th className="px-4 py-3 text-xs font-medium text-left text-slate-600">PTW Number</th>
-                  <th className="px-4 py-3 text-xs font-medium text-left text-slate-600">Category</th>
-                  <th className="px-4 py-3 text-xs font-medium text-left text-slate-600">Location</th>
-                  <th className="px-4 py-3 text-xs font-medium text-left text-slate-600">Workers</th>
-                  <th className="px-4 py-3 text-xs font-medium text-left text-slate-600">Start Date</th>
-                  <th className="px-4 py-3 text-xs font-medium text-left text-slate-600">Status</th>
-                  <th className="px-4 py-3 text-xs font-medium text-left text-slate-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {extendedPermits.map((permit) => (
-                  <tr key={permit.id} className="hover:bg-purple-50/30">
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                      {permit.permit_serial || permit.permit_number || `PTW-${permit.id}`}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {permit.permit_type?.split(',').map((type, idx) => (
-                          <span key={idx} className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                            {type.replace('_', ' ')}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {permit.work_location || 'N/A'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {permit.team_members?.length || permit.team_member_count || 0}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {formatDate(permit.start_time)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {getStatusBadge(permit.status)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button
-                        onClick={() => handleViewPermit(permit)}
-                        variant="outline"
-                        size="sm"
-                        className="gap-1"
-                      >
-                        <Eye className="w-3 h-3" />
-                        View
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
       {/* Closed PTWs */}
       <PermitTable
         permits={closedPermits}
@@ -600,3 +518,132 @@ export function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
     </div>
   );
 }
+```
+
+---
+
+## Key Features Added
+
+### 1. **View Button** (All Tables)
+- ✅ Calls `handleViewPermit(permit)` 
+- ✅ Navigates to permit detail page
+- ✅ Passes permit ID to detail view
+
+### 2. **Extend Button** (In Progress Only)
+- ✅ Prompts for new end time and reason
+- ✅ Calls backend API to request extension
+- ✅ Updates permit status to `Extension_Requested`
+- ✅ Reloads dashboard after success
+
+### 3. **Close Button** (In Progress Only)
+- ✅ Confirms with user
+- ✅ Asks closure checklist questions:
+  - Housekeeping done?
+  - Tools removed?
+  - Locks removed?
+  - Area restored?
+  - Final remarks
+- ✅ Calls backend API to close permit
+- ✅ Updates status to `Closed`
+- ✅ Reloads dashboard
+
+### 4. **Special In Progress Table**
+- ✅ Separate component with 3 action buttons
+- ✅ Color-coded buttons:
+  - View (default)
+  - Extend (purple)
+  - Close (red)
+
+---
+
+## API Methods Required
+
+Make sure your `services/api.ts` has these methods:
+
+```typescript
+// In frontend/src/services/api.ts
+
+export const permitsAPI = {
+  // ... existing methods ...
+  
+  // Request extension
+  requestExtension: async (id: number, extensionData: {
+    new_end_time: string;
+    reason: string;
+  }): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/request-extension`, extensionData);
+    return response.data;
+  },
+
+  // Close permit
+  close: async (id: number, closeData: {
+    housekeeping_done: boolean;
+    tools_removed: boolean;
+    locks_removed: boolean;
+    area_restored: boolean;
+    remarks: string;
+  }): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/close`, closeData);
+    return response.data;
+  },
+};
+```
+
+---
+
+## Backend Routes Required
+
+Your backend should have these routes (likely already exist):
+
+```javascript
+// backend/src/routes/permits.routes.js
+
+// POST /api/permits/:id/request-extension
+router.post('/:id/request-extension', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { new_end_time, reason } = req.body;
+    
+    await pool.query(
+      `UPDATE permits SET status = 'Extension_Requested', end_time = ? WHERE id = ?`,
+      [new_end_time, id]
+    );
+    
+    // Optionally log extension request
+    await pool.query(
+      `INSERT INTO permit_extensions (permit_id, new_end_time, reason, requested_at) 
+       VALUES (?, ?, ?, NOW())`,
+      [id, new_end_time, reason]
+    );
+    
+    res.json({ success: true, message: 'Extension requested successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/permits/:id/close
+router.post('/:id/close', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { housekeeping_done, tools_removed, locks_removed, area_restored, remarks } = req.body;
+    
+    await pool.query(
+      `UPDATE permits SET status = 'Closed', updated_at = NOW() WHERE id = ?`,
+      [id]
+    );
+    
+    // Log closure details
+    await pool.query(
+      `INSERT INTO permit_closure (
+        permit_id, housekeeping_done, tools_removed, 
+        locks_removed, area_restored, remarks, closed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+      [id, housekeeping_done, tools_removed, locks_removed, area_restored, remarks]
+    );
+    
+    res.json({ success: true, message: 'Permit closed successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});

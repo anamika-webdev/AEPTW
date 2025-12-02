@@ -1,5 +1,5 @@
 // src/components/supervisor/CreatePTW.tsx - COMPLETE UPDATED VERSION WITH FIXES
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Upload, FileText, Check, AlertTriangle, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -429,24 +429,18 @@ const loadMasterData = async () => {
     }));
   };
 
-const handleNext = () => {
-  console.log('📍 Current Step:', currentStep);
-  console.log('📋 Checklist Questions:', checklistQuestions.length);
-  
-  if (currentStep === 1) {
-    if (formData.categories.length === 0) {
-      alert('Please select at least one permit category');
-      return;
+  const handleNext = () => {
+    if (currentStep === 1) {
+      if (formData.categories.length === 0) {
+        alert('Please select at least one permit category');
+        return;
+      }
     }
-  }
-  
-  if (currentStep < totalSteps) {
-    console.log('✅ Moving to step:', currentStep + 1);
-    setCurrentStep(currentStep + 1);
-  } else {
-    console.log('⚠️ Already at last step:', currentStep);
-  }
-};
+    
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
 
   const handleBack = () => {
     if (currentStep > 1) {
@@ -518,10 +512,10 @@ const handleNext = () => {
       });
 
       const permitData = {
-        site_id: formData.site_id, 
+        site_id: formData.site_id || 1,
         permit_types: formData.categories,
-        work_location: formData.location || 'Location not specified',  // ✅ Better default
-        work_description: formData.workDescription || 'Description not provided',  // ✅ Better default
+        work_location: formData.location || 'Test Location',
+        work_description: formData.workDescription || 'Test Work Description',
         start_time: formData.startDate && formData.startTime 
           ? `${formData.startDate}T${formData.startTime}:00` 
           : new Date().toISOString(),

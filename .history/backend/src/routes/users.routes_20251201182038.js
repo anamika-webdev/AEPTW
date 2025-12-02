@@ -7,10 +7,10 @@ const { authenticateToken } = require('../middleware/auth.middleware');
 // All routes require authentication
 router.use(authenticateToken);
 
-// GET /api/users/workers
+// GET /api/users/workers - Get all workers from admin database
 router.get('/workers', async (req, res) => {
   try {
-    console.log('📥 GET /api/users/workers');
+    console.log('📥 GET /api/users/workers - Fetching workers from admin database...');
     
     const [workers] = await pool.query(`
       SELECT 
@@ -27,7 +27,7 @@ router.get('/workers', async (req, res) => {
       ORDER BY full_name ASC
     `);
     
-    console.log(`✅ Fetched ${workers.length} workers`);
+    console.log(`✅ Successfully fetched ${workers.length} workers from admin database`);
     
     res.json({
       success: true,
@@ -38,7 +38,7 @@ router.get('/workers', async (req, res) => {
     console.error('❌ Error fetching workers:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Error fetching workers',
+      message: 'Error fetching workers from database',
       error: error.message
     });
   }

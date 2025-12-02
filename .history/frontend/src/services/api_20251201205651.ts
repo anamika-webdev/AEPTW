@@ -259,7 +259,6 @@ export const permitsAPI = {
   },
 };
 
-
 // ============= Master Data APIs (from Admin DB) =============
 export const masterDataAPI = {
   // Get all hazards
@@ -364,5 +363,29 @@ export const adminAPI = {
   },
 };
 
+export const permitsAPI = {
+  // ... existing methods ...
+  
+  // Request extension
+  requestExtension: async (id: number, extensionData: {
+    new_end_time: string;
+    reason: string;
+  }): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/request-extension`, extensionData);
+    return response.data;
+  },
+
+  // Close permit
+  close: async (id: number, closeData: {
+    housekeeping_done: boolean;
+    tools_removed: boolean;
+    locks_removed: boolean;
+    area_restored: boolean;
+    remarks: string;
+  }): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/close`, closeData);
+    return response.data;
+  },
+};
 
 export default api;
