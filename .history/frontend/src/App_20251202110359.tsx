@@ -64,15 +64,10 @@ function App() {
     setCurrentPage('dashboard');
   };
 
-  const handleNavigate = (page: string, data?: any) => {
-  setCurrentPage(page as PageType);
-  setIsMobileMenuOpen(false);
-  
-  if (page === 'permit-detail' && data?.permitId) {
-    setSelectedPermitId(data.permitId);
-  }
-};
-  
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page as PageType);
+    setIsMobileMenuOpen(false);
+  };
 
   if (!isInitialized) {
     return (
@@ -96,12 +91,6 @@ function App() {
       </Router>
     );
   }
-  {currentPage === 'permit-detail' && selectedPermitId && (
-  <PermitDetails 
-    ptwId={selectedPermitId} 
-    onBack={() => handleNavigate('dashboard')} 
-  />
-)}
 
   // Check BOTH role field AND frontendRole field
   const userRole = currentUser.role?.toLowerCase();

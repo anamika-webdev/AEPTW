@@ -96,12 +96,6 @@ function App() {
       </Router>
     );
   }
-  {currentPage === 'permit-detail' && selectedPermitId && (
-  <PermitDetails 
-    ptwId={selectedPermitId} 
-    onBack={() => handleNavigate('dashboard')} 
-  />
-)}
 
   // Check BOTH role field AND frontendRole field
   const userRole = currentUser.role?.toLowerCase();

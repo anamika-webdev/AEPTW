@@ -1,7 +1,7 @@
 // src/components/supervisor/SupervisorDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { permitsAPI, usersAPI } from '../../services/api';
+import { permitsAPI, workersAPI } from '../../services/api';
 import {
   FileText,
   Users,
@@ -68,7 +68,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
       setIsLoading(true);
 
       // Load workers
-      const workersRes = await usersAPI.getWorkers();
+      const workersRes = await workersAPI.getAll();
       const workerCount = workersRes.success ? workersRes.data?.length || 0 : 0;
 
       // Load permits
