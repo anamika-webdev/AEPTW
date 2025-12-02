@@ -236,49 +236,27 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
         </div>
 
         {/* Quick Actions */}
-        {/* Quick Actions */}
-<div className="p-6 bg-white rounded-lg shadow-md">
-  <h3 className="mb-4 text-lg font-semibold text-gray-900">Quick Actions</h3>
-  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    
-    {/* Button 1 */}
-    <button 
-      onClick={() => onNavigate?.('site-management')} 
-      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
-    >
-      <Building2 className="w-4 h-4" />
-      Manage Sites
-    </button>
-    
-    {/* Button 2 */}
-    <button 
-      onClick={() => onNavigate?.('user-management')} 
-      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700"
-    >
-      <Users className="w-4 h-4" />
-      Manage Users
-    </button>
-    
-    {/* Button 3 */}
-    <button 
-      onClick={() => onNavigate?.('all-permits')}  
-      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white transition-colors bg-purple-600 rounded-lg hover:bg-purple-700"
-    >
-      <FileText className="w-4 h-4" />
-      View All Permits
-    </button>
-    
-    {/* Button 4 */}
-    <button 
-      onClick={() => onNavigate?.('reports')} 
-      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200"
-    >
-      <TrendingUp className="w-4 h-4" />
-      View Reports
-    </button>
-    
-  </div>
-</div>
+        <div className="p-6 bg-white rounded-lg shadow-md">
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">Quick Actions</h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <button className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700">
+              <Building2 className="w-4 h-4" />
+              Manage Sites
+            </button>
+            <button className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700">
+              <Users className="w-4 h-4" />
+              Manage Users
+            </button>
+            <button className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white transition-colors bg-purple-600 rounded-lg hover:bg-purple-700">
+              <FileText className="w-4 h-4" />
+              View All Permits
+            </button>
+            <button className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200">
+              <TrendingUp className="w-4 h-4" />
+              View Reports
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

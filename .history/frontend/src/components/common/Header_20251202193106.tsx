@@ -100,26 +100,18 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
                   <h3 className="font-semibold text-gray-900">Notifications</h3>
                 </div>
                 <div className="overflow-y-auto max-h-96">
-  {notifications.length > 0 ? (
-    notifications.map((notif) => (
-      <div
-        key={notif.id}
-        className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-          notif.unread ? 'bg-blue-50' : ''
-        }`}
-      >
-        <p className="text-sm text-gray-900">{notif.message}</p>
-        <p className="mt-1 text-xs text-gray-500">{notif.time}</p>
-      </div>
-    ))
-  ) : (
-    <div className="p-8 text-center">
-      <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-      <p className="text-sm font-medium text-gray-900">No notifications</p>
-      <p className="mt-1 text-xs text-gray-500">You're all caught up!</p>
-    </div>
-  )}
-</div>
+                  {notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                        notif.unread ? 'bg-blue-50' : ''
+                      }`}
+                    >
+                      <p className="text-sm text-gray-900">{notif.message}</p>
+                      <p className="mt-1 text-xs text-gray-500">{notif.time}</p>
+                    </div>
+                  ))}
+                </div>
                 <div className="p-2 border-t border-gray-200">
                   <button className="w-full py-2 text-sm font-medium text-center text-blue-600 rounded hover:bg-blue-50">
                     View All Notifications

@@ -670,7 +670,7 @@ const RequirementRow = memo(({
   onTextChange 
 }: RequirementRowProps) => {
   
-  // Local state to prevent parent re-renders from affecting input
+  // Use local state to prevent parent re-renders from affecting input
   const [localValue, setLocalValue] = useState(textValue || '');
   
   // Update local state when parent value changes
@@ -685,6 +685,7 @@ const RequirementRow = memo(({
     const newValue = e.target.value;
     setLocalValue(newValue);
     
+    // Notify parent immediately
     if (onTextChange) {
       onTextChange(newValue);
     }
@@ -716,6 +717,7 @@ const RequirementRow = memo(({
     );
   }
 
+  // Regular Yes/No/N/A questions
   return (
     <div className="flex items-center justify-between py-3 border-b border-slate-100">
       <span className="text-sm text-slate-700">{label}</span>
@@ -741,7 +743,6 @@ const RequirementRow = memo(({
       </div>
     </div>
   );
-  RequirementRow.displayName = 'RequirementRow';
 });
 
   const getCategoryBadgeColor = (category: PermitType) => {
@@ -911,7 +912,7 @@ const RequirementRow = memo(({
                     {sites.length > 0 ? (
                       sites.map((site) => (
                         <SelectItem key={site.id} value={site.id.toString()}>
-                          {site.name || site.name || `Site ${site.id}`}
+                          {site.site_name || site.name || `Site ${site.id}`}
                           {site.site_code ? ` (${site.site_code})` : ''}
                         </SelectItem>
                       ))

@@ -16,8 +16,6 @@ import PermitDetails from './pages/supervisor/PermitDetails';
 import { WorkerList } from './components/supervisor/WorkerList';
 import Sidebar from './components/common/Sidebar';
 import Header from './components/common/Header';
-import Reports from './pages/admin/Reports';
-
 
 interface User {
   id: number;
@@ -135,7 +133,6 @@ function App() {
           {currentPage === 'site-management' && <SiteManagement />}
           {currentPage === 'user-management' && <UserManagement />}
           {currentPage === 'all-permits' && <AllPermits />}
-          {currentPage === 'reports' && <Reports />}
           
           {/* Supervisor Pages */}
           {currentPage === 'dashboard' && !isAdmin && (

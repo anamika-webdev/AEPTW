@@ -648,7 +648,7 @@ const handleNext = () => {
     setNewWorkers(updated);
   };
 
- interface RequirementRowProps {
+  interface RequirementRowProps {
   questionId: number;
   label: string;
   value?: ChecklistResponse;
@@ -660,7 +660,7 @@ const handleNext = () => {
 
 
   // ALTERNATIVE FIX: Uncontrolled input with ref (no re-render issues)
-const RequirementRow = memo(({ 
+const RequirementRow = ({ 
   questionId, 
   label, 
   value, 
@@ -670,52 +670,40 @@ const RequirementRow = memo(({
   onTextChange 
 }: RequirementRowProps) => {
   
-  // Local state to prevent parent re-renders from affecting input
-  const [localValue, setLocalValue] = useState(textValue || '');
-  
-  // Update local state when parent value changes
-  useEffect(() => {
-    if (textValue !== undefined) {
-      setLocalValue(textValue);
-    }
-  }, [textValue]);
-  
-  // Handle input change locally, then notify parent
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    
-    if (onTextChange) {
-      onTextChange(newValue);
-    }
-  }, [onTextChange]);
-  
   if (isTextInput) {
+    // Extract the field name for better labeling
+    const fieldName = label.replace(' name', '').trim();
+    const isRequired = true; // These fields are always required
+    
     return (
       <div className="py-4 space-y-2">
         <Label 
           htmlFor={`text-${questionId}`} 
           className="text-sm font-medium text-slate-900"
         >
-          {label} <span className="text-red-500">*</span>
+          {label} {isRequired && <span className="text-red-500">*</span>}
         </Label>
         <Input
           id={`text-${questionId}`}
           type="text"
-          value={localValue}
-          onChange={handleChange}
-          placeholder="Enter full name..."
-          required
+          value={textValue || ''}
+          onChange={(e) => {
+            if (onTextChange) {
+              onTextChange(e.target.value);
+            }
+          }}
+          placeholder={`Enter full name...`}
+          required={isRequired}
           className="w-full max-w-lg text-base"
-          autoComplete="off"
         />
-        {localValue && localValue.length < 2 && (
+        {textValue && textValue.length < 2 && (
           <p className="text-xs text-amber-600">Please enter a valid full name</p>
         )}
       </div>
     );
   }
 
+  // Regular Yes/No/N/A questions
   return (
     <div className="flex items-center justify-between py-3 border-b border-slate-100">
       <span className="text-sm text-slate-700">{label}</span>
@@ -741,8 +729,7 @@ const RequirementRow = memo(({
       </div>
     </div>
   );
-  RequirementRow.displayName = 'RequirementRow';
-});
+};
 
   const getCategoryBadgeColor = (category: PermitType) => {
     const colors: Record<PermitType, string> = {
@@ -911,7 +898,7 @@ const RequirementRow = memo(({
                     {sites.length > 0 ? (
                       sites.map((site) => (
                         <SelectItem key={site.id} value={site.id.toString()}>
-                          {site.name || site.name || `Site ${site.id}`}
+                          {site.site_name || site.name || `Site ${site.id}`}
                           {site.site_code ? ` (${site.site_code})` : ''}
                         </SelectItem>
                       ))

@@ -741,7 +741,6 @@ const RequirementRow = memo(({
       </div>
     </div>
   );
-  RequirementRow.displayName = 'RequirementRow';
 });
 
   const getCategoryBadgeColor = (category: PermitType) => {
@@ -911,7 +910,7 @@ const RequirementRow = memo(({
                     {sites.length > 0 ? (
                       sites.map((site) => (
                         <SelectItem key={site.id} value={site.id.toString()}>
-                          {site.name || site.name || `Site ${site.id}`}
+                          {site.site_name || site.name || `Site ${site.id}`}
                           {site.site_code ? ` (${site.site_code})` : ''}
                         </SelectItem>
                       ))

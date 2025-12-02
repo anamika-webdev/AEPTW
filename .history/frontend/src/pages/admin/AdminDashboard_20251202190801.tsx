@@ -270,7 +270,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     
     {/* Button 4 */}
     <button 
-      onClick={() => onNavigate?.('reports')} 
+      onClick={() => onNavigate?.('dashboard')}  
       className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200"
     >
       <TrendingUp className="w-4 h-4" />

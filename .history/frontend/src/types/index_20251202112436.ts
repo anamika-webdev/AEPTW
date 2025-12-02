@@ -155,7 +155,6 @@ export interface MasterChecklistQuestion {
   permit_type: PermitType | string;
   question_text: string;
   category?: string;
-   response_type?: 'yes_no' | 'text';
   is_mandatory?: boolean;
 }
 

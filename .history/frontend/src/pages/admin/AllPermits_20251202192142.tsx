@@ -155,13 +155,7 @@ export default function AllPermits() {
               View and manage all permit-to-work documents
             </p>
           </div>
-          <div className="flex gap-3">
-            <ExportPermitsButton 
-             permits={filteredPermits}  
-              fileName="All_Permits"
-               variant="secondary"
-             />
-           <button
+          <button
             onClick={() => fetchPermits(true)}
             disabled={refreshing}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
@@ -169,9 +163,7 @@ export default function AllPermits() {
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          </div>
-         </div>      
-        
+        </div>
 
         {/* Filters */}
         <div className="p-4 mb-6 bg-white rounded-lg shadow-md">

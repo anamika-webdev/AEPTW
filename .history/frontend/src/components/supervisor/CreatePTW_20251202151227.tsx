@@ -660,7 +660,7 @@ const handleNext = () => {
 
 
   // ALTERNATIVE FIX: Uncontrolled input with ref (no re-render issues)
-const RequirementRow = memo(({ 
+const RequirementRow = ({ 
   questionId, 
   label, 
   value, 
@@ -669,26 +669,6 @@ const RequirementRow = memo(({
   textValue, 
   onTextChange 
 }: RequirementRowProps) => {
-  
-  // Local state to prevent parent re-renders from affecting input
-  const [localValue, setLocalValue] = useState(textValue || '');
-  
-  // Update local state when parent value changes
-  useEffect(() => {
-    if (textValue !== undefined) {
-      setLocalValue(textValue);
-    }
-  }, [textValue]);
-  
-  // Handle input change locally, then notify parent
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    
-    if (onTextChange) {
-      onTextChange(newValue);
-    }
-  }, [onTextChange]);
   
   if (isTextInput) {
     return (
@@ -699,19 +679,18 @@ const RequirementRow = memo(({
         >
           {label} <span className="text-red-500">*</span>
         </Label>
-        <Input
+        <input
           id={`text-${questionId}`}
           type="text"
-          value={localValue}
-          onChange={handleChange}
+          defaultValue={textValue || ''}
+          onChange={(e) => {
+            if (onTextChange) {
+              onTextChange(e.target.value);
+            }
+          }}
           placeholder="Enter full name..."
-          required
-          className="w-full max-w-lg text-base"
-          autoComplete="off"
+          className="flex w-full h-10 max-w-lg px-3 py-2 text-base bg-white border rounded-md border-slate-300"
         />
-        {localValue && localValue.length < 2 && (
-          <p className="text-xs text-amber-600">Please enter a valid full name</p>
-        )}
       </div>
     );
   }
@@ -741,8 +720,7 @@ const RequirementRow = memo(({
       </div>
     </div>
   );
-  RequirementRow.displayName = 'RequirementRow';
-});
+};
 
   const getCategoryBadgeColor = (category: PermitType) => {
     const colors: Record<PermitType, string> = {
@@ -911,7 +889,7 @@ const RequirementRow = memo(({
                     {sites.length > 0 ? (
                       sites.map((site) => (
                         <SelectItem key={site.id} value={site.id.toString()}>
-                          {site.name || site.name || `Site ${site.id}`}
+                          {site.site_name || site.name || `Site ${site.id}`}
                           {site.site_code ? ` (${site.site_code})` : ''}
                         </SelectItem>
                       ))

@@ -243,7 +243,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     
     {/* Button 1 */}
     <button 
-      onClick={() => onNavigate?.('site-management')} 
+      onClick={() => onNavigate?.('site-management')}  {/* ⭐ ADD THIS */}
       className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
     >
       <Building2 className="w-4 h-4" />
@@ -252,7 +252,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     
     {/* Button 2 */}
     <button 
-      onClick={() => onNavigate?.('user-management')} 
+      onClick={() => onNavigate?.('user-management')}  {/* ⭐ ADD THIS */}
       className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700"
     >
       <Users className="w-4 h-4" />
@@ -261,7 +261,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     
     {/* Button 3 */}
     <button 
-      onClick={() => onNavigate?.('all-permits')}  
+      onClick={() => onNavigate?.('all-permits')}  {/* ⭐ ADD THIS */}
       className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white transition-colors bg-purple-600 rounded-lg hover:bg-purple-700"
     >
       <FileText className="w-4 h-4" />
@@ -270,7 +270,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     
     {/* Button 4 */}
     <button 
-      onClick={() => onNavigate?.('reports')} 
+      onClick={() => onNavigate?.('dashboard')}  {/* ⭐ ADD THIS */}
       className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200"
     >
       <TrendingUp className="w-4 h-4" />

@@ -1727,7 +1727,7 @@ Include:
                 <div>
                   <p className="text-sm text-slate-500">Site</p>
                   <p className="font-medium text-slate-900">
-                    {sites.find(s => s.id === formData.site_id)?.site_name || 'Not set'}
+                    {sites.find(s => s.id === formData.site_id)?.Site.name || 'Not set'}
                   </p>
                 </div>
                 <div>

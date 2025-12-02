@@ -1,4 +1,4 @@
-// backend/src/routes/permits.routes.js - CORRECTED FOR ACTUAL DATABASE SCHEMA
+// backend/src/routes/permits.routes.js - FIXED VERSION
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
@@ -94,7 +94,7 @@ router.get('/my-supervisor-permits', async (req, res) => {
   }
 });
 
-// GET /api/permits/:id - Get permit by ID with details (CORRECTED FOR ACTUAL SCHEMA)
+// GET /api/permits/:id - Get permit by ID with details (FIXED VERSION)
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -109,7 +109,7 @@ router.get('/:id', async (req, res) => {
         s.address as site_address,
         u.full_name as created_by_name,
         u.email as created_by_email,
-        u.phone as created_by_contact
+        u.contact as created_by_contact
       FROM permits p
       LEFT JOIN sites s ON p.site_id = s.id
       LEFT JOIN users u ON p.created_by_user_id = u.id
@@ -140,7 +140,7 @@ router.get('/:id', async (req, res) => {
       teamMembers = [];
     }
     
-    // Get hazards with CORRECTED column names (using 'name' instead of 'hazard_name')
+    // Get hazards with safer query
     let hazards = [];
     try {
       const [result] = await pool.query(`
@@ -148,8 +148,8 @@ router.get('/:id', async (req, res) => {
           ph.id,
           ph.permit_id,
           ph.hazard_id,
-          COALESCE(mh.name, 'Unknown Hazard') as hazard_name,
-          COALESCE(mh.category, mh.risk_level, 'Medium') as risk_level,
+          COALESCE(mh.hazard_name, 'Unknown Hazard') as hazard_name,
+          COALESCE(mh.risk_level, 'Medium') as risk_level,
           mh.description
         FROM permit_hazards ph
         LEFT JOIN master_hazards mh ON ph.hazard_id = mh.id
@@ -159,11 +159,10 @@ router.get('/:id', async (req, res) => {
       console.log(`✅ Found ${hazards.length} hazards`);
     } catch (error) {
       console.error('⚠️ Error fetching hazards:', error.message);
-      console.error('⚠️ If column error, check master_hazards table structure');
       hazards = [];
     }
     
-    // Get PPE with CORRECTED column names (using 'name' instead of 'ppe_name')
+    // Get PPE with safer query
     let ppe = [];
     try {
       const [result] = await pool.query(`
@@ -171,8 +170,8 @@ router.get('/:id', async (req, res) => {
           pp.id,
           pp.permit_id,
           pp.ppe_id,
-          COALESCE(mp.name, 'Unknown PPE') as ppe_name,
-          COALESCE(mp.category, mp.ppe_type, 'General') as ppe_type,
+          COALESCE(mp.ppe_name, 'Unknown PPE') as ppe_name,
+          COALESCE(mp.ppe_type, 'General') as ppe_type,
           mp.description
         FROM permit_ppe pp
         LEFT JOIN master_ppe mp ON pp.ppe_id = mp.id
@@ -182,11 +181,10 @@ router.get('/:id', async (req, res) => {
       console.log(`✅ Found ${ppe.length} PPE items`);
     } catch (error) {
       console.error('⚠️ Error fetching PPE:', error.message);
-      console.error('⚠️ If column error, check master_ppe table structure');
       ppe = [];
     }
     
-    // Get checklist responses (already working correctly)
+    // Get checklist responses with safer query
     let checklist = [];
     try {
       const [result] = await pool.query(`
@@ -228,7 +226,7 @@ router.get('/:id', async (req, res) => {
       approvals = result || [];
       console.log(`✅ Found ${approvals.length} approvals`);
     } catch (error) {
-      console.log('ℹ️ Approvals table may not exist (optional)');
+      console.error('⚠️ Approvals table may not exist:', error.message);
       approvals = [];
     }
     

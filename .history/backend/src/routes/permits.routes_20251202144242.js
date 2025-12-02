@@ -109,7 +109,7 @@ router.get('/:id', async (req, res) => {
         s.address as site_address,
         u.full_name as created_by_name,
         u.email as created_by_email,
-        u.phone as created_by_contact
+        COALESCE(u.phone, u.phone_number, u.mobile, u.contact_number, u.contact, '') as created_by_contact
       FROM permits p
       LEFT JOIN sites s ON p.site_id = s.id
       LEFT JOIN users u ON p.created_by_user_id = u.id

@@ -1,6 +1,3 @@
-// frontend/src/services/permit.service.ts - FIXED VERSION
-// Remove /api/ prefix from URLs since apiService baseURL already includes it
-
 import { apiService } from './api.service';
 
 export interface PermitData {
@@ -40,8 +37,7 @@ class PermitService {
   // Create new permit
   async createPermit(permitData: PermitData, swmsFile?: File | null): Promise<PermitResponse> {
     try {
-      // ✅ FIXED: Remove /api/ prefix (baseURL already has it)
-      const response = await apiService.post('/permits', permitData);
+      const response = await apiService.post('/api/permits', permitData);
       
       if (swmsFile && response.success && response.data?.id) {
         await this.uploadSWMS(response.data.id, swmsFile);
@@ -59,9 +55,8 @@ class PermitService {
   // Upload SWMS file
   async uploadSWMS(permitId: number, file: File): Promise<PermitResponse> {
     try {
-      // ✅ FIXED: Remove /api/ prefix
       const response = await apiService.uploadFile(
-        `/permits/${permitId}/swms`,
+        `/api/permits/${permitId}/swms`,
         file
       );
       return response;
@@ -90,8 +85,7 @@ class PermitService {
         });
       }
       
-      // ✅ FIXED: Remove /api/ prefix
-      const url = `/permits${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const url = `/api/permits${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
       const response = await apiService.get(url);
       return response;
     } catch (error: any) {
@@ -102,16 +96,12 @@ class PermitService {
     }
   }
 
-  // ✅ Get permit by ID
+  // ✅ NEW: Get permit by ID
   async getById(permitId: number): Promise<PermitResponse> {
     try {
-      console.log('🔍 permitService.getById called with ID:', permitId);
-      // ✅ FIXED: Remove /api/ prefix
-      const response = await apiService.get(`/permits/${permitId}`);
-      console.log('📥 permitService.getById response:', response);
+      const response = await apiService.get(`/api/permits/${permitId}`);
       return response;
     } catch (error: any) {
-      console.error('❌ permitService.getById error:', error);
       return {
         success: false,
         message: error.message || 'Failed to fetch permit details'
@@ -125,8 +115,7 @@ class PermitService {
     signature_path?: string;
   }): Promise<PermitResponse> {
     try {
-      // ✅ FIXED: Remove /api/ prefix
-      const response = await apiService.post(`/permits/${permitId}/approve`, approvalData);
+      const response = await apiService.post(`/api/permits/${permitId}/approve`, approvalData);
       return response;
     } catch (error: any) {
       return {
@@ -142,8 +131,7 @@ class PermitService {
     comments?: string;
   }): Promise<PermitResponse> {
     try {
-      // ✅ FIXED: Remove /api/ prefix
-      const response = await apiService.post(`/permits/${permitId}/reject`, rejectionData);
+      const response = await apiService.post(`/api/permits/${permitId}/reject`, rejectionData);
       return response;
     } catch (error: any) {
       return {
@@ -162,8 +150,7 @@ class PermitService {
     remarks?: string;
   }): Promise<PermitResponse> {
     try {
-      // ✅ FIXED: Remove /api/ prefix
-      const response = await apiService.post(`/permits/${permitId}/close`, closureData);
+      const response = await apiService.post(`/api/permits/${permitId}/close`, closureData);
       return response;
     } catch (error: any) {
       return {
@@ -179,8 +166,7 @@ class PermitService {
     reason: string;
   }): Promise<PermitResponse> {
     try {
-      // ✅ FIXED: Remove /api/ prefix
-      const response = await apiService.post(`/permits/${permitId}/extension`, extensionData);
+      const response = await apiService.post(`/api/permits/${permitId}/extension`, extensionData);
       return response;
     } catch (error: any) {
       return {
@@ -193,8 +179,7 @@ class PermitService {
   // Get dashboard statistics
   async getDashboardStats(userId?: number): Promise<PermitResponse> {
     try {
-      // ✅ FIXED: Remove /api/ prefix
-      const url = userId ? `/permits/stats?user_id=${userId}` : '/permits/stats';
+      const url = userId ? `/api/permits/stats?user_id=${userId}` : '/api/permits/stats';
       const response = await apiService.get(url);
       return response;
     } catch (error: any) {
@@ -208,8 +193,7 @@ class PermitService {
   // Export permit as PDF
   async exportPermitPDF(permitId: number): Promise<Blob> {
     try {
-      // ✅ FIXED: Remove /api/ prefix
-      const response = await apiService.get(`/permits/${permitId}/pdf`, {
+      const response = await apiService.get(`/api/permits/${permitId}/pdf`, {
         responseType: 'blob'
       });
       return response as unknown as Blob;
@@ -219,5 +203,6 @@ class PermitService {
   }
 }
 
-// Export singleton instance
 export const permitService = new PermitService();
+
+
