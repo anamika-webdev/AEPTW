@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { DigitalSignature } from '../shared/DigitalSignature';
-import NameInputField from './NameInputField';
 import { 
   sitesAPI, 
   masterDataAPI, 
@@ -671,17 +670,17 @@ const RequirementRow = memo(({
   onTextChange 
 }: RequirementRowProps) => {
   
-  // Local state prevents focus loss during typing
+  // Local state to prevent parent re-renders from affecting input
   const [localValue, setLocalValue] = useState(textValue || '');
   
-  // Sync with parent when parent value changes
+  // Update local state when parent value changes
   useEffect(() => {
     if (textValue !== undefined) {
       setLocalValue(textValue);
     }
   }, [textValue]);
   
-  // Handle input change - update local state and notify parent
+  // Handle input change locally, then notify parent
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
@@ -691,10 +690,9 @@ const RequirementRow = memo(({
     }
   }, [onTextChange]);
   
-  // Text input field (for names)
   if (isTextInput) {
     return (
-      <div className="py-4 space-y-2 border-b border-slate-200">
+      <div className="py-4 space-y-2">
         <Label 
           htmlFor={`text-${questionId}`} 
           className="text-sm font-medium text-slate-900"
@@ -712,15 +710,12 @@ const RequirementRow = memo(({
           autoComplete="off"
         />
         {localValue && localValue.length < 2 && (
-          <p className="text-xs text-amber-600">
-            Please enter a valid full name (at least 2 characters)
-          </p>
+          <p className="text-xs text-amber-600">Please enter a valid full name</p>
         )}
       </div>
     );
   }
 
-  // Yes/No/N/A buttons (for regular questions)
   return (
     <div className="flex items-center justify-between py-3 border-b border-slate-100">
       <span className="text-sm text-slate-700">{label}</span>
@@ -1321,7 +1316,10 @@ const RequirementRow = memo(({
 
             <div className="p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
               <p className="mb-2 text-sm font-semibold text-blue-900">
-                Note: Describe all safety measures, procedures, and precautions to be taken
+                Note:
+              </p>
+              <p className="text-sm text-blue-800">
+                Describe all safety measures, procedures, and precautions to be taken
               </p>
             </div>
           </div>
@@ -1494,32 +1492,26 @@ Include:
 
                           return (
                             <div key={question.id}>
-                             {isTextInput ? (
-  <NameInputField
-    questionId={question.id}
-    label={question.question_text}
-    initialValue={formData.checklistTextResponses[question.id]}
-    onSave={(val) => {
-      setFormData(prev => ({
-        ...prev,
-        checklistTextResponses: { 
-          ...prev.checklistTextResponses, 
-          [question.id]: val 
-        }
-      }));
-    }}
-  />
-) : (
-  <RequirementRow
-    questionId={question.id}
-    label={question.question_text}
-    value={formData.checklistResponses[question.id]}
-    onChange={(val) => setFormData(prev => ({
-      ...prev,
-      checklistResponses: { ...prev.checklistResponses, [question.id]: val }
-    }))}
-  />
-)}
+                              <RequirementRow
+                                questionId={question.id}
+                                label={question.question_text}
+                                value={formData.checklistResponses[question.id]}
+                                onChange={(val) => setFormData(prev => ({
+                                  ...prev,
+                                  checklistResponses: { ...prev.checklistResponses, [question.id]: val }
+                                }))}
+                                isTextInput={isTextInput}
+                                textValue={formData.checklistTextResponses[question.id]}
+                               onTextChange={(val) => {
+  setFormData(prev => ({
+    ...prev,
+    checklistTextResponses: { 
+      ...prev.checklistTextResponses, 
+      [question.id]: val 
+    }
+  }));
+}}
+                              />
                               {!isTextInput && formData.checklistResponses[question.id] === 'No' && (
                                 <div className="mt-2 mb-4 ml-4">
                                   <Input

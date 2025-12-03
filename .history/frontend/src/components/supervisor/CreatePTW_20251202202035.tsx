@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { DigitalSignature } from '../shared/DigitalSignature';
-import NameInputField from './NameInputField';
 import { 
   sitesAPI, 
   masterDataAPI, 
@@ -1321,7 +1320,10 @@ const RequirementRow = memo(({
 
             <div className="p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
               <p className="mb-2 text-sm font-semibold text-blue-900">
-                Note: Describe all safety measures, procedures, and precautions to be taken
+                Note:
+              </p>
+              <p className="text-sm text-blue-800">
+                Describe all safety measures, procedures, and precautions to be taken
               </p>
             </div>
           </div>
@@ -1494,32 +1496,26 @@ Include:
 
                           return (
                             <div key={question.id}>
-                             {isTextInput ? (
-  <NameInputField
-    questionId={question.id}
-    label={question.question_text}
-    initialValue={formData.checklistTextResponses[question.id]}
-    onSave={(val) => {
-      setFormData(prev => ({
-        ...prev,
-        checklistTextResponses: { 
-          ...prev.checklistTextResponses, 
-          [question.id]: val 
-        }
-      }));
-    }}
-  />
-) : (
-  <RequirementRow
-    questionId={question.id}
-    label={question.question_text}
-    value={formData.checklistResponses[question.id]}
-    onChange={(val) => setFormData(prev => ({
-      ...prev,
-      checklistResponses: { ...prev.checklistResponses, [question.id]: val }
-    }))}
-  />
-)}
+                              <RequirementRow
+                                questionId={question.id}
+                                label={question.question_text}
+                                value={formData.checklistResponses[question.id]}
+                                onChange={(val) => setFormData(prev => ({
+                                  ...prev,
+                                  checklistResponses: { ...prev.checklistResponses, [question.id]: val }
+                                }))}
+                                isTextInput={isTextInput}
+                                textValue={formData.checklistTextResponses[question.id]}
+                               onTextChange={(val) => {
+  setFormData(prev => ({
+    ...prev,
+    checklistTextResponses: { 
+      ...prev.checklistTextResponses, 
+      [question.id]: val 
+    }
+  }));
+}}
+                              />
                               {!isTextInput && formData.checklistResponses[question.id] === 'No' && (
                                 <div className="mt-2 mb-4 ml-4">
                                   <Input

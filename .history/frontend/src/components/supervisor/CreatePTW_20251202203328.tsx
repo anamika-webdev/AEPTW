@@ -1321,7 +1321,7 @@ const RequirementRow = memo(({
 
             <div className="p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
               <p className="mb-2 text-sm font-semibold text-blue-900">
-                Note: Describe all safety measures, procedures, and precautions to be taken
+                Note:Describe all safety measures, procedures, and precautions to be taken
               </p>
             </div>
           </div>
