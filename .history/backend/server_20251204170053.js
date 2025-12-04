@@ -38,7 +38,6 @@ const masterRoutes = require('./src/routes/master.routes');
 const dashboardRoutes = require('./src/routes/dashboard.routes');
 const requesterAssignmentsRoutes = require('./src/routes/requester-assignments.routes');
 const approvalsRoutes = require('./src/routes/approvals.routes');
-
 // ============= REGISTER ALL ROUTES =============
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);

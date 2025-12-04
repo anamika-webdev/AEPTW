@@ -301,38 +301,53 @@ const loadMasterData = async () => {
 };
 const loadApprovers = async () => {
   try {
-    console.log('🔄 [APPROVERS] Loading approvers...');
+    console.log('🔄 Loading approvers...');
     
-    const token = localStorage.getItem('token');
-    const response = await fetch('/api/users/approvers', {
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    // Remove .catch() blocks - let errors bubble up
+    const [amRes, soRes, slRes] = await Promise.all([
+      usersAPI.getApprovers('Approver_AreaManager'),
+      usersAPI.getApprovers('Approver_Safety'),
+      usersAPI.getApprovers('Approver_SiteLeader'),
+    ]);
 
-    const data = await response.json();
-    console.log('📊 [APPROVERS] Response:', data);
+    console.log('📊 API Responses:', { amRes, soRes, slRes });
 
-    if (data.success && data.data) {
-      const am = data.data.filter(a => a.role === 'Approver_AreaManager');
-      const so = data.data.filter(a => a.role === 'Approver_Safety');
-      const sl = data.data.filter(a => a.role === 'Approver_SiteLeader');
-      
-      console.log('✅ Area Managers:', am.length, am.map(a => a.full_name));
-      console.log('✅ Safety Officers:', so.length, so.map(a => a.full_name));
-      console.log('✅ Site Leaders:', sl.length, sl.map(a => a.full_name));
-      
-      setAreaManagers(am);
-      setSafetyOfficers(so);
-      setSiteLeaders(sl);
-      
-      console.log('✅ [APPROVERS] Done!');
+    if (amRes.success && amRes.data) {
+      const areaManagersList = Array.isArray(amRes.data) ? amRes.data : [];
+      console.log('✅ Area Managers loaded:', areaManagersList.length);
+      setAreaManagers(areaManagersList);
+    } else {
+      console.warn('⚠️ Area Managers not loaded:', amRes);
+      setAreaManagers([]);
     }
+
+    if (soRes.success && soRes.data) {
+      const safetyOfficersList = Array.isArray(soRes.data) ? soRes.data : [];
+      console.log('✅ Safety Officers loaded:', safetyOfficersList.length);
+      setSafetyOfficers(safetyOfficersList);
+    } else {
+      console.warn('⚠️ Safety Officers not loaded:', soRes);
+      setSafetyOfficers([]);
+    }
+
+    if (slRes.success && slRes.data) {
+      const siteLeadersList = Array.isArray(slRes.data) ? slRes.data : [];
+      console.log('✅ Site Leaders loaded:', siteLeadersList.length);
+      setSiteLeaders(siteLeadersList);
+    } else {
+      console.warn('⚠️ Site Leaders not loaded:', slRes);
+      setSiteLeaders([]);
+    }
+
+    console.log('✅ All approvers loaded successfully');
   } catch (error) {
-    console.error('❌ [APPROVERS] Error:', error);
+    console.error('❌ Error loading approvers:', error);
+    setAreaManagers([]);
+    setSafetyOfficers([]);
+    setSiteLeaders([]);
   }
 };
+
   const loadCorrectChecklistQuestions = () => {
     const correctQuestions: Record<PermitType, Array<{question: string; isTextInput: boolean}>> = {
       'General': [
@@ -543,6 +558,9 @@ const handleNext = () => {
         safety_officer_id: approvers.safetyOfficer || null,
         site_leader_id: requiresSiteLeaderApproval ? (approvers.siteLeader || null) : null,
         issuer_signature: formData.issuerSignature || null,
+        area_manager_signature: approverSignatures.areaManagerSignature || null,
+        safety_officer_signature: approverSignatures.safetyOfficerSignature || null,
+        site_leader_signature: approverSignatures.siteLeaderSignature || null,
       };
 
       console.log('📤 Submitting permit data:', permitData);
@@ -1588,7 +1606,16 @@ Include:
                     </SelectContent>
                   </Select>
 
-                  
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      type="button"
+                      onClick={() => setShowApproverSignature('areaManager')}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {approverSignatures.areaManagerSignature ? 'Update' : 'Add'} Digital Signature
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -1622,7 +1649,16 @@ Include:
                     </SelectContent>
                   </Select>
 
-                  
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      type="button"
+                      onClick={() => setShowApproverSignature('safetyOfficer')}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {approverSignatures.safetyOfficerSignature ? 'Update' : 'Add'} Digital Signature
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -1667,7 +1703,20 @@ Include:
                     </SelectContent>
                   </Select>
 
-                  
+                  {approvers.siteLeader > 0 && (
+                    <div className="flex items-center gap-3 p-3 border-t border-slate-200">
+                      <Button
+                        type="button"
+                        onClick={() => setShowApproverSignature('siteLeader')}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        {approverSignatures.siteLeaderSignature ? 'Update' : 'Add'} Digital Signature
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

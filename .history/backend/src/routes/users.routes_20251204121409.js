@@ -123,7 +123,7 @@ router.get('/workers', async (req, res) => {
     });
   }
 });
-// GET /api/users/approvers - Get all active approvers
+/ GET /api/users/approvers - Get all active approvers
 router.get('/approvers', authenticateToken, async (req, res) => {
   try {
     const [approvers] = await pool.query(

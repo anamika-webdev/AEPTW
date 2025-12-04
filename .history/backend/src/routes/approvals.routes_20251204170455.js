@@ -1,13 +1,15 @@
-// backend/src/routes/approvals.routes.js - COMPLETE CORRECT WORKFLOW
+// backend/src/routes/approvals.routes.js - COMPLETE FILE
+// Save this as: backend/src/routes/approvals.routes.js
 
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth.middleware');
 
+// All routes require authentication
 router.use(authenticateToken);
 
-// Helper to get approval field names
+// Helper function to get approval field names based on role
 function getApprovalFields(role) {
   const roleMap = {
     'approver_areamanager': {
@@ -36,7 +38,7 @@ function getApprovalFields(role) {
   return roleMap[role.toLowerCase()] || null;
 }
 
-// GET /api/approvals/pending - Get PTWs pending my approval
+// GET /api/approvals/pending
 router.get('/pending', async (req, res) => {
   try {
     const userId = req.user.id;
@@ -69,10 +71,12 @@ router.get('/pending', async (req, res) => {
       LEFT JOIN users u ON p.created_by_user_id = u.id
       WHERE p.${fields.idField} = ?
       AND (p.${fields.statusField} IS NULL OR p.${fields.statusField} = 'Pending')
-      AND p.status = 'Initiated'
+      AND p.status = 'Pending_Approval'
       ORDER BY p.created_at DESC`,
       [userId]
     );
+
+    console.log(`✅ Found ${permits.length} pending approvals for user ${userId}`);
 
     res.json({
       success: true,
@@ -90,109 +94,7 @@ router.get('/pending', async (req, res) => {
   }
 });
 
-// GET /api/approvals/approved - Get PTWs I have approved
-router.get('/approved', async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const userRole = req.user.role.toLowerCase();
-    const fields = getApprovalFields(userRole);
-    
-    if (!fields) {
-      return res.status(400).json({
-        success: false,
-        message: 'User is not an approver'
-      });
-    }
-
-    const [permits] = await pool.query(
-      `SELECT 
-        p.id,
-        p.permit_serial,
-        p.permit_type,
-        p.work_location,
-        p.work_description,
-        p.start_time,
-        p.end_time,
-        p.status,
-        p.${fields.approvedAtField} as approved_at,
-        s.name as site_name,
-        u.full_name as created_by_name
-      FROM permits p
-      LEFT JOIN sites s ON p.site_id = s.id
-      LEFT JOIN users u ON p.created_by_user_id = u.id
-      WHERE p.${fields.idField} = ?
-      AND p.${fields.statusField} = 'Approved'
-      ORDER BY p.${fields.approvedAtField} DESC`,
-      [userId]
-    );
-
-    res.json({
-      success: true,
-      count: permits.length,
-      data: permits
-    });
-
-  } catch (error) {
-    console.error('❌ Error fetching approved PTWs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching approved PTWs',
-      error: error.message
-    });
-  }
-});
-
-// GET /api/approvals/rejected - Get PTWs I have rejected
-router.get('/rejected', async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const userRole = req.user.role.toLowerCase();
-    const fields = getApprovalFields(userRole);
-    
-    if (!fields) {
-      return res.status(400).json({
-        success: false,
-        message: 'User is not an approver'
-      });
-    }
-
-    const [permits] = await pool.query(
-      `SELECT 
-        p.id,
-        p.permit_serial,
-        p.permit_type,
-        p.work_location,
-        p.work_description,
-        p.rejection_reason,
-        p.${fields.approvedAtField} as rejected_at,
-        s.name as site_name,
-        u.full_name as created_by_name
-      FROM permits p
-      LEFT JOIN sites s ON p.site_id = s.id
-      LEFT JOIN users u ON p.created_by_user_id = u.id
-      WHERE p.${fields.idField} = ?
-      AND p.${fields.statusField} = 'Rejected'
-      ORDER BY p.${fields.approvedAtField} DESC`,
-      [userId]
-    );
-
-    res.json({
-      success: true,
-      count: permits.length,
-      data: permits
-    });
-
-  } catch (error) {
-    console.error('❌ Error fetching rejected PTWs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching rejected PTWs',
-      error: error.message
-    });
-  }
-});
-
-// POST /api/approvals/:permitId/approve - Approve a PTW with signature
+// POST /api/approvals/:permitId/approve
 router.post('/:permitId/approve', async (req, res) => {
   const connection = await pool.getConnection();
   
@@ -213,14 +115,6 @@ router.post('/:permitId/approve', async (req, res) => {
       });
     }
 
-    if (!signature) {
-      await connection.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Digital signature is required'
-      });
-    }
-
     // Verify assigned
     const [permits] = await connection.query(
       `SELECT * FROM permits WHERE id = ? AND ${fields.idField} = ?`,
@@ -231,22 +125,11 @@ router.post('/:permitId/approve', async (req, res) => {
       await connection.rollback();
       return res.status(403).json({
         success: false,
-        message: 'You are not assigned to this PTW'
+        message: 'Not assigned to this permit'
       });
     }
 
-    const permit = permits[0];
-
-    // Check if already approved
-    if (permit[fields.statusField] === 'Approved') {
-      await connection.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'You have already approved this PTW'
-      });
-    }
-
-    // Update approval with signature
+    // Update approval
     await connection.query(
       `UPDATE permits 
        SET ${fields.statusField} = 'Approved',
@@ -256,9 +139,7 @@ router.post('/:permitId/approve', async (req, res) => {
       [signature, permitId]
     );
 
-    console.log(`✅ ${fields.name} approved PTW ${permitId}`);
-
-    // Check if ALL assigned approvers have approved
+    // Check if all approved
     const [updated] = await connection.query(
       'SELECT * FROM permits WHERE id = ?',
       [permitId]
@@ -271,39 +152,29 @@ router.post('/:permitId/approve', async (req, res) => {
     if (p.safety_officer_id && p.safety_officer_status !== 'Approved') allApproved = false;
     if (p.site_leader_id && p.site_leader_status !== 'Approved') allApproved = false;
 
-    // If all approved, change status to Approved and notify supervisor
+    // If all approved, make Active
     if (allApproved) {
       await connection.query(
-        `UPDATE permits SET status = 'Approved' WHERE id = ?`,
+        `UPDATE permits SET status = 'Active' WHERE id = ?`,
         [permitId]
       );
-
-      // Notify supervisor that PTW is approved
-      await connection.query(`
-        INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
-        VALUES (?, ?, 'PTW_APPROVED', ?, NOW())
-      `, [p.created_by_user_id, permitId, `PTW ${p.permit_serial} has been approved by all approvers. Click to do final submit.`]);
-
-      console.log(`🎉 All approvers approved! PTW ${permitId} → Approved (waiting for final submit)`);
+      console.log(`🎉 All approved! Permit ${permitId} → Active`);
     }
 
     await connection.commit();
 
     res.json({
       success: true,
-      message: 'PTW approved successfully',
-      data: {
-        all_approved: allApproved,
-        status: allApproved ? 'Approved' : 'Initiated'
-      }
+      message: 'Permit approved',
+      permit_status: allApproved ? 'Active' : 'Pending_Approval'
     });
 
   } catch (error) {
     await connection.rollback();
-    console.error('❌ Error approving PTW:', error);
+    console.error('❌ Error approving:', error);
     res.status(500).json({
       success: false,
-      message: 'Error approving PTW',
+      message: 'Error approving permit',
       error: error.message
     });
   } finally {
@@ -311,7 +182,7 @@ router.post('/:permitId/approve', async (req, res) => {
   }
 });
 
-// POST /api/approvals/:permitId/reject - Reject a PTW
+// POST /api/approvals/:permitId/reject
 router.post('/:permitId/reject', async (req, res) => {
   const connection = await pool.getConnection();
   
@@ -336,7 +207,7 @@ router.post('/:permitId/reject', async (req, res) => {
       await connection.rollback();
       return res.status(400).json({
         success: false,
-        message: 'Rejection reason is required'
+        message: 'Rejection reason required'
       });
     }
 
@@ -350,13 +221,11 @@ router.post('/:permitId/reject', async (req, res) => {
       await connection.rollback();
       return res.status(403).json({
         success: false,
-        message: 'You are not assigned to this PTW'
+        message: 'Not assigned to this permit'
       });
     }
 
-    const permit = permits[0];
-
-    // Reject PTW
+    // Reject permit
     await connection.query(
       `UPDATE permits 
        SET ${fields.statusField} = 'Rejected',
@@ -368,27 +237,21 @@ router.post('/:permitId/reject', async (req, res) => {
       [signature || null, rejection_reason, permitId]
     );
 
-    // Notify supervisor
-    await connection.query(`
-      INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
-      VALUES (?, ?, 'PTW_REJECTED', ?, NOW())
-    `, [permit.created_by_user_id, permitId, `PTW ${permit.permit_serial} was rejected by ${fields.name}. Reason: ${rejection_reason}`]);
-
-    console.log(`❌ ${fields.name} rejected PTW ${permitId}`);
+    console.log(`❌ Permit ${permitId} rejected`);
 
     await connection.commit();
 
     res.json({
       success: true,
-      message: 'PTW rejected successfully'
+      message: 'Permit rejected'
     });
 
   } catch (error) {
     await connection.rollback();
-    console.error('❌ Error rejecting PTW:', error);
+    console.error('❌ Error rejecting:', error);
     res.status(500).json({
       success: false,
-      message: 'Error rejecting PTW',
+      message: 'Error rejecting permit',
       error: error.message
     });
   } finally {

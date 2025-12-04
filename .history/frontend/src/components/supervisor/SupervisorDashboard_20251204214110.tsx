@@ -64,36 +64,66 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = async () => {
-    try {
-      setIsLoading(true);
+const loadDashboardData = async () => {
+  try {
+    setIsLoading(true);
+    console.log('🔄 Loading supervisor dashboard data...');
 
-      // Load workers
-      const workersRes = await usersAPI.getWorkers();
-      const workerCount = workersRes.success ? workersRes.data?.length || 0 : 0;
+    // Load initiated PTWs (waiting for approval)
+    const initiatedRes = await permitsAPI.getMyInitiated();
+    const initiatedPermits = initiatedRes.success ? initiatedRes.data : [];
+    console.log('✅ Initiated PTWs:', initiatedPermits.length);
 
-      // Load permits
-      const permitsRes = await permitsAPI.getAll();
-      const permits: Permit[] = permitsRes.success && permitsRes.data ? permitsRes.data : [];
+    // Load approved PTWs (waiting for final submit)
+    const approvedRes = await permitsAPI.getMyApproved();
+    const approvedPermits = approvedRes.success ? approvedRes.data : [];
+    console.log('✅ Approved PTWs:', approvedPermits.length);
 
-      // Calculate stats
-      setStats({
-        total_workers: workerCount,
-        total_permits: permits.length,
-        approved_permits: permits.filter(p => p.status === 'Pending_Approval' || p.status === 'Active').length,
-        in_progress_permits: permits.filter(p => p.status === 'Active').length,
-        closed_permits: permits.filter(p => p.status === 'Closed').length,
-      });
+    // Load ready-to-start PTWs
+    const readyRes = await permitsAPI.getMyReadyToStart();
+    const readyPermits = readyRes.success ? readyRes.data : [];
+    console.log('✅ Ready-to-Start PTWs:', readyPermits.length);
 
-      setAllPermits(permitsRes.success && permitsRes.data ? permitsRes.data : []);
+    // Load in-progress PTWs
+    const inProgressRes = await permitsAPI.getMyInProgress();
+    const inProgressPermits = inProgressRes.success ? inProgressRes.data : [];
+    console.log('✅ In-Progress PTWs:', inProgressPermits.length);
 
-    } catch (error) {
-      console.error('❌ Error loading dashboard:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Load closed PTWs
+    const closedRes = await permitsAPI.getMyClosed();
+    const closedPermits = closedRes.success ? closedRes.data : [];
+    console.log('✅ Closed PTWs:', closedPermits.length);
 
+    // Load worker count
+    const workersRes = await usersAPI.getWorkers();
+    const workerCount = workersRes.success && workersRes.data ? workersRes.data.length : 0;
+
+    // Set state
+    setInitiatedPermits(initiatedPermits);
+    setApprovedPermits(approvedPermits);
+    setReadyToStartPermits(readyPermits);
+    setInProgressPermits(inProgressPermits);
+    setClosedPermits(closedPermits);
+
+    // Calculate stats
+    setStats({
+      total_workers: workerCount,
+      total_permits: initiatedPermits.length + approvedPermits.length + readyPermits.length + inProgressPermits.length + closedPermits.length,
+      initiated_permits: initiatedPermits.length,
+      approved_permits: approvedPermits.length,
+      in_progress_permits: inProgressPermits.length,
+      closed_permits: closedPermits.length,
+    });
+
+    console.log('✅ Dashboard data loaded successfully');
+
+  } catch (error) {
+    console.error('❌ Error loading dashboard:', error);
+    alert('Error loading dashboard data');
+  } finally {
+    setIsLoading(false);
+  }
+};
   // Filter permits by status
   const approvedPermits = allPermits.filter(p => 
     p.status === 'Pending_Approval' || p.status === 'Active'

@@ -543,6 +543,9 @@ const handleNext = () => {
         safety_officer_id: approvers.safetyOfficer || null,
         site_leader_id: requiresSiteLeaderApproval ? (approvers.siteLeader || null) : null,
         issuer_signature: formData.issuerSignature || null,
+        area_manager_signature: approverSignatures.areaManagerSignature || null,
+        safety_officer_signature: approverSignatures.safetyOfficerSignature || null,
+        site_leader_signature: approverSignatures.siteLeaderSignature || null,
       };
 
       console.log('📤 Submitting permit data:', permitData);

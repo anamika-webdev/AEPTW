@@ -258,62 +258,7 @@ export const permitsAPI = {
     const response = await api.post(`/permits/${id}/request-extension`, extensionData);
     return response.data;
   },
-  // Get initiated PTWs (waiting for approval)
-  getMyInitiated: async () => {
-    try {
-      const response = await axios.get('/api/permits/my-initiated');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching initiated PTWs:', error);
-      throw error;
-    }
-  },
-
-  // Get approved PTWs (waiting for final submit)
-  getMyApproved: async () => {
-    try {
-      const response = await axios.get('/api/permits/my-approved');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching approved PTWs:', error);
-      throw error;
-    }
-  },
-
-  // Get ready-to-start PTWs
-  getMyReadyToStart: async () => {
-    try {
-      const response = await axios.get('/api/permits/my-ready-to-start');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching ready-to-start PTWs:', error);
-      throw error;
-    }
-  },
-
-  // Get in-progress PTWs
-  getMyInProgress: async () => {
-    try {
-      const response = await axios.get('/api/permits/my-in-progress');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching in-progress PTWs:', error);
-      throw error;
-    }
-  },
-
-  // Get closed PTWs
-  getMyClosed: async () => {
-    try {
-      const response = await axios.get('/api/permits/my-closed');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching closed PTWs:', error);
-      throw error;
-    }
-  }
 };
-
 
 
 // ============= Master Data APIs (from Admin DB) =============

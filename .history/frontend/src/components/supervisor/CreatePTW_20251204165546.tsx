@@ -333,6 +333,7 @@ const loadApprovers = async () => {
     console.error('❌ [APPROVERS] Error:', error);
   }
 };
+
   const loadCorrectChecklistQuestions = () => {
     const correctQuestions: Record<PermitType, Array<{question: string; isTextInput: boolean}>> = {
       'General': [
@@ -543,6 +544,9 @@ const handleNext = () => {
         safety_officer_id: approvers.safetyOfficer || null,
         site_leader_id: requiresSiteLeaderApproval ? (approvers.siteLeader || null) : null,
         issuer_signature: formData.issuerSignature || null,
+        area_manager_signature: approverSignatures.areaManagerSignature || null,
+        safety_officer_signature: approverSignatures.safetyOfficerSignature || null,
+        site_leader_signature: approverSignatures.siteLeaderSignature || null,
       };
 
       console.log('📤 Submitting permit data:', permitData);
@@ -1588,7 +1592,16 @@ Include:
                     </SelectContent>
                   </Select>
 
-                  
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      type="button"
+                      onClick={() => setShowApproverSignature('areaManager')}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {approverSignatures.areaManagerSignature ? 'Update' : 'Add'} Digital Signature
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -1622,7 +1635,16 @@ Include:
                     </SelectContent>
                   </Select>
 
-                  
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      type="button"
+                      onClick={() => setShowApproverSignature('safetyOfficer')}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {approverSignatures.safetyOfficerSignature ? 'Update' : 'Add'} Digital Signature
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -1667,7 +1689,20 @@ Include:
                     </SelectContent>
                   </Select>
 
-                  
+                  {approvers.siteLeader > 0 && (
+                    <div className="flex items-center gap-3 p-3 border-t border-slate-200">
+                      <Button
+                        type="button"
+                        onClick={() => setShowApproverSignature('siteLeader')}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        {approverSignatures.siteLeaderSignature ? 'Update' : 'Add'} Digital Signature
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -208,56 +208,6 @@ export const permitsAPI = {
     return response.data;
   },
 
-  
-  // Get permits created by the logged-in supervisor
-  getMySupervisorPermits: async (): Promise<ApiResponse<Permit[]>> => {
-    const response = await api.get('/permits/my-supervisor-permits');
-    return response.data;
-  },
-
-  getById: async (id: number): Promise<ApiResponse<Permit>> => {
-    const response = await api.get(`/permits/${id}`);
-    return response.data;
-  },
-
-  create: async (permitData: CreatePermitFormData): Promise<ApiResponse<Permit>> => {
-    const response = await api.post('/permits', permitData);
-    return response.data;
-  },
-
-  update: async (id: number, permitData: Partial<Permit>): Promise<ApiResponse<Permit>> => {
-    const response = await api.put(`/permits/${id}`, permitData);
-    return response.data;
-  },
-
-  delete: async (id: number): Promise<ApiResponse<void>> => {
-    const response = await api.delete(`/permits/${id}`);
-    return response.data;
-  },
-
-  // Approve permit
-  approve: async (id: number, approvalData: any): Promise<ApiResponse<Permit>> => {
-    const response = await api.post(`/permits/${id}/approve`, approvalData);
-    return response.data;
-  },
-
-  // Reject permit
-  reject: async (id: number, rejectionData: any): Promise<ApiResponse<Permit>> => {
-    const response = await api.post(`/permits/${id}/reject`, rejectionData);
-    return response.data;
-  },
-
-  // Close permit
-  close: async (id: number, closeData: any): Promise<ApiResponse<Permit>> => {
-    const response = await api.post(`/permits/${id}/close`, closeData);
-    return response.data;
-  },
-
-  // Request extension
-  requestExtension: async (id: number, extensionData: any): Promise<ApiResponse<Permit>> => {
-    const response = await api.post(`/permits/${id}/request-extension`, extensionData);
-    return response.data;
-  },
   // Get initiated PTWs (waiting for approval)
   getMyInitiated: async () => {
     try {
@@ -313,7 +263,56 @@ export const permitsAPI = {
     }
   }
 };
+  // Get permits created by the logged-in supervisor
+  getMySupervisorPermits: async (): Promise<ApiResponse<Permit[]>> => {
+    const response = await api.get('/permits/my-supervisor-permits');
+    return response.data;
+  },
 
+  getById: async (id: number): Promise<ApiResponse<Permit>> => {
+    const response = await api.get(`/permits/${id}`);
+    return response.data;
+  },
+
+  create: async (permitData: CreatePermitFormData): Promise<ApiResponse<Permit>> => {
+    const response = await api.post('/permits', permitData);
+    return response.data;
+  },
+
+  update: async (id: number, permitData: Partial<Permit>): Promise<ApiResponse<Permit>> => {
+    const response = await api.put(`/permits/${id}`, permitData);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/permits/${id}`);
+    return response.data;
+  },
+
+  // Approve permit
+  approve: async (id: number, approvalData: any): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/approve`, approvalData);
+    return response.data;
+  },
+
+  // Reject permit
+  reject: async (id: number, rejectionData: any): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/reject`, rejectionData);
+    return response.data;
+  },
+
+  // Close permit
+  close: async (id: number, closeData: any): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/close`, closeData);
+    return response.data;
+  },
+
+  // Request extension
+  requestExtension: async (id: number, extensionData: any): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/request-extension`, extensionData);
+    return response.data;
+  },
+};
 
 
 // ============= Master Data APIs (from Admin DB) =============

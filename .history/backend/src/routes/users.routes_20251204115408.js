@@ -123,130 +123,6 @@ router.get('/workers', async (req, res) => {
     });
   }
 });
-// GET /api/users/approvers - Get all active approvers
-router.get('/approvers', authenticateToken, async (req, res) => {
-  try {
-    const [approvers] = await pool.query(
-      `SELECT 
-        u.id, 
-        u.login_id, 
-        u.full_name, 
-        u.email, 
-        u.role,
-        u.department_id,
-        d.name as department_name
-       FROM users u
-       LEFT JOIN departments d ON u.department_id = d.id
-       WHERE u.role IN ('Approver_AreaManager', 'Approver_Safety', 'Approver_SiteLeader') 
-         AND u.is_active = TRUE
-       ORDER BY u.role, u.full_name`
-    );
-    
-    console.log(`✅ Fetched ${approvers.length} approvers for user ${req.user.id} (${req.user.role})`);
-    
-    res.json({
-      success: true,
-      count: approvers.length,
-      data: approvers
-    });
-    
-  } catch (error) {
-    console.error('❌ Error fetching approvers:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching approvers',
-      error: error.message
-    });
-  }
-});
-
-// GET /api/users/approvers/area-managers - Get area managers
-router.get('/approvers/area-managers', authenticateToken, async (req, res) => {
-  try {
-    const [approvers] = await pool.query(
-      `SELECT u.id, u.login_id, u.full_name, u.email, u.role,
-              u.department_id, d.name as department_name
-       FROM users u
-       LEFT JOIN departments d ON u.department_id = d.id
-       WHERE u.role = 'Approver_AreaManager' AND u.is_active = TRUE
-       ORDER BY u.full_name`
-    );
-    
-    console.log(`✅ Fetched ${approvers.length} area managers`);
-    
-    res.json({ 
-      success: true, 
-      count: approvers.length,
-      data: approvers 
-    });
-  } catch (error) {
-    console.error('❌ Error fetching area managers:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching area managers',
-      error: error.message
-    });
-  }
-});
-
-// GET /api/users/approvers/safety-officers - Get safety officers
-router.get('/approvers/safety-officers', authenticateToken, async (req, res) => {
-  try {
-    const [approvers] = await pool.query(
-      `SELECT u.id, u.login_id, u.full_name, u.email, u.role,
-              u.department_id, d.name as department_name
-       FROM users u
-       LEFT JOIN departments d ON u.department_id = d.id
-       WHERE u.role = 'Approver_Safety' AND u.is_active = TRUE
-       ORDER BY u.full_name`
-    );
-    
-    console.log(`✅ Fetched ${approvers.length} safety officers`);
-    
-    res.json({ 
-      success: true, 
-      count: approvers.length,
-      data: approvers 
-    });
-  } catch (error) {
-    console.error('❌ Error fetching safety officers:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching safety officers',
-      error: error.message
-    });
-  }
-});
-
-// GET /api/users/approvers/site-leaders - Get site leaders
-router.get('/approvers/site-leaders', authenticateToken, async (req, res) => {
-  try {
-    const [approvers] = await pool.query(
-      `SELECT u.id, u.login_id, u.full_name, u.email, u.role,
-              u.department_id, d.name as department_name
-       FROM users u
-       LEFT JOIN departments d ON u.department_id = d.id
-       WHERE u.role = 'Approver_SiteLeader' AND u.is_active = TRUE
-       ORDER BY u.full_name`
-    );
-    
-    console.log(`✅ Fetched ${approvers.length} site leaders`);
-    
-    res.json({ 
-      success: true, 
-      count: approvers.length,
-      data: approvers 
-    });
-  } catch (error) {
-    console.error('❌ Error fetching site leaders:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching site leaders',
-      error: error.message
-    });
-  }
-});
-
 
 // GET /api/users/:id - Get user by ID (Admin only)
 router.get('/:id', authorizeAdmin, async (req, res) => {
@@ -484,5 +360,84 @@ router.delete('/:id', authorizeAdmin, async (req, res) => {
   }
 });
 
+// GET /api/users/approvers - Get all active approvers
+router.get('/approvers', authenticate, async (req, res) => {
+  try {
+    const [approvers] = await pool.query(
+      `SELECT 
+        id, 
+        login_id, 
+        full_name, 
+        email, 
+        role,
+        department_name
+       FROM users 
+       WHERE role IN ('Approver_AreaManager', 'Approver_Safety', 'Approver_SiteLeader') 
+         AND is_active = TRUE
+       ORDER BY role, full_name`
+    );
+    
+    res.json({
+      success: true,
+      count: approvers.length,
+      data: approvers
+    });
+    
+  } catch (error) {
+    console.error('Error fetching approvers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching approvers',
+      error: error.message
+    });
+  }
+});
 
+// GET /api/users/approvers/area-managers - Get area managers
+router.get('/approvers/area-managers', authenticate, async (req, res) => {
+  try {
+    const [approvers] = await pool.query(
+      `SELECT id, login_id, full_name, email, role
+       FROM users 
+       WHERE role = 'Approver_AreaManager' AND is_active = TRUE
+       ORDER BY full_name`
+    );
+    
+    res.json({ success: true, data: approvers });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching area managers' });
+  }
+});
+
+// GET /api/users/approvers/safety-officers - Get safety officers
+router.get('/approvers/safety-officers', authenticate, async (req, res) => {
+  try {
+    const [approvers] = await pool.query(
+      `SELECT id, login_id, full_name, email, role
+       FROM users 
+       WHERE role = 'Approver_Safety' AND is_active = TRUE
+       ORDER BY full_name`
+    );
+    
+    res.json({ success: true, data: approvers });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching safety officers' });
+  }
+});
+
+// GET /api/users/approvers/site-leaders - Get site leaders
+router.get('/approvers/site-leaders', authenticate, async (req, res) => {
+  try {
+    const [approvers] = await pool.query(
+      `SELECT id, login_id, full_name, email, role
+       FROM users 
+       WHERE role = 'Approver_SiteLeader' AND is_active = TRUE
+       ORDER BY full_name`
+    );
+    
+    res.json({ success: true, data: approvers });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching site leaders' });
+  }
+});
 module.exports = router;

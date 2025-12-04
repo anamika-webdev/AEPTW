@@ -313,7 +313,7 @@ export const permitsAPI = {
     }
   }
 };
-
+};
 
 
 // ============= Master Data APIs (from Admin DB) =============
