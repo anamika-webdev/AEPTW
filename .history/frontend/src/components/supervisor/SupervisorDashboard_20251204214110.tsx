@@ -88,6 +88,8 @@ const loadDashboardData = async () => {
     const inProgressRes = await permitsAPI.getMyInProgress();
     const inProgressPermits = inProgressRes.success ? inProgressRes.data : [];
     console.log('✅ In-Progress PTWs:', inProgressPermits.length);
+    // Fetch Extended PTWs (Extension Requested status)
+    const extendedRes = await permitsAPI.getAll({ status: 'Extension_Requested' });
 
     // Load closed PTWs
     const closedRes = await permitsAPI.getMyClosed();
@@ -97,14 +99,15 @@ const loadDashboardData = async () => {
     // Load worker count
     const workersRes = await usersAPI.getWorkers();
     const workerCount = workersRes.success && workersRes.data ? workersRes.data.length : 0;
-
+const extended = extendedRes.success && extendedRes.data ? extendedRes.data : [];
     // Set state
     setInitiatedPermits(initiatedPermits);
     setApprovedPermits(approvedPermits);
     setReadyToStartPermits(readyPermits);
     setInProgressPermits(inProgressPermits);
     setClosedPermits(closedPermits);
-
+   
+setExtendedPermits(extended);
     // Calculate stats
     setStats({
       total_workers: workerCount,
@@ -648,7 +651,14 @@ const loadDashboardData = async () => {
 
       {/* PTW Extended - NEW TABLE with Close button! */}
       <ExtendedTable permits={extendedPermits} />
-
+{/* Table 5: Extended PTWs (Extension Requested) */}
+<PermitTable
+  permits={extendedPermits}
+  title="Extended PTWs (Extension Requested)"
+  emptyMessage="No extension requests pending"
+  showActions={true}
+  actionType="close-only"
+/>
       {/* Closed PTWs */}
       <PermitTable
         permits={closedPermits}
