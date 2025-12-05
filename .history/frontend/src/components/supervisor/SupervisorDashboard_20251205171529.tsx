@@ -465,25 +465,6 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     Close
   </button>
 )}
-{actionType === 'view-close' && (
-  <div className="flex gap-2">
-    <button
-      onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
-      className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded text-slate-700 bg-slate-100 hover:bg-slate-200"
-    >
-      <Eye className="w-3 h-3" />
-      View
-    </button>
-    
-    <button
-      onClick={() => handleClose(permit)}
-      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 transition-all bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300"
-    >
-      <X className="w-4 h-4" />
-      Close
-    </button>
-  </div>
-)}
                         {actionType === 'view' && (
                           <button
                             onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
@@ -648,14 +629,14 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
           actionType="extend-close"
         />
 
-        {/* Table 6: Extended PTWs (Extension Requested) */}
-<PermitTable
-  permits={extendedPermits}
-  title="Extended PTWs (Extension Requested)"
-  emptyMessage="No extension requests"
-  showActions={true}
-  actionType="view-close"
-/>
+        {/* Table 6: Extended PTWs (NEW) */}
+        <PermitTable
+          permits={extendedPermits}
+          title="Extended PTWs (Extension Requested)"
+          emptyMessage="No extension requests"
+          showActions={true}
+          actionType="view"
+        />
 
         {/* Table 7: Closed PTWs */}
         <PermitTable

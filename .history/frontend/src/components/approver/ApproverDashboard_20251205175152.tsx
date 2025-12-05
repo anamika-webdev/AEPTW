@@ -132,6 +132,7 @@ const SignatureCanvas = ({ onSave }: { onSave: (signature: string) => void }) =>
 export default function ApproverDashboard({ onNavigate, initialTab = 'pending'}: ApproverDashboardProps) {
    const [activeTab, setActiveTab] = useState(initialTab); 
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
   
   // Data states
   const [pendingPermits, setPendingPermits] = useState<Permit[]>([]);
@@ -149,11 +150,6 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending'}:
   useEffect(() => {
     loadDashboardData();
   }, []);
-  useEffect(() => {
-  if (initialTab) {
-    setActiveTab(initialTab);
-  }
-}, [initialTab]);
 
   const loadDashboardData = async () => {
     try {

@@ -149,11 +149,6 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending'}:
   useEffect(() => {
     loadDashboardData();
   }, []);
-  useEffect(() => {
-  if (initialTab) {
-    setActiveTab(initialTab);
-  }
-}, [initialTab]);
 
   const loadDashboardData = async () => {
     try {

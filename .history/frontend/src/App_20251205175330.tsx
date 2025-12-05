@@ -182,13 +182,7 @@ const [approverTab, setApproverTab] = useState<'pending' | 'approved' | 'rejecte
           {/* Approver Pages */}
           {isApprover && (
             <>
-             {currentPage === 'dashboard' && (
-  <ApproverDashboard 
-    onNavigate={handleNavigate}
-    initialTab={approverTab}
-  />
-)}
-              
+              {currentPage === 'dashboard' && <ApproverDashboard />}
               {currentPage === 'permit-detail' && selectedPermitId && (
                 <PermitDetails 
                   ptwId={selectedPermitId} 

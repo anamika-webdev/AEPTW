@@ -648,14 +648,14 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
           actionType="extend-close"
         />
 
-        {/* Table 6: Extended PTWs (Extension Requested) */}
-<PermitTable
-  permits={extendedPermits}
-  title="Extended PTWs (Extension Requested)"
-  emptyMessage="No extension requests"
-  showActions={true}
-  actionType="view-close"
-/>
+        {/* Table 6: Extended PTWs (NEW) */}
+        <PermitTable
+          permits={extendedPermits}
+          title="Extended PTWs (Extension Requested)"
+          emptyMessage="No extension requests"
+          showActions={true}
+          actionType="view"
+        />
 
         {/* Table 7: Closed PTWs */}
         <PermitTable

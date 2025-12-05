@@ -429,7 +429,7 @@ router.post('/:permitId/approve', async (req, res) => {
 });
 
 // ============================================================================
-// REJECT PTW - ✅ FIXED
+// REJECT PTW
 // ============================================================================
 router.post('/:permitId/reject', async (req, res) => {
   let connection;
@@ -439,14 +439,12 @@ router.post('/:permitId/reject', async (req, res) => {
     await connection.beginTransaction();
     
     const { permitId } = req.params;
-    // ✅ Accept both 'rejection_reason' and 'reason' for compatibility
-    const { rejection_reason, reason, signature } = req.body;
-    const actualReason = rejection_reason || reason;
+    const { rejection_reason, reason } = req.body;
+const actualReason = rejection_reason || reason;
     const userId = req.user.id;
     const userRole = req.user.role;
     
     console.log(`📥 POST /api/approvals/${permitId}/reject - User: ${userId}, Role: ${userRole}`);
-    console.log('Rejection data:', { rejection_reason, reason, actualReason });
     
     const fields = getApprovalFields(userRole);
     
@@ -458,10 +456,9 @@ router.post('/:permitId/reject', async (req, res) => {
       });
     }
 
-    // ✅ Validate actualReason (not just 'reason')
-    if (!actualReason || actualReason.trim().length === 0) {
+    // Validate reason
+    if (!reason || reason.trim().length === 0) {
       await connection.rollback();
-      console.log('❌ Rejection reason is missing or empty');
       return res.status(400).json({
         success: false,
         message: 'Rejection reason is required'
@@ -510,30 +507,27 @@ router.post('/:permitId/reject', async (req, res) => {
       });
     }
 
-    // Update this approver's status to Rejected with signature
+    // Update this approver's status to Rejected
     await connection.query(
       `UPDATE permits 
        SET ${fields.statusField} = 'Rejected',
            ${fields.approvedAtField} = NOW(),
-           ${fields.signatureField} = ?,
            updated_at = NOW()
        WHERE id = ?`,
-      [signature || null, permitId]
+      [permitId]
     );
     
-    // Update overall permit status to Rejected with reason
-    // ✅ Use actualReason instead of reason
+    // Update overall permit status to Rejected
     await connection.query(
       `UPDATE permits 
        SET status = 'Rejected',
            rejection_reason = ?,
            updated_at = NOW()
        WHERE id = ?`,
-      [actualReason, permitId]
+      [reason, permitId]
     );
     
     console.log(`❌ ${fields.roleName} rejected PTW ${permitId}`);
-    console.log(`   Reason: ${actualReason}`);
 
     // Create notification for supervisor
     await connection.query(
@@ -542,7 +536,7 @@ router.post('/:permitId/reject', async (req, res) => {
       [
         permit.created_by_user_id,
         permitId,
-        `PTW ${permit.permit_serial} has been rejected by ${fields.roleName}. Reason: ${actualReason}`
+        `PTW ${permit.permit_serial} has been rejected by ${fields.roleName}. Reason: ${reason}`
       ]
     );
 
@@ -555,7 +549,7 @@ router.post('/:permitId/reject', async (req, res) => {
         permit_id: permitId,
         approver_role: fields.roleName,
         status: 'Rejected',
-        reason: actualReason
+        reason: reason
       }
     });
 
