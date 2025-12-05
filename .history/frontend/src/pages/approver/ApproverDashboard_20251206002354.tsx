@@ -1,5 +1,5 @@
-// frontend/src/components/approver/ApproverDashboard.tsx
-// ✅ FIXED: Added Area Manager, Safety Officer, and Site Leader name columns
+// frontend/src/pages/approver/ApproverDashboard.tsx
+// COMPLETE APPROVER DASHBOARD WITH VIEW DETAILS BUTTONS
 
 import { useState, useEffect } from 'react';
 import { Clock, CheckCircle, XCircle, AlertCircle, Eye, Check, X } from 'lucide-react';
@@ -16,13 +16,6 @@ interface Permit {
   created_by_name?: string;
   rejection_reason?: string;
   site_name?: string;
-  // ✅ Added approver fields
-  area_manager_name?: string;
-  safety_officer_name?: string;
-  site_leader_name?: string;
-  area_manager_status?: string;
-  safety_officer_status?: string;
-  site_leader_status?: string;
 }
 
 interface ApproverDashboardProps {
@@ -83,28 +76,16 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
         rejected: rejectedData.count || 0
       });
 
-      // ✅ Debug log to check if approver names are in response
-      if (pendingData.data && pendingData.data.length > 0) {
-        console.log('📋 Sample pending permit:', pendingData.data[0]);
-        console.log('   Area Manager:', pendingData.data[0].area_manager_name);
-        console.log('   Safety Officer:', pendingData.data[0].safety_officer_name);
-        console.log('   Site Leader:', pendingData.data[0].site_leader_name);
-      }
-
       if (pendingData.success) {
         setPendingPermits(pendingData.data || []);
         setApproverRole(pendingData.approver_role || 'Approver');
       }
-      if (approvedData.success) {
-        setApprovedPermits(approvedData.data || []);
-      }
-      if (rejectedData.success) {
-        setRejectedPermits(rejectedData.data || []);
-      }
+      if (approvedData.success) setApprovedPermits(approvedData.data || []);
+      if (rejectedData.success) setRejectedPermits(rejectedData.data || []);
 
-    } catch (error) {
-      console.error('Error loading approvals:', error);
-      alert('Failed to load approvals');
+    } catch (error: any) {
+      console.error('❌ Error loading approvals:', error);
+      alert('Error loading approvals: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -112,8 +93,8 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
 
   const handleApprove = async () => {
     if (!selectedPermit) return;
-    if (!signature.trim()) {
-      alert('⚠️ Please provide your digital signature');
+    if (!signature) {
+      alert('⚠️ Please provide your signature');
       return;
     }
 
@@ -133,7 +114,7 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
       const data = await response.json();
 
       if (data.success) {
-        alert('✅ PTW approved successfully');
+        alert('✅ PTW approved successfully!');
         setShowApproveModal(false);
         setSelectedPermit(null);
         setSignature('');
@@ -204,45 +185,6 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
     );
   };
 
-  // ✅ NEW: Helper function to render approval status badge
-  const getApprovalStatusBadge = (status?: string, name?: string) => {
-    if (!name) {
-      return <span className="text-xs text-gray-400">Not assigned</span>;
-    }
-
-    let badge;
-    if (status === 'Approved') {
-      badge = (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded">
-          <CheckCircle className="w-3 h-3" />
-          Approved
-        </span>
-      );
-    } else if (status === 'Rejected') {
-      badge = (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded">
-          <XCircle className="w-3 h-3" />
-          Rejected
-        </span>
-      );
-    } else {
-      badge = (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded">
-          <Clock className="w-3 h-3" />
-          Pending
-        </span>
-      );
-    }
-
-    return (
-      <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-gray-900">{name}</span>
-        {badge}
-      </div>
-    );
-  };
-
-  // ✅ UPDATED: PermitTable with approver columns
   const PermitTable = ({ 
     permits, 
     showActions 
@@ -265,14 +207,8 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
               <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Location</th>
               <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Supervisor</th>
               <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Start Time</th>
-              {/* ✅ NEW: Approver columns */}
-              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Area Manager</th>
-              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Safety Officer</th>
-              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Site Leader</th>
               <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Status</th>
-              {showActions && (
-                <th className="px-4 py-3 text-xs font-medium tracking-wider text-right text-gray-700 uppercase">Actions</th>
-              )}
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-right text-gray-700 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -283,59 +219,47 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
                 <td className="px-4 py-3 text-sm text-gray-600">{permit.work_location}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{permit.created_by_name || 'N/A'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">
-                  {new Date(permit.start_time).toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </td>
-                {/* ✅ NEW: Area Manager column */}
-                <td className="px-4 py-3 text-sm">
-                  {getApprovalStatusBadge(permit.area_manager_status, permit.area_manager_name)}
-                </td>
-                {/* ✅ NEW: Safety Officer column */}
-                <td className="px-4 py-3 text-sm">
-                  {getApprovalStatusBadge(permit.safety_officer_status, permit.safety_officer_name)}
-                </td>
-                {/* ✅ NEW: Site Leader column */}
-                <td className="px-4 py-3 text-sm">
-                  {getApprovalStatusBadge(permit.site_leader_status, permit.site_leader_name)}
+                  {new Date(permit.start_time).toLocaleString()}
                 </td>
                 <td className="px-4 py-3 text-sm">{getStatusBadge(permit.status)}</td>
-                {showActions && (
-                  <td className="px-4 py-3 text-sm text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-700 transition-colors bg-blue-100 rounded-md hover:bg-blue-200"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedPermit(permit);
-                          setShowApproveModal(true);
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-white transition-colors bg-green-600 rounded-md hover:bg-green-700"
-                      >
-                        <Check className="w-4 h-4" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedPermit(permit);
-                          setShowRejectModal(true);
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-white transition-colors bg-red-600 rounded-md hover:bg-red-700"
-                      >
-                        <X className="w-4 h-4" />
-                        Reject
-                      </button>
-                    </div>
-                  </td>
-                )}
+                <td className="px-4 py-3 text-sm text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {/* View Details Button - Always shown */}
+                    <button
+                      onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded hover:bg-blue-200 transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      View Details
+                    </button>
+
+                    {/* Approve/Reject Buttons - Only for pending */}
+                    {showActions && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedPermit(permit);
+                            setShowApproveModal(true);
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedPermit(permit);
+                            setShowRejectModal(true);
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          Reject
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -348,7 +272,7 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-200 rounded-full border-t-blue-600 animate-spin"></div>
+          <div className="w-12 h-12 mx-auto mb-4 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
           <p className="text-gray-600">Loading approvals...</p>
         </div>
       </div>
@@ -356,12 +280,49 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gray-100">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Approver Dashboard</h1>
-        <p className="text-gray-600">Role: <span className="font-semibold">{approverRole}</span></p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Approver Dashboard</h1>
+          <p className="text-gray-600">Review and approve PTW requests - {approverRole}</p>
+        </div>
       </div>
 
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="p-6 bg-white rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Pending Approvals</p>
+              <p className="text-3xl font-bold text-yellow-600">{pendingPermits.length}</p>
+            </div>
+            <Clock className="w-10 h-10 text-yellow-600" />
+          </div>
+        </div>
+
+        <div className="p-6 bg-white rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Approved</p>
+              <p className="text-3xl font-bold text-green-600">{approvedPermits.length}</p>
+            </div>
+            <CheckCircle className="w-10 h-10 text-green-600" />
+          </div>
+        </div>
+
+        <div className="p-6 bg-white rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Rejected</p>
+              <p className="text-3xl font-bold text-red-600">{rejectedPermits.length}</p>
+            </div>
+            <XCircle className="w-10 h-10 text-red-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
       <div className="bg-white rounded-lg shadow">
         <div className="border-b border-gray-200">
           <nav className="flex -mb-px">
@@ -442,27 +403,27 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
                 type="text"
                 value={signature}
                 onChange={(e) => setSignature(e.target.value)}
-                placeholder="Type your full name as signature"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                placeholder="Type your full name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               />
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex gap-3">
+              <button
+                onClick={handleApprove}
+                className="flex-1 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+              >
+                Approve PTW
+              </button>
               <button
                 onClick={() => {
                   setShowApproveModal(false);
                   setSelectedPermit(null);
                   setSignature('');
                 }}
-                className="px-4 py-2 text-gray-700 transition-colors bg-gray-200 rounded-md hover:bg-gray-300"
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               >
                 Cancel
-              </button>
-              <button
-                onClick={handleApprove}
-                className="px-4 py-2 text-white transition-colors bg-green-600 rounded-md hover:bg-green-700"
-              >
-                Approve PTW
               </button>
             </div>
           </div>
@@ -473,7 +434,7 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
       {showRejectModal && selectedPermit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-2xl p-6 bg-white rounded-lg">
-            <h2 className="mb-4 text-xl font-bold">Reject PTW: {selectedPermit.permit_serial}</h2>
+            <h2 className="mb-4 text-xl font-bold text-red-600">Reject PTW: {selectedPermit.permit_serial}</h2>
             
             <div className="p-4 mb-4 rounded bg-gray-50">
               <p className="mb-1"><strong>Location:</strong> {selectedPermit.work_location}</p>
@@ -487,9 +448,9 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
               <textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Provide detailed reason for rejection..."
+                placeholder="Explain why you're rejecting this PTW..."
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
 
@@ -501,12 +462,18 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
                 type="text"
                 value={signature}
                 onChange={(e) => setSignature(e.target.value)}
-                placeholder="Type your full name as signature"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Type your full name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex gap-3">
+              <button
+                onClick={handleReject}
+                className="flex-1 px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700"
+              >
+                Reject PTW
+              </button>
               <button
                 onClick={() => {
                   setShowRejectModal(false);
@@ -514,15 +481,9 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
                   setRejectionReason('');
                   setSignature('');
                 }}
-                className="px-4 py-2 text-gray-700 transition-colors bg-gray-200 rounded-md hover:bg-gray-300"
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               >
                 Cancel
-              </button>
-              <button
-                onClick={handleReject}
-                className="px-4 py-2 text-white transition-colors bg-red-600 rounded-md hover:bg-red-700"
-              >
-                Reject PTW
               </button>
             </div>
           </div>
