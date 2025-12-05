@@ -1,20 +1,8 @@
 // frontend/src/pages/approver/ApproverDashboard.tsx
-// SIMPLIFIED APPROVER DASHBOARD - Only shows PTWs assigned to ME
+// COMPLETE APPROVER DASHBOARD WITH VIEW DETAILS BUTTONS
 
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Eye,
-  AlertCircle,
-  PenTool
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Clock, CheckCircle, XCircle, AlertCircle, Eye, Check, X } from 'lucide-react';
 
 interface Permit {
   id: number;
@@ -24,99 +12,26 @@ interface Permit {
   work_description: string;
   start_time: string;
   end_time: string;
-  permit_status: string;
-  my_approval_status?: string;
-  site_name?: string;
+  status: string;
   created_by_name?: string;
-  created_by_email?: string;
-  approved_at?: string;
-  rejected_at?: string;
   rejection_reason?: string;
+  site_name?: string;
 }
 
-// Simple Signature Canvas
-const SignaturePad = ({ onSave, onClear }: { onSave: (sig: string) => void, onClear: () => void }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+interface ApproverDashboardProps {
+  onNavigate: (view: string, data?: any) => void;
+  initialTab?: 'pending' | 'approved' | 'rejected';
+}
 
-  const startDrawing = (e: React.MouseEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    setIsDrawing(true);
-  };
-
-  const draw = (e: React.MouseEvent) => {
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-    ctx.stroke();
-  };
-
-  const stopDrawing = () => setIsDrawing(false);
-
-  const clear = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    onClear();
-  };
-
-  const save = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dataURL = canvas.toDataURL('image/png');
-    onSave(dataURL);
-  };
-
-  return (
-    <div className="space-y-3">
-      <label className="text-sm font-medium">Digital Signature</label>
-      <canvas
-        ref={canvasRef}
-        width={400}
-        height={150}
-        className="w-full bg-white border-2 border-gray-300 rounded cursor-crosshair"
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-      />
-      <div className="flex gap-2">
-        <Button type="button" onClick={clear} variant="outline" size="sm">
-          Clear
-        </Button>
-        <Button type="button" onClick={save} size="sm" className="bg-blue-600">
-          <PenTool className="w-4 h-4 mr-2" />
-          Save Signature
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-export default function ApproverDashboard({ onNavigate, onPTWSelect }: any) {
+export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }: ApproverDashboardProps) {
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pending');
-  
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>(initialTab);
   const [pendingPermits, setPendingPermits] = useState<Permit[]>([]);
   const [approvedPermits, setApprovedPermits] = useState<Permit[]>([]);
   const [rejectedPermits, setRejectedPermits] = useState<Permit[]>([]);
-  const [approverRole, setApproverRole] = useState('');
+  const [approverRole, setApproverRole] = useState('Approver');
 
-  // Modal states
+  // Modals
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null);
@@ -124,18 +39,20 @@ export default function ApproverDashboard({ onNavigate, onPTWSelect }: any) {
   const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
-    loadApprovalData();
+    loadApprovals();
   }, []);
 
-  const loadApprovalData = async () => {
-    try {
-      setLoading(true);
-      console.log('🔄 Loading approver dashboard...');
+  // Update active tab when initialTab changes
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
+  const loadApprovals = async () => {
+    try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-      // Fetch pending approvals
+      // Fetch pending
       const pendingRes = await fetch(`${baseURL}/approvals/pending`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -201,20 +118,20 @@ export default function ApproverDashboard({ onNavigate, onPTWSelect }: any) {
         setShowApproveModal(false);
         setSelectedPermit(null);
         setSignature('');
-        loadApprovalData();
+        loadApprovals();
       } else {
-        alert('❌ Failed: ' + data.message);
+        alert('❌ ' + (data.message || 'Failed to approve'));
       }
     } catch (error: any) {
-      console.error('❌ Error approving:', error);
-      alert('Error: ' + error.message);
+      console.error('Error approving:', error);
+      alert('❌ Error: ' + error.message);
     }
   };
 
   const handleReject = async () => {
     if (!selectedPermit) return;
     if (!rejectionReason.trim()) {
-      alert('⚠️ Please provide rejection reason');
+      alert('⚠️ Please provide a rejection reason');
       return;
     }
 
@@ -228,7 +145,7 @@ export default function ApproverDashboard({ onNavigate, onPTWSelect }: any) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           rejection_reason: rejectionReason,
           signature: signature || null
         })
@@ -237,189 +154,234 @@ export default function ApproverDashboard({ onNavigate, onPTWSelect }: any) {
       const data = await response.json();
 
       if (data.success) {
-        alert('✅ PTW rejected');
+        alert('✅ PTW rejected successfully');
         setShowRejectModal(false);
         setSelectedPermit(null);
         setRejectionReason('');
         setSignature('');
-        loadApprovalData();
+        loadApprovals();
       } else {
-        alert('❌ Failed: ' + data.message);
+        alert('❌ ' + (data.message || 'Failed to reject'));
       }
     } catch (error: any) {
-      console.error('❌ Error rejecting:', error);
-      alert('Error: ' + error.message);
+      console.error('Error rejecting:', error);
+      alert('❌ Error: ' + error.message);
     }
   };
 
-  const PermitCard = ({ permit, showActions }: { permit: Permit; showActions: boolean }) => (
-    <Card className="mb-4">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg font-bold text-blue-600">{permit.permit_serial}</span>
-              <span className="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded">
-                {permit.permit_type}
-              </span>
-            </div>
-            
-            <div className="space-y-1 text-sm text-gray-600">
-              <p><strong>Location:</strong> {permit.work_location}</p>
-              <p><strong>Description:</strong> {permit.work_description}</p>
-              <p><strong>Supervisor:</strong> {permit.created_by_name}</p>
-              <p><strong>Site:</strong> {permit.site_name || 'N/A'}</p>
-              <p><strong>Start Time:</strong> {new Date(permit.start_time).toLocaleString()}</p>
-            </div>
-          </div>
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
+      'Initiated': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
+      'Approved': { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
+      'Rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
+    };
 
-          {showActions && (
-            <div className="flex flex-col gap-2 ml-4">
-              <Button 
-                onClick={() => {
-                  setSelectedPermit(permit);
-                  setShowApproveModal(true);
-                }}
-                size="sm"
-                className="text-white bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle className="w-4 h-4 mr-1" />
-                Approve
-              </Button>
-              <Button 
-                onClick={() => {
-                  setSelectedPermit(permit);
-                  setShowRejectModal(true);
-                }}
-                size="sm"
-                variant="outline"
-                className="text-red-600 border-red-300 hover:bg-red-50"
-              >
-                <XCircle className="w-4 h-4 mr-1" />
-                Reject
-              </Button>
-            </div>
-          )}
+    const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+        {config.label}
+      </span>
+    );
+  };
+
+  const PermitTable = ({ 
+    permits, 
+    showActions 
+  }: { 
+    permits: Permit[]; 
+    showActions: boolean;
+  }) => (
+    <div className="overflow-x-auto">
+      {permits.length === 0 ? (
+        <div className="py-12 text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+          <p className="text-gray-500">No permits found</p>
         </div>
-      </CardContent>
-    </Card>
+      ) : (
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">PTW ID</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Type</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Location</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Supervisor</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Start Time</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Status</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-right text-gray-700 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {permits.map((permit) => (
+              <tr key={permit.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 text-sm font-medium text-gray-900">{permit.permit_serial}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{permit.permit_type}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{permit.work_location}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{permit.created_by_name || 'N/A'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  {new Date(permit.start_time).toLocaleString()}
+                </td>
+                <td className="px-4 py-3 text-sm">{getStatusBadge(permit.status)}</td>
+                <td className="px-4 py-3 text-sm text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {/* View Details Button - Always shown */}
+                    <button
+                      onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded hover:bg-blue-200 transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      View Details
+                    </button>
+
+                    {/* Approve/Reject Buttons - Only for pending */}
+                    {showActions && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedPermit(permit);
+                            setShowApproveModal(true);
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedPermit(permit);
+                            setShowRejectModal(true);
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          Reject
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <LoadingSpinner size="lg" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+          <p className="text-gray-600">Loading approvals...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Approver Dashboard</h1>
-        <p className="text-gray-600">Review and approve PTW requests - {approverRole}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Approver Dashboard</h1>
+          <p className="text-gray-600">Review and approve PTW requests - {approverRole}</p>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="flex items-center justify-between p-6">
+        <div className="p-6 bg-white rounded-lg shadow">
+          <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Pending Approvals</p>
               <p className="text-3xl font-bold text-yellow-600">{pendingPermits.length}</p>
             </div>
             <Clock className="w-10 h-10 text-yellow-600" />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-6">
+        <div className="p-6 bg-white rounded-lg shadow">
+          <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Approved</p>
               <p className="text-3xl font-bold text-green-600">{approvedPermits.length}</p>
             </div>
             <CheckCircle className="w-10 h-10 text-green-600" />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-6">
+        <div className="p-6 bg-white rounded-lg shadow">
+          <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Rejected</p>
               <p className="text-3xl font-bold text-red-600">{rejectedPermits.length}</p>
             </div>
             <XCircle className="w-10 h-10 text-red-600" />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="pending">
-            Pending ({pendingPermits.length})
-          </TabsTrigger>
-          <TabsTrigger value="approved">
-            Approved ({approvedPermits.length})
-          </TabsTrigger>
-          <TabsTrigger value="rejected">
-            Rejected ({rejectedPermits.length})
-          </TabsTrigger>
-        </TabsList>
+      <div className="bg-white rounded-lg shadow">
+        <div className="border-b border-gray-200">
+          <nav className="flex -mb-px">
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'pending'
+                  ? 'border-yellow-500 text-yellow-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Pending ({pendingPermits.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('approved')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'approved'
+                  ? 'border-green-500 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Approved ({approvedPermits.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('rejected')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'rejected'
+                  ? 'border-red-500 text-red-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Rejected ({rejectedPermits.length})
+            </button>
+          </nav>
+        </div>
 
-        <TabsContent value="pending" className="mt-4">
-          {pendingPermits.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p className="text-gray-600">No pending approvals</p>
-              </CardContent>
-            </Card>
-          ) : (
-            pendingPermits.map(permit => (
-              <PermitCard key={permit.id} permit={permit} showActions={true} />
-            ))
+        <div className="p-6">
+          {activeTab === 'pending' && (
+            <div>
+              <h2 className="mb-4 text-lg font-semibold text-gray-900">Pending Approvals</h2>
+              <PermitTable permits={pendingPermits} showActions={true} />
+            </div>
           )}
-        </TabsContent>
 
-        <TabsContent value="approved" className="mt-4">
-          {approvedPermits.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p className="text-gray-600">No approved PTWs</p>
-              </CardContent>
-            </Card>
-          ) : (
-            approvedPermits.map(permit => (
-              <PermitCard key={permit.id} permit={permit} showActions={false} />
-            ))
+          {activeTab === 'approved' && (
+            <div>
+              <h2 className="mb-4 text-lg font-semibold text-gray-900">Approved by You</h2>
+              <PermitTable permits={approvedPermits} showActions={false} />
+            </div>
           )}
-        </TabsContent>
 
-        <TabsContent value="rejected" className="mt-4">
-          {rejectedPermits.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p className="text-gray-600">No rejected PTWs</p>
-              </CardContent>
-            </Card>
-          ) : (
-            rejectedPermits.map(permit => (
-              <div key={permit.id}>
-                <PermitCard permit={permit} showActions={false} />
-                {permit.rejection_reason && (
-                  <div className="p-3 mb-4 -mt-4 text-sm text-red-800 rounded-b bg-red-50">
-                    <strong>Reason:</strong> {permit.rejection_reason}
-                  </div>
-                )}
-              </div>
-            ))
+          {activeTab === 'rejected' && (
+            <div>
+              <h2 className="mb-4 text-lg font-semibold text-gray-900">Rejected by You</h2>
+              <PermitTable permits={rejectedPermits} showActions={false} />
+            </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       {/* Approve Modal */}
       {showApproveModal && selectedPermit && (
@@ -430,31 +392,39 @@ export default function ApproverDashboard({ onNavigate, onPTWSelect }: any) {
             <div className="p-4 mb-4 rounded bg-gray-50">
               <p className="mb-1"><strong>Location:</strong> {selectedPermit.work_location}</p>
               <p className="mb-1"><strong>Description:</strong> {selectedPermit.work_description}</p>
-              <p><strong>Supervisor:</strong> {selectedPermit.created_by_name}</p>
+              <p className="mb-1"><strong>Start:</strong> {new Date(selectedPermit.start_time).toLocaleString()}</p>
             </div>
 
-            <SignaturePad 
-              onSave={setSignature}
-              onClear={() => setSignature('')}
-            />
+            <div className="mb-4">
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Digital Signature <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={signature}
+                onChange={(e) => setSignature(e.target.value)}
+                placeholder="Type your full name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
 
-            {signature && (
-              <div className="p-3 mt-3 text-sm text-green-800 rounded bg-green-50">
-                ✓ Signature captured
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={() => {
-                setShowApproveModal(false);
-                setSignature('');
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={handleApprove} className="text-white bg-green-600">
-                <CheckCircle className="w-4 h-4 mr-2" />
+            <div className="flex gap-3">
+              <button
+                onClick={handleApprove}
+                className="flex-1 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+              >
                 Approve PTW
-              </Button>
+              </button>
+              <button
+                onClick={() => {
+                  setShowApproveModal(false);
+                  setSelectedPermit(null);
+                  setSignature('');
+                }}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -464,37 +434,57 @@ export default function ApproverDashboard({ onNavigate, onPTWSelect }: any) {
       {showRejectModal && selectedPermit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-2xl p-6 bg-white rounded-lg">
-            <h2 className="mb-4 text-xl font-bold">Reject PTW: {selectedPermit.permit_serial}</h2>
+            <h2 className="mb-4 text-xl font-bold text-red-600">Reject PTW: {selectedPermit.permit_serial}</h2>
             
             <div className="p-4 mb-4 rounded bg-gray-50">
               <p className="mb-1"><strong>Location:</strong> {selectedPermit.work_location}</p>
-              <p><strong>Supervisor:</strong> {selectedPermit.created_by_name}</p>
+              <p className="mb-1"><strong>Description:</strong> {selectedPermit.work_description}</p>
             </div>
 
             <div className="mb-4">
-              <label className="block mb-2 text-sm font-medium">
-                Rejection Reason <span className="text-red-600">*</span>
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Rejection Reason <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Provide detailed reason for rejection..."
+                placeholder="Explain why you're rejecting this PTW..."
                 rows={4}
-                className="w-full p-3 border border-gray-300 rounded"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
 
-            <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={() => {
-                setShowRejectModal(false);
-                setRejectionReason('');
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={handleReject} variant="outline" className="text-red-600 border-red-300 hover:bg-red-50">
-                <XCircle className="w-4 h-4 mr-2" />
+            <div className="mb-4">
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Digital Signature (Optional)
+              </label>
+              <input
+                type="text"
+                value={signature}
+                onChange={(e) => setSignature(e.target.value)}
+                placeholder="Type your full name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleReject}
+                className="flex-1 px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700"
+              >
                 Reject PTW
-              </Button>
+              </button>
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setSelectedPermit(null);
+                  setRejectionReason('');
+                  setSignature('');
+                }}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

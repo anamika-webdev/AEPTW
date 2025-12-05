@@ -79,15 +79,6 @@ function App() {
   const handleNavigate = (page: string, data?: any) => {
     console.log('🔄 Navigation:', page, data);
     
-    // Handle permit detail navigation FIRST
-    if (page === 'permit-detail' && data?.permitId) {
-      console.log('📄 Setting permit ID:', data.permitId);
-      setSelectedPermitId(data.permitId);
-      setCurrentPage('permit-detail');
-      setIsMobileMenuOpen(false);
-      return;
-    }
-    
     // Check if this is an approver tab navigation
     if (['pending', 'approved', 'rejected'].includes(page)) {
       setApproverTab(page as 'pending' | 'approved' | 'rejected');
@@ -97,6 +88,11 @@ function App() {
     }
     
     setIsMobileMenuOpen(false);
+    
+    if (page === 'permit-detail' && data?.permitId) {
+      console.log('📄 Setting permit ID:', data.permitId);
+      setSelectedPermitId(data.permitId);
+    }
   };
 
   if (!isInitialized) {
@@ -182,7 +178,7 @@ function App() {
               )}
               {currentPage === 'permit-detail' && selectedPermitId && (
                 <PermitDetails 
-                  ptwId={selectedPermitId} 
+                  permitId={selectedPermitId} 
                   onBack={() => handleNavigate('dashboard')} 
                 />
               )}
@@ -200,7 +196,7 @@ function App() {
               )}
               {currentPage === 'permit-detail' && selectedPermitId && (
                 <PermitDetails 
-                  ptwId={selectedPermitId} 
+                  permitId={selectedPermitId} 
                   onBack={() => handleNavigate('dashboard')} 
                 />
               )}

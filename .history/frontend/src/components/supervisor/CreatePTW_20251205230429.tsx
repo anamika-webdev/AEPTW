@@ -564,6 +564,11 @@ const handleNext = () => {
     console.error('Navigation error:', navError);
   }
   
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          onBack();
+        }
       } else {
         alert(response.message || 'Failed to create PTW');
       }

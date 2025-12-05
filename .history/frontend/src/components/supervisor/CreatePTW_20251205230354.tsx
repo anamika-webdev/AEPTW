@@ -563,7 +563,18 @@ const handleNext = () => {
   } catch (navError) {  // ← ADD THIS
     console.error('Navigation error:', navError);
   }
-  
+  } catch (error: any) {
+  const errorMessage = 
+    error.response?.data?.message || 
+    error.message || 
+    'Failed to create PTW';
+  alert(`❌ ${errorMessage}`);
+}
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          onBack();
+        }
       } else {
         alert(response.message || 'Failed to create PTW');
       }
