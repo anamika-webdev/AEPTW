@@ -34,24 +34,22 @@ const sitesRoutes = require('./src/routes/sites.routes');
 const departmentsRoutes = require('./src/routes/departments.routes');
 const usersRoutes = require('./src/routes/users.routes');
 const permitsRoutes = require('./src/routes/permits.routes');
-const approvalsRoutes = require('./src/routes/approvals.routes');
 const masterRoutes = require('./src/routes/master.routes');
 const dashboardRoutes = require('./src/routes/dashboard.routes');
 const requesterAssignmentsRoutes = require('./src/routes/requester-assignments.routes');
-
+const approvalsRoutes = require('./src/routes/approvals.routes');
 
 // ============= REGISTER ALL ROUTES =============
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sites', sitesRoutes);
 app.use('/api/departments', departmentsRoutes);
-app.use('/api/users', usersRoutes);    
-app.use('/api/approvals', approvalsRoutes);      
+app.use('/api/users', usersRoutes);           // ⭐ CRITICAL
 app.use('/api/permits', permitsRoutes);
-app.use('/api/master', masterRoutes);       
+app.use('/api/master', masterRoutes);         // ⭐ CRITICAL
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/requester-assignments', requesterAssignmentsRoutes);
-
+app.use('/api/approvals', approvalsRoutes);
 // Vendors route (if separate file exists)
 try {
   const vendorsRoutes = require('./src/routes/vendors.routes');

@@ -287,18 +287,8 @@ getMyClosed: async (): Promise<ApiResponse<Permit[]>> => {
   const response = await api.get('/permits/my-closed');
   return response.data;
 },
-// Final submit PTW (supervisor action after all approvals)
-finalSubmit: async (id: number): Promise<ApiResponse<Permit>> => {
-  const response = await api.post(`/permits/${id}/final-submit`);
-  return response.data;
-},
 
-// Start PTW (supervisor action at start time)
-startPTW: async (id: number): Promise<ApiResponse<Permit>> => {
-  const response = await api.post(`/permits/${id}/start`);
-  return response.data;
-},
-};
+
 
 // ============= Master Data APIs (from Admin DB) =============
 export const masterDataAPI = {
@@ -403,42 +393,6 @@ export const adminAPI = {
     return response.data;
   },
 };
-// ============= Approvals APIs (for Approvers) =============
-export const approvalsAPI = {
-  // Get pending approvals for logged-in approver
-  getPending: async (): Promise<ApiResponse<Permit[]>> => {
-    const response = await api.get('/approvals/pending');
-    return response.data;
-  },
 
-  // Get approved PTWs by logged-in approver
-  getApproved: async (): Promise<ApiResponse<Permit[]>> => {
-    const response = await api.get('/approvals/approved');
-    return response.data;
-  },
-
-  // Get rejected PTWs by logged-in approver
-  getRejected: async (): Promise<ApiResponse<Permit[]>> => {
-    const response = await api.get('/approvals/rejected');
-    return response.data;
-  },
-
-  // Approve PTW with signature
-  approve: async (permitId: number, signature: string): Promise<ApiResponse<any>> => {
-    const response = await api.post(`/approvals/${permitId}/approve`, {
-      signature: signature
-    });
-    return response.data;
-  },
-
-  // Reject PTW with reason
-  reject: async (permitId: number, rejection_reason: string, signature?: string): Promise<ApiResponse<any>> => {
-    const response = await api.post(`/approvals/${permitId}/reject`, {
-      rejection_reason: rejection_reason,
-      signature: signature || null
-    });
-    return response.data;
-  },
-};
 
 export default api;
