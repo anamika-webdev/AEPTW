@@ -317,6 +317,8 @@ router.post('/:ptwId/approve', async (req, res) => {
         area_manager_status, 
         safety_officer_status, 
         site_leader_status,
+        area_manager_id,
+        safety_officer_id,
         site_leader_id,
         created_by_user_id,
         permit_serial
@@ -325,19 +327,21 @@ router.post('/:ptwId/approve', async (req, res) => {
     );
 
     const p = updatedPermit[0];
-    let allApproved = false;
+    let allApproved = true;
 
-    // If site leader is assigned (high-risk), need all three
-    if (p.site_leader_id) {
-      allApproved =
-        p.area_manager_status === 'Approved' &&
-        p.safety_officer_status === 'Approved' &&
-        p.site_leader_status === 'Approved';
-    } else {
-      // Only need area manager and safety officer
-      allApproved =
-        p.area_manager_status === 'Approved' &&
-        p.safety_officer_status === 'Approved';
+    // Check Area Manager (Always required, but safe to check ID)
+    if (p.area_manager_id && p.area_manager_status !== 'Approved') {
+      allApproved = false;
+    }
+
+    // Check Safety Officer (Optional)
+    if (p.safety_officer_id && p.safety_officer_status !== 'Approved') {
+      allApproved = false;
+    }
+
+    // Check Site Leader (Optional)
+    if (p.site_leader_id && p.site_leader_status !== 'Approved') {
+      allApproved = false;
     }
 
     if (allApproved) {

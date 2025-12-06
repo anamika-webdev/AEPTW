@@ -1,4 +1,4 @@
-// backend/src/routes/notifications.routes.js - CREATE THIS NEW FILE
+// backend/src/routes/notifications.routes.js - FIXED FOR YOUR SCHEMA
 
 const express = require('express');
 const router = express.Router();
@@ -12,19 +12,20 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
     const { unread_only } = req.query;
-    // Fetches notifications for the current user
+
+    // Updated query to match YOUR actual database schema
     let query = `
       SELECT 
         n.id,
-        n.related_permit_id as permit_id,
-        n.type as notification_type,
-        n.title,
+        n.permit_id,
+        n.related_permit_id,
+        n.notification_type,
         n.message,
         n.is_read,
         n.created_at,
         p.permit_serial
       FROM notifications n
-      LEFT JOIN permits p ON n.related_permit_id = p.id
+      LEFT JOIN permits p ON COALESCE(n.related_permit_id, n.permit_id) = p.id
       WHERE n.user_id = ?
     `;
 
@@ -68,6 +69,7 @@ router.post('/:id/mark-read', async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
+    // Verify notification belongs to user
     const [notifications] = await pool.query(
       'SELECT id FROM notifications WHERE id = ? AND user_id = ?',
       [id, userId]
@@ -80,10 +82,13 @@ router.post('/:id/mark-read', async (req, res) => {
       });
     }
 
+    // Mark as read
     await pool.query(
       'UPDATE notifications SET is_read = TRUE WHERE id = ?',
       [id]
     );
+
+    console.log(`✅ Marked notification ${id} as read`);
 
     res.json({
       success: true,
@@ -105,14 +110,17 @@ router.post('/mark-all-read', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    await pool.query(
+    const [result] = await pool.query(
       'UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE',
       [userId]
     );
 
+    console.log(`✅ Marked ${result.affectedRows} notifications as read for user ${userId}`);
+
     res.json({
       success: true,
-      message: 'All notifications marked as read'
+      message: 'All notifications marked as read',
+      count: result.affectedRows
     });
 
   } catch (error) {
@@ -120,6 +128,48 @@ router.post('/mark-all-read', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error marking all notifications as read',
+      error: error.message
+    });
+  }
+});
+
+// DELETE /api/notifications/:id - Delete a notification
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Verify notification belongs to user before deleting
+    const [notifications] = await pool.query(
+      'SELECT id FROM notifications WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
+
+    if (notifications.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    // Delete the notification
+    await pool.query(
+      'DELETE FROM notifications WHERE id = ?',
+      [id]
+    );
+
+    console.log(`🗑️ Deleted notification ${id}`);
+
+    res.json({
+      success: true,
+      message: 'Notification deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Error deleting notification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting notification',
       error: error.message
     });
   }

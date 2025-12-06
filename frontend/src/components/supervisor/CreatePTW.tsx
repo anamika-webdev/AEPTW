@@ -517,7 +517,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     // Step 5: Checklist Validation
     if (currentStep === 5) {
       const activeQuestions = checklistQuestions.filter(q =>
-        formData.categories.includes(q.permit_type)
+        formData.categories.includes(q.permit_type as PermitType)
       );
 
       for (const q of activeQuestions) {
@@ -1818,132 +1818,133 @@ Include:
               )}
 
               {/* Site Leader - ALWAYS VISIBLE */}
-              <div className={`p-6 border-2 rounded-lg ${requiresSiteLeaderApproval
-                ? 'border-red-300 bg-red-50'
-                : 'border-slate-200 bg-slate-50'
-                }`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Site Leader / Senior Ops
-                    </h3>
-                    {requiresSiteLeaderApproval && (
+              {requiresSiteLeaderApproval && (
+                <div className={`p-6 border-2 rounded-lg ${requiresSiteLeaderApproval ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50'
+                  }`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Site Leader / Senior Ops
+                      </h3>
                       <p className="text-sm text-red-600">(Required for high-risk permits)</p>
+                    </div>
+                    {approverSignatures.siteLeaderSignature && (
+                      <span className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
+                        <Check className="w-4 h-4" />
+                        Signed
+                      </span>
                     )}
                   </div>
-                  {approverSignatures.siteLeaderSignature && (
-                    <span className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
-                      <Check className="w-4 h-4" />
-                      Signed
-                    </span>
-                  )}
-                </div>
 
-                <div className="space-y-4">
-                  <Select
-                    value={approvers.siteLeader.toString()}
-                    onValueChange={(value) => setApprovers({ ...approvers, siteLeader: parseInt(value) })}
-                  >
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Select Site Leader / Senior Ops" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">-- Select --</SelectItem>
-                      {siteLeaders.map((leader) => (
-                        <SelectItem key={leader.id} value={leader.id.toString()}>
-                          {leader.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 7: Review - Keep existing code */}
-        {currentStep === 7 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-900">Review & Submit</h2>
-
-            <div className="p-6 space-y-4 rounded-lg bg-slate-50">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-sm text-slate-500">Permit Initiator</p>
-                  <p className="font-medium text-slate-900">{formData.permitInitiator || 'Not set'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Permit Categories</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {formData.categories.map(cat => (
-                      <span key={cat} className={`px-2 py-1 text-xs font-semibold rounded border ${getCategoryBadgeColor(cat)}`}>
-                        {cat.replace('_', ' ')}
-                      </span>
-                    ))}
+                  <div className="space-y-4">
+                    <Select
+                      value={approvers.siteLeader.toString()}
+                      onValueChange={(value) => setApprovers({ ...approvers, siteLeader: parseInt(value) })}
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Select Site Leader / Senior Ops" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">-- Select --</SelectItem>
+                        {siteLeaders.map((leader) => (
+                          <SelectItem key={leader.id} value={leader.id.toString()}>
+                            {leader.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Site</p>
-                  <p className="font-medium text-slate-900">
-                    {sites.find(s => s.id === formData.site_id)?.name || 'Not set'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Issue Department</p>
-                  <p className="font-medium text-slate-900">{formData.issueDepartment || 'Not set'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Location</p>
-                  <p className="font-medium text-slate-900">{formData.location || 'Not set'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Work Period</p>
-                  <p className="font-medium text-slate-900">
-                    {formData.startDate} {formData.startTime} - {formData.endDate} {formData.endTime}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Issued To</p>
-                  <p className="font-medium text-slate-900">{formData.issuedToName || 'Not set'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Assigned Workers</p>
-                  <p className="font-medium text-slate-900">{formData.selectedWorkers.length + newWorkers.length} workers</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Approvers</p>
-                  <p className="text-sm font-medium text-slate-700">
-                    {requiresSiteLeaderApproval ? '3 approvers required' : '2 approvers required'}
-                  </p>
-                </div>
-              </div>
-            </div>
+              )}
 
-            <div className="p-4 border rounded-lg border-slate-200">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <Checkbox
-                  checked={formData.declaration}
-                  onCheckedChange={(checked) => setFormData({ ...formData, declaration: checked as boolean })}
-                />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">Declaration</p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    I confirm that all information provided is accurate and complete. All necessary safety measures
-                    have been identified and will be implemented. All workers have been briefed on the hazards and
-                    control measures for this work.
-                  </p>
-                </div>
-              </label>
+
             </div>
           </div>
-        )}
+
+        )
+        }
+
+        {/* STEP 7: Review - Keep existing code */}
+        {
+          currentStep === 7 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-slate-900">Review & Submit</h2>
+
+              <div className="p-6 space-y-4 rounded-lg bg-slate-50">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-slate-500">Permit Initiator</p>
+                    <p className="font-medium text-slate-900">{formData.permitInitiator || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Permit Categories</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {formData.categories.map(cat => (
+                        <span key={cat} className={`px-2 py-1 text-xs font-semibold rounded border ${getCategoryBadgeColor(cat)}`}>
+                          {cat.replace('_', ' ')}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Site</p>
+                    <p className="font-medium text-slate-900">
+                      {sites.find(s => s.id === formData.site_id)?.name || 'Not set'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Issue Department</p>
+                    <p className="font-medium text-slate-900">{formData.issueDepartment || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Location</p>
+                    <p className="font-medium text-slate-900">{formData.location || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Work Period</p>
+                    <p className="font-medium text-slate-900">
+                      {formData.startDate} {formData.startTime} - {formData.endDate} {formData.endTime}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Issued To</p>
+                    <p className="font-medium text-slate-900">{formData.issuedToName || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Assigned Workers</p>
+                    <p className="font-medium text-slate-900">{formData.selectedWorkers.length + newWorkers.length} workers</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Approvers</p>
+                    <p className="text-sm font-medium text-slate-700">
+                      {requiresSiteLeaderApproval ? '3 approvers required' : '2 approvers required'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border rounded-lg border-slate-200">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <Checkbox
+                    checked={formData.declaration}
+                    onCheckedChange={(checked) => setFormData({ ...formData, declaration: checked as boolean })}
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Declaration</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      I confirm that all information provided is accurate and complete. All necessary safety measures
+                      have been identified and will be implemented. All workers have been briefed on the hazards and
+                      control measures for this work.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-between pt-6 border-t border-slate-200">
         <Button
           onClick={handleBack}
           variant="outline"
@@ -1953,39 +1954,53 @@ Include:
           Previous
         </Button>
 
-        {currentStep < totalSteps ? (
-          <Button onClick={handleNext} disabled={isSubmitting} type="button">
-            Next
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSubmit}
-            disabled={!formData.declaration || isSubmitting}
-            className="bg-green-600 hover:bg-green-700"
-            type="button"
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit PTW'}
-          </Button>
-        )}
+        {
+          currentStep < totalSteps ? (
+            <Button onClick={handleNext} disabled={isSubmitting} type="button">
+              Next
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={!formData.declaration || isSubmitting}
+              className="bg-green-600 hover:bg-green-700"
+              type="button"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit PTW'}
+            </Button>
+          )
+        }
       </div>
 
       {/* Signature Modal */}
-      {(showSignature || showApproverSignature) && (
-        <DigitalSignature
-          title={
-            showApproverSignature
-              ? `${showApproverSignature === 'areaManager' ? 'Area Manager' :
-                showApproverSignature === 'safetyOfficer' ? 'Safety Officer' :
-                  'Site Leader'} Digital Signature`
-              : 'Issuer Digital Signature'
-          }
-          onSave={handleSignatureSave}
-          onCancel={() => {
-            setShowSignature(false);
-            setShowApproverSignature(null);
-          }}
-        />
-      )}
+      {
+        (showSignature || showApproverSignature) && (
+          <DigitalSignature
+            title={
+              showApproverSignature
+                ? `${showApproverSignature === 'areaManager' ? 'Area Manager' :
+                  showApproverSignature === 'safetyOfficer' ? 'Safety Officer' :
+                    'Site Leader'} Digital Signature`
+                : 'Issuer Digital Signature'
+            }
+            onSave={handleSignatureSave}
+            onCancel={() => {
+              setShowSignature(false);
+              setShowApproverSignature(null);
+            }}
+          />
+        )
+      }
     </div>
   );
+}
+
+function getCategoryBadgeColor(category: string) {
+  switch (category) {
+    case 'Hot_Work': return 'bg-red-100 text-red-700 border-red-200';
+    case 'Confined_Space': return 'bg-orange-100 text-orange-700 border-orange-200';
+    case 'Electrical': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    case 'Height': return 'bg-purple-100 text-purple-700 border-purple-200';
+    default: return 'bg-blue-100 text-blue-700 border-blue-200';
+  }
 }
