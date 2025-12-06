@@ -24,7 +24,7 @@ interface User {
   full_name: string;
   email: string;
   role: string;
-  frontendRole?: "Admin" | "Supervisor" | "Worker" | undefined;
+  frontendRole?: "Admin" | "Supervisor" | "Worker";
   department?: string;
   created_at?: string;
 }
@@ -178,7 +178,9 @@ function App() {
                 <SupervisorDashboard onNavigate={handleNavigate} />
               )}
               {currentPage === 'create-permit' && (
-                <CreatePTW onBack={() => handleNavigate('dashboard')} />
+                <CreatePTW 
+                  onPermitCreated={() => handleNavigate('dashboard')}
+                />
               )}
               {currentPage === 'worker-list' && (
                 <WorkerList onNavigate={handleNavigate} />

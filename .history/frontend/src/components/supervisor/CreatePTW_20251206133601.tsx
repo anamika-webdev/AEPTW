@@ -319,9 +319,9 @@ const loadApprovers = async () => {
       const so = data.data.filter((a: User) => a.role === 'Approver_Safety');
       const sl = data.data.filter((a: User) => a.role === 'Approver_SiteLeader');
       
-      console.log('✅ Area Managers:', am.length, am.map((a: User) => a.full_name));
-      console.log('✅ Safety Officers:', so.length, so.map((a: User) => a.full_name));
-      console.log('✅ Site Leaders:', sl.length, sl.map((a: User) => a.full_name));
+      console.log('✅ Area Managers:', am.length, am.map(a => a.full_name));
+      console.log('✅ Safety Officers:', so.length, so.map(a => a.full_name));
+      console.log('✅ Site Leaders:', sl.length, sl.map(a => a.full_name));
       
       setAreaManagers(am);
       setSafetyOfficers(so);
@@ -409,7 +409,7 @@ const loadApprovers = async () => {
           permit_type: category,
           question_text: question,
           is_mandatory: true,
-          response_type: isTextInput ? 'text' : 'yes_no'
+          response_type: isTextInput ? 'text' : 'radio'
         });
       });
     });
@@ -1214,11 +1214,11 @@ const RequirementRow = memo(({
       <button
         type="button"
         onClick={() => {
-          if (!worker.name || !worker.phone || !worker.companyName) {
+          if (!newWorker.name || !newWorker.phone || !newWorker.companyName) {
             alert('Please fill required fields');
             return;
           }
-          alert(`Worker "${worker.name}" saved!`);
+          alert(`Worker "${newWorker.name}" saved!`);
         }}
         className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
       >
@@ -1776,7 +1776,7 @@ Include:
                 <div>
                   <p className="text-sm text-slate-500">Site</p>
                   <p className="font-medium text-slate-900">
-                    {sites.find(s => s.id === formData.site_id)?.name || 'Not set'}
+                    {sites.find(s => s.id === formData.site_id)?.site_name || 'Not set'}
                   </p>
                 </div>
                 <div>

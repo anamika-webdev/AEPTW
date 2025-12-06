@@ -29,7 +29,7 @@ interface UserManagementProps {
   title: string;
 }
 
-export const UserManagement = ({ users, userType, onEdit, onDelete, onAdd, title }: UserManagementProps) => {
+const UserManagement = ({ users, userType, onEdit, onDelete, onAdd, title }: UserManagementProps) => {
   // ADD PAGINATION HOOK
   const {
     currentPage,
@@ -73,7 +73,7 @@ export const UserManagement = ({ users, userType, onEdit, onDelete, onAdd, title
               {/* CHANGE: Map paginatedData instead of users */}
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
                     No {userType}s found
                   </td>
                 </tr>
@@ -130,7 +130,7 @@ interface SiteManagementProps {
   onAdd: () => void;
 }
 
-export const SiteManagement = ({ sites, onEdit, onDelete, onAdd }: SiteManagementProps) => {
+const SiteManagement = ({ sites, onEdit, onDelete, onAdd }: SiteManagementProps) => {
   // ADD PAGINATION HOOK
   const {
     currentPage,
@@ -174,7 +174,7 @@ export const SiteManagement = ({ sites, onEdit, onDelete, onAdd }: SiteManagemen
               {/* CHANGE: Map paginatedData instead of sites */}
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
                     No sites found
                   </td>
                 </tr>

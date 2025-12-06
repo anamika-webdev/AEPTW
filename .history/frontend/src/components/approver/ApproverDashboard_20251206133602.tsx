@@ -2,7 +2,7 @@
 // ✅ FIXED: Added Area Manager, Safety Officer, and Site Leader name columns
 
 import { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, Eye, Check, X } from 'lucide-react';
 import Pagination from '../common/Pagination';
 import { usePagination } from '../../hooks/usePagination';
 interface Permit {
@@ -27,10 +27,11 @@ interface Permit {
 }
 
 interface ApproverDashboardProps {
+  onNavigate: (view: string, data?: any) => void;
   initialTab?: 'pending' | 'approved' | 'rejected';
 }
 
-export default function ApproverDashboard({ initialTab = 'pending' }: ApproverDashboardProps) {
+export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }: ApproverDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>(initialTab);
   const [pendingPermits, setPendingPermits] = useState<Permit[]>([]);
@@ -362,6 +363,99 @@ export default function ApproverDashboard({ initialTab = 'pending' }: ApproverDa
     </div>
   );
 };
+    <div className="overflow-x-auto">
+      {permits.length === 0 ? (
+        <div className="py-12 text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+          <p className="text-gray-500">No permits found</p>
+        </div>
+      ) : (
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">PTW ID</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Type</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Location</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Supervisor</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Start Time</th>
+              {/* ✅ NEW: Approver columns */}
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Area Manager</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Safety Officer</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Site Leader</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Status</th>
+              {showActions && (
+                <th className="px-4 py-3 text-xs font-medium tracking-wider text-right text-gray-700 uppercase">Actions</th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {permits.map((permit) => (
+              <tr key={permit.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 text-sm font-medium text-gray-900">{permit.permit_serial}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{permit.permit_type}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{permit.work_location}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{permit.created_by_name || 'N/A'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  {new Date(permit.start_time).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </td>
+                {/* ✅ NEW: Area Manager column */}
+                <td className="px-4 py-3 text-sm">
+                  {getApprovalStatusBadge(permit.area_manager_status, permit.area_manager_name)}
+                </td>
+                {/* ✅ NEW: Safety Officer column */}
+                <td className="px-4 py-3 text-sm">
+                  {getApprovalStatusBadge(permit.safety_officer_status, permit.safety_officer_name)}
+                </td>
+                {/* ✅ NEW: Site Leader column */}
+                <td className="px-4 py-3 text-sm">
+                  {getApprovalStatusBadge(permit.site_leader_status, permit.site_leader_name)}
+                </td>
+                <td className="px-4 py-3 text-sm">{getStatusBadge(permit.status)}</td>
+                {showActions && (
+                  <td className="px-4 py-3 text-sm text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
+                        className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-700 transition-colors bg-blue-100 rounded-md hover:bg-blue-200"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedPermit(permit);
+                          setShowApproveModal(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-white transition-colors bg-green-600 rounded-md hover:bg-green-700"
+                      >
+                        <Check className="w-4 h-4" />
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedPermit(permit);
+                          setShowRejectModal(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-white transition-colors bg-red-600 rounded-md hover:bg-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                        Reject
+                      </button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
 
   if (loading) {
     return (
