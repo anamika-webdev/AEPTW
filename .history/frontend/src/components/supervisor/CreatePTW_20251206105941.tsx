@@ -1403,30 +1403,20 @@ const RequirementRow = memo(({
                 Safe Work Method Statement (SWMS)
               </h3>
 
-              <div className="flex gap-4 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, swmsMode: 'file' })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'file'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
-                >
-                  Upload Document
-                </button>
-                <button
-                  type="button"
-                 onClick={() => setFormData({ ...formData, swmsMode: 'text' })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'text'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
-                >
-                  Write Text
-                </button>
-              </div>
+              <button
+  type="button"
+  onClick={() => setFormData({ ...formData, swmsMode: 'file' })}
+  className={...}
+>
+  Upload Document
+</button>
+<button
+  type="button"
+  onClick={() => setFormData({ ...formData, swmsMode: 'text' })}
+  className={...}
+>
+  Write Text
+</button>
 
               {formData.swmsMode === 'file' && (
                 <div>

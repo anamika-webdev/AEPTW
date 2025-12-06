@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Building2, Eye, X } from 'lucide-react';
 import { AssignResourcesModal } from '../../components/admin/AssignResourcesModal';
-import { Pagination } from '../../components/common/Pagination';
+
 interface User {
   id: number;
   login_id: string;
@@ -33,9 +33,7 @@ export default function UserManagement() {
   const [assigningUser, setAssigningUser] = useState<User | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-const [itemsPerPage, setItemsPerPage] = useState(10);
-
+  
   // ✅ NEW: Assignment states
   const [userAssignments, setUserAssignments] = useState<{
     sites: any[];

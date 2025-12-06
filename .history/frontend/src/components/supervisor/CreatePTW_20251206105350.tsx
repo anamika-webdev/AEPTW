@@ -1406,7 +1406,7 @@ const RequirementRow = memo(({
               <div className="flex gap-4 mb-4">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, swmsMode: 'file' })}
+                  onClick={() => setFormData({ ...formData, swmsMode: 'file', swmsText: '' })}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     formData.swmsMode === 'file'
                       ? 'bg-purple-600 text-white'
@@ -1417,7 +1417,7 @@ const RequirementRow = memo(({
                 </button>
                 <button
                   type="button"
-                 onClick={() => setFormData({ ...formData, swmsMode: 'text' })}
+                  onClick={() => setFormData({ ...formData, swmsMode: 'text', swmsFile: null })}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     formData.swmsMode === 'text'
                       ? 'bg-purple-600 text-white'

@@ -1406,7 +1406,7 @@ const RequirementRow = memo(({
               <div className="flex gap-4 mb-4">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, swmsMode: 'file' })}
+                  onClick={() => setFormData({ ...formData, swmsMode: 'file', swmsText: '' })}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     formData.swmsMode === 'file'
                       ? 'bg-purple-600 text-white'
@@ -1417,7 +1417,7 @@ const RequirementRow = memo(({
                 </button>
                 <button
                   type="button"
-                 onClick={() => setFormData({ ...formData, swmsMode: 'text' })}
+                  onClick={() => setFormData({ ...formData, swmsMode: 'text', swmsFile: null })}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     formData.swmsMode === 'text'
                       ? 'bg-purple-600 text-white'
@@ -1455,30 +1455,9 @@ const RequirementRow = memo(({
                   </div>
                   <p className="mt-2 text-xs text-purple-700">
                     Accepted formats: PDF, DOC, DOCX (Max 10MB)
-                  </p> {formData.swmsFile && (
-      <div className="flex gap-3 pt-3 mt-3 border-t border-purple-300">
-        <button
-          type="button"
-          onClick={() => alert(`Document saved!`)}
-          className="px-4 py-2 text-white bg-green-600 rounded-lg"
-        >
-          💾 Save Document
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm('Discard changes?')) {
-              setFormData({...formData, swmsFile: null});
-            }
-          }}
-          className="px-4 py-2 border border-gray-300 rounded-lg"
-        >
-          ✕ Cancel
-        </button>
-      </div>
-    )}
-  </div>
-)}
+                  </p>
+                </div>
+              )}
 
               {formData.swmsMode === 'text' && (
                 <div>
@@ -1499,37 +1478,10 @@ Include:
                     rows={15}
                     className="mt-2 font-mono text-sm bg-white"
                   />
-              
-           
-            <div className="flex gap-3 mt-4">
-      <button
-        type="button"
-        onClick={() => {
-          if (!formData.swmsText.trim() || formData.swmsText.length < 20) {
-            alert('Enter at least 20 characters');
-            return;
-          }
-          alert('Text saved!');
-        }}
-        className="px-4 py-2 text-white bg-green-600 rounded-lg"
-      >
-        💾 Save Text
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          if (confirm('Discard changes?')) {
-            setFormData({...formData, swmsText: ''});
-          }
-        }}
-        className="px-4 py-2 border border-gray-300 rounded-lg"
-      >
-        ✕ Cancel
-      </button>
-    </div>  </div>
+                </div>
               )}
+            </div>
           </div>
-           </div>
         )}
 
         {/* STEP 5: FIXED Checklist with proper text input handling */}
