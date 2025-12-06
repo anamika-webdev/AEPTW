@@ -244,119 +244,13 @@ export default function ApproverDashboard({ onNavigate, initialTab = 'pending' }
   };
 
   // ✅ UPDATED: PermitTable with approver columns
- const PermitTable = ({ 
-  permits, 
-  showActions 
-}: { 
-  permits: Permit[]; 
-  showActions: boolean;
-}) => {
-  // ADD PAGINATION HOOK
-  const {
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    paginatedData,
-    setCurrentPage,
-    setItemsPerPage
-  } = usePagination({
-    data: permits,
-    initialItemsPerPage: 10
-  });
-
-  return (
-    <div className="overflow-hidden bg-white rounded-lg shadow-md">
-      {permits.length === 0 ? (
-        <div className="py-12 text-center">
-          <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-          <p className="text-gray-500">No permits found</p>
-        </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">PTW ID</th>
-                  <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Type</th>
-                  <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Location</th>
-                  <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Supervisor</th>
-                  <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Start Time</th>
-                  <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Area Manager</th>
-                  <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Safety Officer</th>
-                  <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Site Leader</th>
-                  <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Status</th>
-                  {showActions && (
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-right text-gray-700 uppercase">Actions</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {/* CHANGE: Map paginatedData instead of permits */}
-                {paginatedData.map((permit) => (
-                  <tr key={permit.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{permit.permit_serial}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{permit.permit_type}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{permit.work_location}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{permit.created_by_name || 'N/A'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {new Date(permit.start_time).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {getApprovalStatusBadge(permit.area_manager_status, permit.area_manager_name)}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {getApprovalStatusBadge(permit.safety_officer_status, permit.safety_officer_name)}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {getApprovalStatusBadge(permit.site_leader_status, permit.site_leader_name)}
-                    </td>
-                    <td className="px-4 py-3 text-sm">{getStatusBadge(permit.status)}</td>
-                    {showActions && (
-                      <td className="px-4 py-3 text-sm text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleApprove(permit)}
-                            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-green-700 transition-colors bg-green-100 rounded hover:bg-green-200"
-                          >
-                            <CheckCircle className="w-3 h-3" />
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleReject(permit)}
-                            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-red-700 transition-colors bg-red-100 rounded hover:bg-red-200"
-                          >
-                            <XCircle className="w-3 h-3" />
-                            Reject
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* ADD PAGINATION COMPONENT */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={permits.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        </>
-      )}
-    </div>
-  );
-};
+  const PermitTable = ({ 
+    permits, 
+    showActions 
+  }: { 
+    permits: Permit[]; 
+    showActions: boolean;
+  }) => (
     <div className="overflow-x-auto">
       {permits.length === 0 ? (
         <div className="py-12 text-center">

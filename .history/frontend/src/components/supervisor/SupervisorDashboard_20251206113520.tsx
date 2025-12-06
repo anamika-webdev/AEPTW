@@ -352,128 +352,21 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     );
   };
 
- const PermitTable = ({ 
-  permits, 
-  title, 
-  emptyMessage, 
-  showActions = false,
-  actionType,
-  showApprovers = false
-}: { 
-  permits: Permit[]; 
-  title: string; 
-  emptyMessage: string; 
-  showActions?: boolean;
-  actionType?: 'final-submit' | 'start' | 'extend-close' | 'close-only' | 'view' | 'view-close' | 'none';
-  showApprovers?: boolean;
-}) => {
-  // ADD PAGINATION HOOK HERE
-  const {
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    paginatedData,
-    setCurrentPage,
-    setItemsPerPage
-  } = usePagination({
-    data: permits,
-    initialItemsPerPage: 10
-  });
-
-  return (
-    <div className="p-6 mb-6 bg-white rounded-lg shadow">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        <span className="px-3 py-1 text-sm font-medium text-blue-600 rounded-full bg-blue-50">
-          {permits.length} Permits
-        </span>
-      </div>
-
-      {permits.length === 0 ? (
-        <div className="py-12 text-center">
-          <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-          <p className="text-sm text-slate-500">{emptyMessage}</p>
-        </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs uppercase text-slate-600 bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left">Permit #</th>
-                  <th className="px-4 py-3 text-left">Type</th>
-                  <th className="px-4 py-3 text-left">Location</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Start Time</th>
-                  {showApprovers && <th className="px-4 py-3 text-left">Approvers Status</th>}
-                  {showActions && <th className="px-4 py-3 text-right">Actions</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {/* CHANGE: Map paginatedData instead of permits */}
-                {paginatedData.map((permit) => (
-                  <tr key={permit.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-blue-600">
-                      <button
-                        onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
-                        className="hover:underline"
-                      >
-                        {permit.permit_serial}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">{permit.permit_type}</td>
-                    <td className="px-4 py-3">{permit.work_location}</td>
-                    <td className="px-4 py-3">{getStatusBadge(permit.status)}</td>
-                    <td className="px-4 py-3">{new Date(permit.start_time).toLocaleString()}</td>
-                    
-                    {showApprovers && (
-                      <td className="px-4 py-3">
-                        {renderApproversColumn(permit)}
-                      </td>
-                    )}
-                    
-                    {showActions && (
-                      <td className="px-4 py-3 text-right">
-                        {actionType === 'final-submit' && (
-                          <button className="px-3 py-1 text-xs font-medium text-white transition-colors bg-blue-600 rounded hover:bg-blue-700">
-                            Final Submit
-                          </button>
-                        )}
-                        {actionType === 'start' && (
-                          <button className="px-3 py-1 text-xs font-medium text-white transition-colors bg-green-600 rounded hover:bg-green-700">
-                            Start Work
-                          </button>
-                        )}
-                        {actionType === 'view' && (
-                          <button 
-                            onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
-                            className="px-3 py-1 text-xs font-medium text-blue-600 transition-colors bg-blue-100 rounded hover:bg-blue-200"
-                          >
-                            View
-                          </button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* ADD PAGINATION COMPONENT */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={permits.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        </>
-      )}
-    </div>
-  );
-};
+  const PermitTable = ({ 
+    permits, 
+    title, 
+    emptyMessage, 
+    showActions = false,
+    actionType,
+    showApprovers = false // NEW
+  }: { 
+    permits: Permit[]; 
+    title: string; 
+    emptyMessage: string; 
+    showActions?: boolean;
+    actionType?: 'final-submit' | 'start' | 'extend-close' | 'close-only' | 'view' | 'view-close' | 'none';
+    showApprovers?: boolean; // NEW
+  }) => (
     <div className="p-6 mb-6 bg-white rounded-lg shadow">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
