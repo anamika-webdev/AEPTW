@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth.middleware');
+const { createNotification } = require('../utils/notificationUtils');
 
 // Apply authentication to all routes
 router.use(authenticateToken);
@@ -46,11 +47,11 @@ router.get('/pending', async (req, res) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-    
+
     console.log(`📥 GET /api/approvals/pending - User: ${userId}, Role: ${userRole}`);
-    
+
     const fields = getApprovalFields(userRole);
-    
+
     if (!fields) {
       return res.status(400).json({
         success: false,
@@ -122,11 +123,11 @@ router.get('/approved', async (req, res) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-    
+
     console.log(`📥 GET /api/approvals/approved - User: ${userId}, Role: ${userRole}`);
-    
+
     const fields = getApprovalFields(userRole);
-    
+
     if (!fields) {
       return res.status(400).json({
         success: false,
@@ -194,11 +195,11 @@ router.get('/rejected', async (req, res) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-    
+
     console.log(`📥 GET /api/approvals/rejected - User: ${userId}, Role: ${userRole}`);
-    
+
     const fields = getApprovalFields(userRole);
-    
+
     if (!fields) {
       return res.status(400).json({
         success: false,
@@ -316,7 +317,9 @@ router.post('/:ptwId/approve', async (req, res) => {
         area_manager_status, 
         safety_officer_status, 
         site_leader_status,
-        site_leader_id
+        site_leader_id,
+        created_by_user_id,
+        permit_serial
       FROM permits WHERE id = ?`,
       [ptwId]
     );
@@ -326,13 +329,13 @@ router.post('/:ptwId/approve', async (req, res) => {
 
     // If site leader is assigned (high-risk), need all three
     if (p.site_leader_id) {
-      allApproved = 
+      allApproved =
         p.area_manager_status === 'Approved' &&
         p.safety_officer_status === 'Approved' &&
         p.site_leader_status === 'Approved';
     } else {
       // Only need area manager and safety officer
-      allApproved = 
+      allApproved =
         p.area_manager_status === 'Approved' &&
         p.safety_officer_status === 'Approved';
     }
@@ -343,8 +346,30 @@ router.post('/:ptwId/approve', async (req, res) => {
         [ptwId]
       );
       console.log(`✅ PTW ${ptwId} fully approved`);
+
+      // Notify Creator - FULL APPROVAL
+      if (p.created_by_user_id) {
+        await createNotification(
+          p.created_by_user_id,
+          'Permit Approved',
+          `Your PTW ${p.permit_serial} has been FULLY APPROVED and is ready to start.`,
+          'success',
+          ptwId
+        );
+      }
     } else {
       console.log(`⏳ PTW ${ptwId} partially approved, waiting for other approvers`);
+
+      // Notify Creator - PARTIAL APPROVAL
+      if (p.created_by_user_id) {
+        await createNotification(
+          p.created_by_user_id,
+          'Permit Update',
+          `Your PTW ${p.permit_serial} has been approved by ${fields.roleName}. Pending other approvals.`,
+          'info',
+          ptwId
+        );
+      }
     }
 
     res.json({
@@ -392,7 +417,7 @@ router.post('/:ptwId/reject', async (req, res) => {
 
     // Check if this user is the assigned approver
     const [permit] = await pool.query(
-      `SELECT ${fields.idField} as assigned_approver_id FROM permits WHERE id = ?`,
+      `SELECT ${fields.idField} as assigned_approver_id, created_by_user_id, permit_serial FROM permits WHERE id = ?`,
       [ptwId]
     );
 
@@ -423,6 +448,17 @@ router.post('/:ptwId/reject', async (req, res) => {
     await pool.query(updateQuery, [reason, ptwId]);
 
     console.log(`❌ PTW ${ptwId} rejected by ${fields.roleName}`);
+
+    // Notify Creator
+    if (permit[0].created_by_user_id) {
+      await createNotification(
+        permit[0].created_by_user_id,
+        'Permit Rejected',
+        `Your PTW ${permit[0].permit_serial} has been REJECTED by ${fields.roleName}. Reason: ${reason}`,
+        'error',
+        ptwId
+      );
+    }
 
     res.json({
       success: true,

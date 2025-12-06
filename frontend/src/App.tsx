@@ -41,10 +41,10 @@ function App() {
 
   useEffect(() => {
     if (isInitialized) return;
-    
+
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-    
+
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
@@ -57,7 +57,7 @@ function App() {
         sessionStorage.clear();
       }
     }
-    
+
     setIsInitialized(true);
   }, [isInitialized]);
 
@@ -78,7 +78,7 @@ function App() {
 
   const handleNavigate = (page: string, data?: any) => {
     console.log('🔄 Navigation:', page, data);
-    
+
     // Handle permit detail navigation FIRST
     if (page === 'permit-detail' && data?.permitId) {
       console.log('📄 Setting permit ID:', data.permitId);
@@ -87,7 +87,7 @@ function App() {
       setIsMobileMenuOpen(false);
       return;
     }
-    
+
     // Check if this is an approver tab navigation
     if (['pending', 'approved', 'rejected'].includes(page)) {
       setApproverTab(page as 'pending' | 'approved' | 'rejected');
@@ -95,7 +95,7 @@ function App() {
     } else {
       setCurrentPage(page as PageType);
     }
-    
+
     setIsMobileMenuOpen(false);
   };
 
@@ -124,14 +124,14 @@ function App() {
 
   // Determine user role - check both frontendRole and role fields
   const userRole = (currentUser.frontendRole || currentUser.role || '').toLowerCase();
-  
+
   console.log('🔍 Current user role:', userRole);
-  
+
   const isAdmin = userRole === 'admin' || userRole === 'administrator';
   const isSupervisor = userRole === 'supervisor' || userRole === 'requester';
-  const isApprover = 
-    userRole === 'approver_areamanager' || 
-    userRole === 'approver_safety' || 
+  const isApprover =
+    userRole === 'approver_areamanager' ||
+    userRole === 'approver_safety' ||
     userRole === 'approver_siteleader' ||
     userRole?.includes('approver');
 
@@ -139,38 +139,38 @@ function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar 
-        currentUser={currentUser} 
-        currentPage={currentPage} 
-        onNavigate={handleNavigate} 
-        onLogout={handleLogout} 
-        isMobileMenuOpen={isMobileMenuOpen} 
-        onMobileMenuClose={() => setIsMobileMenuOpen(false)} 
+      <Sidebar
+        currentUser={currentUser}
+        currentPage={currentPage}
+        onNavigate={handleNavigate}
+        onLogout={handleLogout}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onMobileMenuClose={() => setIsMobileMenuOpen(false)}
       />
       <div className="flex flex-col flex-1 lg:ml-64">
-        <Header 
-          currentUser={currentUser} 
-          onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-          onLogout={handleLogout} 
+        <Header
+          currentUser={currentUser}
+          onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          onLogout={handleLogout}
         />
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           {/* Admin Pages */}
           {isAdmin && (
             <>
               {currentPage === 'dashboard' && <AdminDashboard onNavigate={handleNavigate} />}
-              {currentPage === 'site-management' && <SiteManagement />}
-              {currentPage === 'user-management' && <UserManagement />}
+              {currentPage === 'site-management' && <SiteManagement onBack={() => handleNavigate('dashboard')} />}
+              {currentPage === 'user-management' && <UserManagement onBack={() => handleNavigate('dashboard')} />}
               {currentPage === 'all-permits' && <AllPermits onNavigate={handleNavigate} />}
-              {currentPage === 'reports' && <Reports />}
+              {currentPage === 'reports' && <Reports onBack={() => handleNavigate('dashboard')} />}
               {currentPage === 'permit-detail' && selectedPermitId && (
-  <PermitDetails 
-    ptwId={selectedPermitId} 
-    onBack={() => handleNavigate('all-permits')} 
-  />
-)}
+                <PermitDetails
+                  ptwId={selectedPermitId}
+                  onBack={() => handleNavigate('all-permits')}
+                />
+              )}
             </>
           )}
-          
+
           {/* Supervisor Pages */}
           {isSupervisor && (
             <>
@@ -184,27 +184,27 @@ function App() {
                 <WorkerList onNavigate={handleNavigate} />
               )}
               {currentPage === 'permit-detail' && selectedPermitId && (
-                <PermitDetails 
-                  ptwId={selectedPermitId} 
-                  onBack={() => handleNavigate('dashboard')} 
+                <PermitDetails
+                  ptwId={selectedPermitId}
+                  onBack={() => handleNavigate('dashboard')}
                 />
               )}
             </>
           )}
-          
+
           {/* Approver Pages - Pass the active tab */}
           {isApprover && (
             <>
               {currentPage === 'dashboard' && (
-                <ApproverDashboard 
+                <ApproverDashboard
                   onNavigate={handleNavigate}
                   initialTab={approverTab}
                 />
               )}
               {currentPage === 'permit-detail' && selectedPermitId && (
-                <PermitDetails 
-                  ptwId={selectedPermitId} 
-                  onBack={() => handleNavigate('dashboard')} 
+                <PermitDetails
+                  ptwId={selectedPermitId}
+                  onBack={() => handleNavigate('dashboard')}
                 />
               )}
             </>

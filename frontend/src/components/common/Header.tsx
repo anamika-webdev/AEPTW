@@ -1,6 +1,7 @@
 // frontend/src/components/common/Header.tsx
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Menu, LogOut, User as UserIcon, Mail, Phone, Briefcase } from 'lucide-react';
+import { Bell, Menu, LogOut, User as UserIcon, Mail, Briefcase } from 'lucide-react';
+import { notificationsAPI } from '../../services/api';
 
 interface User {
   id: number;
@@ -48,9 +49,56 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
       .slice(0, 2);
   };
 
-  const notifications: Array<{ id: number; message: string; time: string; unread: boolean }> = [];
+  const [notifications, setNotifications] = useState<Array<{ id: number; message: string; time: string; unread: boolean; type?: string; created_at?: string }>>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const fetchNotifications = async () => {
+    try {
+      const response = await notificationsAPI.getAll();
+      console.log('🔔 Notifications API Response:', response);
+      if (response.success) {
+        const mapped = response.data.map((n: any) => ({
+          id: n.id,
+          message: n.message,
+          time: new Date(n.created_at).toLocaleString(), // Simple formatting
+          unread: n.is_read === 0 || n.is_read === false,
+          type: n.notification_type,
+          created_at: n.created_at
+        }));
+        setNotifications(mapped);
+        setUnreadCount((response as any).unread_count || mapped.filter((n: any) => n.unread).length);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60000); // Poll every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      await notificationsAPI.markAsRead(id);
+      // Optimistic update
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, unread: false } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking as read', error);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationsAPI.markAllRead();
+      setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all read', error);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
@@ -96,30 +144,35 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
             {/* Notifications Dropdown */}
             {showNotifications && (
               <div className="absolute right-0 z-50 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg w-80">
-                <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
                   <h3 className="font-semibold text-gray-900">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <button onClick={handleMarkAllRead} className="text-xs text-blue-600 hover:text-blue-800">
+                      Mark all read
+                    </button>
+                  )}
                 </div>
                 <div className="overflow-y-auto max-h-96">
-  {notifications.length > 0 ? (
-    notifications.map((notif) => (
-      <div
-        key={notif.id}
-        className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-          notif.unread ? 'bg-blue-50' : ''
-        }`}
-      >
-        <p className="text-sm text-gray-900">{notif.message}</p>
-        <p className="mt-1 text-xs text-gray-500">{notif.time}</p>
-      </div>
-    ))
-  ) : (
-    <div className="p-8 text-center">
-      <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-      <p className="text-sm font-medium text-gray-900">No notifications</p>
-      <p className="mt-1 text-xs text-gray-500">You're all caught up!</p>
-    </div>
-  )}
-</div>
+                  {notifications.length > 0 ? (
+                    notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => notif.unread && handleMarkAsRead(notif.id)}
+                        className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${notif.unread ? 'bg-blue-50' : ''
+                          }`}
+                      >
+                        <p className="text-sm text-gray-900">{notif.message}</p>
+                        <p className="mt-1 text-xs text-gray-500">{notif.time}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center">
+                      <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <p className="text-sm font-medium text-gray-900">No notifications</p>
+                      <p className="mt-1 text-xs text-gray-500">You're all caught up!</p>
+                    </div>
+                  )}
+                </div>
                 <div className="p-2 border-t border-gray-200">
                   <button className="w-full py-2 text-sm font-medium text-center text-blue-600 rounded hover:bg-blue-50">
                     View All Notifications

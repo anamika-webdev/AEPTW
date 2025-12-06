@@ -48,11 +48,11 @@ api.interceptors.response.use(
   },
   (error: AxiosError) => {
     console.error(`❌ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.response?.data || error.message);
-    
+
     if (error.response?.status === 401) {
       console.error('🔒 Unauthorized - token may be invalid');
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -208,7 +208,7 @@ export const permitsAPI = {
     return response.data;
   },
 
-  
+
   // Get permits created by the logged-in supervisor
   getMySupervisorPermits: async (): Promise<ApiResponse<Permit[]>> => {
     const response = await api.get('/permits/my-supervisor-permits');
@@ -259,45 +259,45 @@ export const permitsAPI = {
     return response.data;
   },
   // Get initiated PTWs (waiting for approval)
-getMyInitiated: async (): Promise<ApiResponse<Permit[]>> => {
-  const response = await api.get('/permits/my-initiated');
-  return response.data;
-},
+  getMyInitiated: async (): Promise<ApiResponse<Permit[]>> => {
+    const response = await api.get('/permits/my-initiated');
+    return response.data;
+  },
 
-// Get approved PTWs (waiting for final submit)
-getMyApproved: async (): Promise<ApiResponse<Permit[]>> => {
-  const response = await api.get('/permits/my-approved');
-  return response.data;
-},
+  // Get approved PTWs (waiting for final submit)
+  getMyApproved: async (): Promise<ApiResponse<Permit[]>> => {
+    const response = await api.get('/permits/my-approved');
+    return response.data;
+  },
 
-// Get ready-to-start PTWs
-getMyReadyToStart: async (): Promise<ApiResponse<Permit[]>> => {
-  const response = await api.get('/permits/my-ready-to-start');
-  return response.data;
-},
+  // Get ready-to-start PTWs
+  getMyReadyToStart: async (): Promise<ApiResponse<Permit[]>> => {
+    const response = await api.get('/permits/my-ready-to-start');
+    return response.data;
+  },
 
-// Get in-progress PTWs
-getMyInProgress: async (): Promise<ApiResponse<Permit[]>> => {
-  const response = await api.get('/permits/my-in-progress');
-  return response.data;
-},
+  // Get in-progress PTWs
+  getMyInProgress: async (): Promise<ApiResponse<Permit[]>> => {
+    const response = await api.get('/permits/my-in-progress');
+    return response.data;
+  },
 
-// Get closed PTWs
-getMyClosed: async (): Promise<ApiResponse<Permit[]>> => {
-  const response = await api.get('/permits/my-closed');
-  return response.data;
-},
-// Final submit PTW (supervisor action after all approvals)
-finalSubmit: async (id: number): Promise<ApiResponse<Permit>> => {
-  const response = await api.post(`/permits/${id}/final-submit`);
-  return response.data;
-},
+  // Get closed PTWs
+  getMyClosed: async (): Promise<ApiResponse<Permit[]>> => {
+    const response = await api.get('/permits/my-closed');
+    return response.data;
+  },
+  // Final submit PTW (supervisor action after all approvals)
+  finalSubmit: async (id: number): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/final-submit`);
+    return response.data;
+  },
 
-// Start PTW (supervisor action at start time)
-startPTW: async (id: number): Promise<ApiResponse<Permit>> => {
-  const response = await api.post(`/permits/${id}/start`);
-  return response.data;
-},
+  // Start PTW (supervisor action at start time)
+  startPTW: async (id: number): Promise<ApiResponse<Permit>> => {
+    const response = await api.post(`/permits/${id}/start`);
+    return response.data;
+  },
 };
 
 // ============= Master Data APIs (from Admin DB) =============
@@ -318,8 +318,8 @@ export const masterDataAPI = {
 
   // Get checklist questions
   getChecklistQuestions: async (permit_type?: string): Promise<ApiResponse<MasterChecklistQuestion[]>> => {
-    const url = permit_type 
-      ? `/master/checklist-questions?permit_type=${permit_type}` 
+    const url = permit_type
+      ? `/master/checklist-questions?permit_type=${permit_type}`
       : '/master/checklist-questions';
     const response = await api.get(url);
     return response.data;
@@ -434,11 +434,28 @@ export const approvalsAPI = {
   // Reject PTW with reason
   reject: async (permitId: number, rejection_reason: string, signature?: string): Promise<ApiResponse<any>> => {
     const response = await api.post(`/approvals/${permitId}/reject`, {
-      rejection_reason: rejection_reason,
+      reason: rejection_reason,
       signature: signature || null
     });
     return response.data;
   },
+};
+
+export const notificationsAPI = {
+  getAll: async (unread_only = false): Promise<ApiResponse<any>> => {
+    const response = await api.get('/notifications', { params: { unread_only } });
+    return response.data;
+  },
+
+  markAsRead: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await api.post(`/notifications/${id}/mark-read`);
+    return response.data;
+  },
+
+  markAllRead: async (): Promise<ApiResponse<any>> => {
+    const response = await api.post('/notifications/mark-all-read');
+    return response.data;
+  }
 };
 
 export default api;

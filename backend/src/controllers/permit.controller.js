@@ -2,17 +2,18 @@
 const db = require('../config/database');
 const logger = require('../utils/logger');
 const moment = require('moment');
+const { createNotification } = require('../utils/notificationUtils');
 
 // Generate permit serial number
 const generatePermitSerial = async (siteCode, permitType) => {
   const year = new Date().getFullYear();
   const typeCode = permitType.substring(0, 2).toUpperCase();
-  
+
   const [count] = await db.query(`
     SELECT COUNT(*) as count FROM permits 
     WHERE permit_type = ? AND YEAR(created_at) = ?
   `, [permitType, year]);
-  
+
   const sequence = String(count[0].count + 1).padStart(4, '0');
   return `${siteCode}-${typeCode}-${year}-${sequence}`;
 };
@@ -21,7 +22,7 @@ const generatePermitSerial = async (siteCode, permitType) => {
 exports.getAllPermits = async (req, res) => {
   try {
     const { site_id, status, permit_type, start_date, end_date } = req.query;
-    
+
     let query = `
       SELECT p.*, s.name as site_name, s.site_code,
              u.full_name as created_by_name, u.email as created_by_email,
@@ -32,36 +33,36 @@ exports.getAllPermits = async (req, res) => {
       LEFT JOIN vendors v ON p.vendor_id = v.id
       WHERE 1=1
     `;
-    
+
     const params = [];
-    
+
     if (site_id) {
       query += ' AND p.site_id = ?';
       params.push(site_id);
     }
-    
+
     if (status) {
       query += ' AND p.status = ?';
       params.push(status);
     }
-    
+
     if (permit_type) {
       query += ' AND p.permit_type = ?';
       params.push(permit_type);
     }
-    
+
     if (start_date) {
       query += ' AND p.start_time >= ?';
       params.push(start_date);
     }
-    
+
     if (end_date) {
       query += ' AND p.end_time <= ?';
       params.push(end_date);
     }
-    
+
     query += ' ORDER BY p.created_at DESC';
-    
+
     const [permits] = await db.query(query, params);
 
     res.json({
@@ -185,7 +186,7 @@ exports.getPermitById = async (req, res) => {
 // Create new permit WITH COMPANY NAME SUPPORT
 exports.createPermit = async (req, res) => {
   const connection = await db.getConnection();
-  
+
   try {
     await connection.beginTransaction();
 
@@ -204,7 +205,11 @@ exports.createPermit = async (req, res) => {
       control_measures = '',
       ppe = [],
       checklist_responses = [],
-      issuer_signature = ''
+
+      issuer_signature = '',
+      area_manager_id,
+      safety_officer_id,
+      site_leader_id
     } = req.body;
 
     // Validate required fields
@@ -218,7 +223,7 @@ exports.createPermit = async (req, res) => {
 
     // Get site code
     const [sites] = await connection.query('SELECT site_code FROM sites WHERE id = ?', [site_id]);
-    
+
     if (sites.length === 0) {
       await connection.rollback();
       return res.status(404).json({
@@ -240,7 +245,7 @@ exports.createPermit = async (req, res) => {
         permit_type, work_location, work_description,
         start_time, end_time, receiver_name, receiver_signature_path,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Draft')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending_Approval')
     `, [
       permit_serial, site_id, created_by_user_id, vendor_id || null,
       permit_type, work_location, work_description,
@@ -312,6 +317,35 @@ exports.createPermit = async (req, res) => {
       `, [checklistValues]);
     }
 
+    // Insert Approvers (Pending)
+    const approvers = [];
+    if (area_manager_id) approvers.push({ id: area_manager_id, role: 'Approver_AreaManager' });
+    if (safety_officer_id) approvers.push({ id: safety_officer_id, role: 'Approver_Safety' });
+    if (site_leader_id) approvers.push({ id: site_leader_id, role: 'Approver_SiteLeader' });
+
+    if (approvers.length > 0) {
+      const approverValues = approvers.map(a => [
+        permit_id, a.id, a.role, 'Pending', null, null, null
+      ]);
+
+      await connection.query(`
+        INSERT INTO permit_approvals (
+          permit_id, approver_user_id, role, status, comments, signature_path, approved_at
+        ) VALUES ?
+      `, [approverValues]);
+
+      // Notify Approvers
+      for (const approver of approvers) {
+        await createNotification(
+          approver.id,
+          'New Permit Request',
+          `You have a new PTW request (${permit_serial}) awaiting your approval.`,
+          'info',
+          permit_id
+        );
+      }
+    }
+
     await connection.commit();
 
     // Fetch the created permit with details
@@ -347,7 +381,7 @@ exports.updatePermitStatus = async (req, res) => {
     const { status } = req.body;
 
     const validStatuses = ['Draft', 'Pending_Approval', 'Active', 'Extension_Requested', 'Suspended', 'Closed', 'Cancelled', 'Rejected'];
-    
+
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -377,15 +411,45 @@ exports.addApproval = async (req, res) => {
   try {
     const { id } = req.params;
     const { role, status, comments, signature } = req.body;
-    
+
     const approver_user_id = req.user?.id || 1;
 
-    await db.query(`
-      INSERT INTO permit_approvals (
-        permit_id, approver_user_id, role, status, comments,
-        signature_path, approved_at
-      ) VALUES (?, ?, ?, ?, ?, ?, NOW())
-    `, [id, approver_user_id, role, status, comments || null, signature]);
+    // Check if pending approval exists
+    const [existing] = await db.query(
+      'SELECT id FROM permit_approvals WHERE permit_id = ? AND approver_user_id = ? AND status = "Pending"',
+      [id, approver_user_id]
+    );
+
+    if (existing.length > 0) {
+      // Update existing
+      await db.query(`
+         UPDATE permit_approvals 
+         SET status = ?, comments = ?, signature_path = ?, approved_at = NOW()
+         WHERE id = ?
+       `, [status, comments || null, signature, existing[0].id]);
+    } else {
+      // Insert new (Fallback)
+      await db.query(`
+         INSERT INTO permit_approvals (
+           permit_id, approver_user_id, role, status, comments,
+           signature_path, approved_at
+         ) VALUES (?, ?, ?, ?, ?, ?, NOW())
+       `, [id, approver_user_id, role, status, comments || null, signature]);
+    }
+
+    // Helper to get creator ID
+    const [permitInfo] = await db.query('SELECT created_by_user_id, permit_serial FROM permits WHERE id = ?', [id]);
+    const creatorId = permitInfo[0]?.created_by_user_id;
+
+    if (creatorId) {
+      await createNotification(
+        creatorId,
+        `Permit ${status}`,
+        `Your permit ${permitInfo[0].permit_serial} has been ${status} by an approver.`,
+        status === 'Approved' ? 'success' : (status === 'Rejected' ? 'error' : 'info'),
+        id
+      );
+    }
 
     // Check if all approvals are done
     const [approvals] = await db.query(`
@@ -396,7 +460,7 @@ exports.addApproval = async (req, res) => {
     `, [id]);
 
     const approvalsData = approvals[0];
-    
+
     // Update permit status based on approvals
     if (approvalsData.rejected > 0) {
       await db.query(`UPDATE permits SET status = 'Rejected' WHERE id = ?`, [id]);
@@ -474,7 +538,7 @@ exports.getWorkerPermits = async (req, res) => {
 // Close permit
 exports.closePermit = async (req, res) => {
   const connection = await db.getConnection();
-  
+
   try {
     await connection.beginTransaction();
 
@@ -552,12 +616,12 @@ exports.getDashboardStats = async (req, res) => {
 
     let query = 'SELECT status, COUNT(*) as count FROM permits';
     const params = [];
-    
+
     if (user_id) {
       query += ' WHERE created_by_user_id = ?';
       params.push(user_id);
     }
-    
+
     query += ' GROUP BY status';
 
     const [stats] = await db.query(query, params);

@@ -2,18 +2,20 @@
 // Location: frontend/src/pages/admin/Reports.tsx
 
 import { useState, useEffect } from 'react';
-import { 
-  Download, 
-  FileText, 
-  Filter, 
+import {
+  Download,
+  FileText,
+  Filter,
   Calendar,
   Building2,
-  Users,
+
   AlertCircle,
   CheckCircle,
   Clock,
   FileSpreadsheet,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { permitsAPI, sitesAPI } from '../../services/api';
 
@@ -45,14 +47,18 @@ interface Site {
   site_code: string;
 }
 
-export default function Reports() {
+interface ReportsProps {
+  onBack?: () => void;
+}
+
+export default function Reports({ onBack }: ReportsProps) {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [permits, setPermits] = useState<PermitReportData[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(10);
   const [filters, setFilters] = useState<ReportFilters>({
     startDate: '',
     endDate: '',
@@ -81,37 +87,37 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
     try {
       setLoading(true);
       const response = await permitsAPI.getAll();
-      
+
       if (response.success && response.data) {
         let filteredData = response.data;
 
         // Apply filters
         if (filters.startDate) {
-          filteredData = filteredData.filter((p: PermitReportData) => 
+          filteredData = filteredData.filter((p: PermitReportData) =>
             new Date(p.start_time) >= new Date(filters.startDate)
           );
         }
-        
+
         if (filters.endDate) {
-          filteredData = filteredData.filter((p: PermitReportData) => 
+          filteredData = filteredData.filter((p: PermitReportData) =>
             new Date(p.end_time) <= new Date(filters.endDate)
           );
         }
-        
+
         if (filters.status) {
-          filteredData = filteredData.filter((p: PermitReportData) => 
+          filteredData = filteredData.filter((p: PermitReportData) =>
             p.status === filters.status
           );
         }
-        
+
         if (filters.permit_type) {
-          filteredData = filteredData.filter((p: PermitReportData) => 
+          filteredData = filteredData.filter((p: PermitReportData) =>
             p.permit_type.includes(filters.permit_type)
           );
         }
-        
+
         if (filters.site_id) {
-          filteredData = filteredData.filter((p: PermitReportData) => 
+          filteredData = filteredData.filter((p: PermitReportData) =>
             p.site_name === sites.find(s => s.id.toString() === filters.site_id)?.name
           );
         }
@@ -132,6 +138,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
   };
 
   const handleApplyFilters = () => {
+    setCurrentPage(1);
     loadReportData();
   };
 
@@ -143,12 +150,13 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
       permit_type: '',
       site_id: ''
     });
+    setCurrentPage(1);
     setTimeout(() => loadReportData(), 100);
   };
 
   const exportToExcel = () => {
     setExporting(true);
-    
+
     try {
       // Create CSV content
       const headers = [
@@ -187,15 +195,15 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', `PTW_Report_${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       alert('✅ Excel report downloaded successfully!');
     } catch (error) {
       console.error('Error exporting to Excel:', error);
@@ -207,7 +215,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const exportToPDF = () => {
     setExporting(true);
-    
+
     try {
       // Create HTML content for PDF
       const htmlContent = `
@@ -319,13 +327,13 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
       if (printWindow) {
         printWindow.document.write(htmlContent);
         printWindow.document.close();
-        
+
         // Trigger print dialog after a short delay
         setTimeout(() => {
           printWindow.print();
         }, 250);
       }
-      
+
       alert('✅ PDF ready! Use Print > Save as PDF');
     } catch (error) {
       console.error('Error exporting to PDF:', error);
@@ -355,19 +363,36 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
       'Closed': 'bg-slate-100 text-slate-800',
       'Draft': 'bg-gray-100 text-gray-800',
     };
-    
+
     return config[status] || 'bg-slate-100 text-slate-800';
   };
+
+  // Pagination Logic
+  const totalPages = Math.ceil(permits.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPermits = permits.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen p-4 bg-gray-50 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">PTW Reports & Analytics</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Generate and export detailed permit reports with custom filters
-          </p>
+        <div className="flex items-center gap-4 mb-6">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="p-2 text-gray-600 transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900"
+              title="Back to Dashboard"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">PTW Reports & Analytics</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Generate and export detailed permit reports with custom filters
+            </p>
+          </div>
         </div>
 
         {/* Filters Card */}
@@ -571,7 +596,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {permits.slice(0, 50).map((permit) => (
+                  {paginatedPermits.map((permit) => (
                     <tr key={permit.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
                         {permit.permit_serial}
@@ -600,12 +625,87 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
               </table>
             </div>
           )}
-          
-          {permits.length > 50 && (
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-              <p className="text-sm text-gray-600">
-                Showing first 50 permits. Export to see all {permits.length} permits.
-              </p>
+
+          {/* Pagination Controls */}
+          {permits.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+              <div className="flex justify-between flex-1 sm:hidden">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className={`relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                >
+                  Next
+                </button>
+              </div>
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{Math.min(permits.length, startIndex + 1)}</span> to{' '}
+                    <span className="font-medium">{Math.min(endIndex, permits.length)}</span> of{' '}
+                    <span className="font-medium">{permits.length}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <button
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className={`relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                    >
+                      <span className="sr-only">Previous</span>
+                      <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+                    </button>
+
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          aria-current={currentPage === pageNum ? 'page' : undefined}
+                          className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
+                            ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                            }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className={`relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                    >
+                      <span className="sr-only">Next</span>
+                      <ChevronRight className="w-5 h-5" aria-hidden="true" />
+                    </button>
+                  </nav>
+                </div>
+              </div>
             </div>
           )}
         </div>

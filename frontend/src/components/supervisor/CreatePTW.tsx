@@ -10,18 +10,18 @@ import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { DigitalSignature } from '../shared/DigitalSignature';
 import NameInputField from './NameInputField';
-import { 
-  sitesAPI, 
-  masterDataAPI, 
-  usersAPI, 
+import {
+  sitesAPI,
+  masterDataAPI,
+  usersAPI,
   permitsAPI,
-  uploadAPI 
+  uploadAPI
 } from '../../services/api';
-import type { 
-  Site, 
-  MasterHazard, 
-  MasterPPE, 
-  User, 
+import type {
+  Site,
+  MasterHazard,
+  MasterPPE,
+  User,
   MasterChecklistQuestion,
   PermitType,
   WorkerRole,
@@ -38,76 +38,76 @@ const PPEIconComponent = ({ name }: { name: string }) => {
   const icons: Record<string, JSX.Element> = {
     'Safety Helmet': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="48" rx="28" ry="4" fill="#E8505B" opacity="0.2"/>
-        <path d="M32 12C20 12 12 20 12 28V38C12 40 13 42 15 42H49C51 42 52 40 52 38V28C52 20 44 12 32 12Z" fill="#E8505B"/>
-        <ellipse cx="32" cy="42" rx="17" ry="3" fill="#D13D47"/>
-        <rect x="28" y="8" width="8" height="6" rx="2" fill="#E8505B"/>
-        <circle cx="32" cy="10" r="3" fill="white"/>
+        <ellipse cx="32" cy="48" rx="28" ry="4" fill="#E8505B" opacity="0.2" />
+        <path d="M32 12C20 12 12 20 12 28V38C12 40 13 42 15 42H49C51 42 52 40 52 38V28C52 20 44 12 32 12Z" fill="#E8505B" />
+        <ellipse cx="32" cy="42" rx="17" ry="3" fill="#D13D47" />
+        <rect x="28" y="8" width="8" height="6" rx="2" fill="#E8505B" />
+        <circle cx="32" cy="10" r="3" fill="white" />
       </svg>
     ),
     'Safety Vest': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="22" ry="3" fill="#FF6B35" opacity="0.2"/>
-        <path d="M22 16L18 20V52H28V22L22 16Z" fill="#FF6B35"/>
-        <path d="M42 16L46 20V52H36V22L42 16Z" fill="#FF6B35"/>
-        <rect x="26" y="22" width="12" height="30" fill="#FF8C42"/>
-        <circle cx="32" cy="14" r="4" fill="#FFB480"/>
-        <rect x="20" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8"/>
-        <rect x="36" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8"/>
+        <ellipse cx="32" cy="54" rx="22" ry="3" fill="#FF6B35" opacity="0.2" />
+        <path d="M22 16L18 20V52H28V22L22 16Z" fill="#FF6B35" />
+        <path d="M42 16L46 20V52H36V22L42 16Z" fill="#FF6B35" />
+        <rect x="26" y="22" width="12" height="30" fill="#FF8C42" />
+        <circle cx="32" cy="14" r="4" fill="#FFB480" />
+        <rect x="20" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8" />
+        <rect x="36" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8" />
       </svg>
     ),
     'Safety Gloves': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="18" ry="3" fill="#9B59B6" opacity="0.2"/>
-        <rect x="20" y="18" width="24" height="28" rx="4" fill="#9B59B6"/>
-        <path d="M24 24V38M28 24V38M32 24V38M36 24V38M40 24V38" stroke="white" strokeWidth="2" opacity="0.3"/>
+        <ellipse cx="32" cy="54" rx="18" ry="3" fill="#9B59B6" opacity="0.2" />
+        <rect x="20" y="18" width="24" height="28" rx="4" fill="#9B59B6" />
+        <path d="M24 24V38M28 24V38M32 24V38M36 24V38M40 24V38" stroke="white" strokeWidth="2" opacity="0.3" />
       </svg>
     ),
     'Safety Boots': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#D4A574" opacity="0.2"/>
-        <path d="M18 46H46V52H18V46Z" fill="#8B6F47"/>
-        <path d="M22 22C22 18 24 16 26 16H38C40 16 42 18 42 22V46H22V22Z" fill="#D4A574"/>
-        <rect x="22" y="28" width="20" height="2" fill="#8B6F47" opacity="0.3"/>
+        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#D4A574" opacity="0.2" />
+        <path d="M18 46H46V52H18V46Z" fill="#8B6F47" />
+        <path d="M22 22C22 18 24 16 26 16H38C40 16 42 18 42 22V46H22V22Z" fill="#D4A574" />
+        <rect x="22" y="28" width="20" height="2" fill="#8B6F47" opacity="0.3" />
       </svg>
     ),
     'Safety Goggles': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="52" rx="26" ry="3" fill="#4A9EFF" opacity="0.2"/>
-        <circle cx="18" cy="32" r="7" fill="#87CEEB"/>
-        <circle cx="46" cy="32" r="7" fill="#87CEEB"/>
-        <path d="M28 32H36" stroke="#4A9EFF" strokeWidth="3"/>
+        <ellipse cx="32" cy="52" rx="26" ry="3" fill="#4A9EFF" opacity="0.2" />
+        <circle cx="18" cy="32" r="7" fill="#87CEEB" />
+        <circle cx="46" cy="32" r="7" fill="#87CEEB" />
+        <path d="M28 32H36" stroke="#4A9EFF" strokeWidth="3" />
       </svg>
     ),
     'Face Mask': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#FFB74D" opacity="0.2"/>
-        <path d="M12 28C12 28 14 24 18 24H46C50 24 52 28 52 28V40C52 44 48 46 44 46H20C16 46 12 44 12 40V28Z" fill="#FFB74D"/>
-        <rect x="16" y="30" width="32" height="2" rx="1" fill="white" opacity="0.3"/>
-        <rect x="16" y="36" width="32" height="2" rx="1" fill="white" opacity="0.3"/>
+        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#FFB74D" opacity="0.2" />
+        <path d="M12 28C12 28 14 24 18 24H46C50 24 52 28 52 28V40C52 44 48 46 44 46H20C16 46 12 44 12 40V28Z" fill="#FFB74D" />
+        <rect x="16" y="30" width="32" height="2" rx="1" fill="white" opacity="0.3" />
+        <rect x="16" y="36" width="32" height="2" rx="1" fill="white" opacity="0.3" />
       </svg>
     ),
     'Ear Protection': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="28" ry="3" fill="#78909C" opacity="0.2"/>
-        <rect x="6" y="28" width="12" height="16" rx="6" fill="#607D8B"/>
-        <rect x="46" y="28" width="12" height="16" rx="6" fill="#607D8B"/>
-        <path d="M18 28V22C18 16 22 12 28 12H36C42 12 46 16 46 22V28" stroke="#78909C" strokeWidth="4" fill="none"/>
+        <ellipse cx="32" cy="54" rx="28" ry="3" fill="#78909C" opacity="0.2" />
+        <rect x="6" y="28" width="12" height="16" rx="6" fill="#607D8B" />
+        <rect x="46" y="28" width="12" height="16" rx="6" fill="#607D8B" />
+        <path d="M18 28V22C18 16 22 12 28 12H36C42 12 46 16 46 22V28" stroke="#78909C" strokeWidth="4" fill="none" />
       </svg>
     ),
     'Safety Harness': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="20" ry="3" fill="#4FC3F7" opacity="0.2"/>
-        <circle cx="32" cy="14" r="6" fill="#FFB74D"/>
-        <ellipse cx="32" cy="26" rx="8" ry="4" fill="#0288D1"/>
-        <circle cx="32" cy="38" r="4" fill="#FFD54F" stroke="#FFA726" strokeWidth="2"/>
+        <ellipse cx="32" cy="54" rx="20" ry="3" fill="#4FC3F7" opacity="0.2" />
+        <circle cx="32" cy="14" r="6" fill="#FFB74D" />
+        <ellipse cx="32" cy="26" rx="8" ry="4" fill="#0288D1" />
+        <circle cx="32" cy="38" r="4" fill="#FFD54F" stroke="#FFA726" strokeWidth="2" />
       </svg>
     ),
   };
 
   return icons[name] || (
     <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none">
-      <circle cx="32" cy="32" r="28" stroke="#94A3B8" strokeWidth="2" fill="none"/>
+      <circle cx="32" cy="32" r="28" stroke="#94A3B8" strokeWidth="2" fill="none" />
       <text x="32" y="38" textAnchor="middle" fill="#94A3B8" fontSize="12" fontWeight="bold">PPE</text>
     </svg>
   );
@@ -132,14 +132,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [safetyOfficers, setSafetyOfficers] = useState<User[]>([]);
   const [siteLeaders, setSiteLeaders] = useState<User[]>([]);
 
-  const [newWorkers, setNewWorkers] = useState<Array<{ 
-    name: string; 
-    phone: string; 
-    email: string; 
+  const [newWorkers, setNewWorkers] = useState<Array<{
+    name: string;
+    phone: string;
+    email: string;
     companyName: string;
     role: WorkerRole;
   }>>([]);
-  
+
   const [formData, setFormData] = useState({
     categories: [] as PermitType[],
     site_id: 0,
@@ -152,28 +152,28 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     issueDepartment: '', // This will now hold dropdown value
     permitInitiator: '',
     permitInitiatorContact: '',
-    
+
     issuedToName: '',
     issuedToContact: '',
-    
+
     selectedWorkers: [] as number[],
-    
+
     selectedHazards: [] as number[],
     controlMeasures: '',
     otherHazards: '',
-    
+
     selectedPPE: [] as number[],
-    
+
     swmsFile: null as File | null,
     swmsText: '',
     swmsMode: 'file' as 'file' | 'text',
-    
+
     issuerSignature: '',
-    
+
     checklistResponses: {} as Record<number, ChecklistResponse>,
     checklistRemarks: {} as Record<number, string>,
     checklistTextResponses: {} as Record<number, string>, // FIXED: Added this
-    
+
     declaration: false,
   });
 
@@ -193,13 +193,16 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
   const highRiskPermits: PermitType[] = ['Hot_Work', 'Confined_Space', 'Electrical', 'Height'];
   const selectedHighRiskCount = formData.categories.filter(cat => highRiskPermits.includes(cat)).length;
+  // Safety Officer required for High Risk permits (any)
+  const requiresSafetyOfficer = selectedHighRiskCount > 0;
+  // Site Leader required for multiple High Risk permits
   const requiresSiteLeaderApproval = selectedHighRiskCount >= 2;
 
   const totalSteps = 7;
   const progress = (currentStep / totalSteps) * 100;
 
   // CRITICAL FIX: Memoized text change handler to prevent re-renders
-  
+
 
   useEffect(() => {
     loadMasterData();
@@ -226,115 +229,115 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     loadCorrectChecklistQuestions();
   }, []);
 
-const loadMasterData = async () => {
-  setIsLoading(true);
-  try {
-    console.log('🔄 Loading master data from admin database...');
-    
-    // ✅ FIXED: Each API call has its own error handler
-    const [sitesRes, hazardsRes, ppeRes, workersRes] = await Promise.all([
-      sitesAPI.getAll().catch(err => {
-        console.error('❌ Sites API error:', err);
-        return { success: false, data: [] };
-      }),
-      masterDataAPI.getHazards().catch(err => {
-        console.error('❌ Hazards API error:', err);
-        return { success: false, data: [] };
-      }),
-      masterDataAPI.getPPE().catch(err => {
-        console.error('❌ PPE API error:', err);
-        return { success: false, data: [] };
-      }),
-      usersAPI.getWorkers().catch(err => {
-        console.error('❌ Workers API error:', err);
-        return { success: false, data: [] };
-      }),
-    ]);
+  const loadMasterData = async () => {
+    setIsLoading(true);
+    try {
+      console.log('🔄 Loading master data from admin database...');
 
-    console.log('📍 Sites API Response:', sitesRes);
-    
-    // ✅ FIXED: Proper null checks and array validation
-    if (sitesRes.success && sitesRes.data) {
-      console.log('✅ Sites loaded:', sitesRes.data.length);
-      setSites(Array.isArray(sitesRes.data) ? sitesRes.data : []);
-    } else {
-      console.warn('⚠️ Sites not loaded');
-      setSites([]);
-    }
-    
-    if (hazardsRes.success && hazardsRes.data) {
-      console.log('✅ Hazards loaded:', hazardsRes.data.length);
-      setHazards(Array.isArray(hazardsRes.data) ? hazardsRes.data : []);
-    } else {
-      console.warn('⚠️ Hazards not loaded');
-      setHazards([]);
-    }
-    
-    if (ppeRes.success && ppeRes.data) {
-      console.log('✅ PPE loaded:', ppeRes.data.length);
-      setPPEItems(Array.isArray(ppeRes.data) ? ppeRes.data : []);
-    } else {
-      console.warn('⚠️ PPE not loaded');
-      setPPEItems([]);
-    }
-    
-    if (workersRes.success && workersRes.data) {
-      console.log('✅ Workers loaded:', workersRes.data.length);
-      setWorkers(Array.isArray(workersRes.data) ? workersRes.data : []);
-    } else {
-      console.warn('⚠️ Workers not loaded');
-      setWorkers([]);
-    }
-    
-    // ✅ FIXED: Don't show error if at least some data loaded
-    const hasData = sitesRes.success || hazardsRes.success || ppeRes.success || workersRes.success;
-    if (!hasData) {
-      alert('Failed to load form data. Please refresh the page.');
-    }
-    
-  } catch (error) {
-    console.error('❌ Error loading master data:', error);
-    alert('Failed to load form data. Please refresh the page.');
-  } finally {
-    setIsLoading(false);
-  }
-};
-const loadApprovers = async () => {
-  try {
-    console.log('🔄 [APPROVERS] Loading approvers...');
-    
-    const token = localStorage.getItem('token');
-    const response = await fetch('/api/users/approvers', {
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+      // ✅ FIXED: Each API call has its own error handler
+      const [sitesRes, hazardsRes, ppeRes, workersRes] = await Promise.all([
+        sitesAPI.getAll().catch(err => {
+          console.error('❌ Sites API error:', err);
+          return { success: false, data: [] };
+        }),
+        masterDataAPI.getHazards().catch(err => {
+          console.error('❌ Hazards API error:', err);
+          return { success: false, data: [] };
+        }),
+        masterDataAPI.getPPE().catch(err => {
+          console.error('❌ PPE API error:', err);
+          return { success: false, data: [] };
+        }),
+        usersAPI.getWorkers().catch(err => {
+          console.error('❌ Workers API error:', err);
+          return { success: false, data: [] };
+        }),
+      ]);
+
+      console.log('📍 Sites API Response:', sitesRes);
+
+      // ✅ FIXED: Proper null checks and array validation
+      if (sitesRes.success && sitesRes.data) {
+        console.log('✅ Sites loaded:', sitesRes.data.length);
+        setSites(Array.isArray(sitesRes.data) ? sitesRes.data : []);
+      } else {
+        console.warn('⚠️ Sites not loaded');
+        setSites([]);
       }
-    });
 
-    const data = await response.json();
-    console.log('📊 [APPROVERS] Response:', data);
+      if (hazardsRes.success && hazardsRes.data) {
+        console.log('✅ Hazards loaded:', hazardsRes.data.length);
+        setHazards(Array.isArray(hazardsRes.data) ? hazardsRes.data : []);
+      } else {
+        console.warn('⚠️ Hazards not loaded');
+        setHazards([]);
+      }
 
-    if (data.success && data.data) {
-      const am = data.data.filter((a: User) => a.role === 'Approver_AreaManager');
-      const so = data.data.filter((a: User) => a.role === 'Approver_Safety');
-      const sl = data.data.filter((a: User) => a.role === 'Approver_SiteLeader');
-      
-      console.log('✅ Area Managers:', am.length, am.map((a: User) => a.full_name));
-      console.log('✅ Safety Officers:', so.length, so.map((a: User) => a.full_name));
-      console.log('✅ Site Leaders:', sl.length, sl.map((a: User) => a.full_name));
-      
-      setAreaManagers(am);
-      setSafetyOfficers(so);
-      setSiteLeaders(sl);
-      
-      console.log('✅ [APPROVERS] Done!');
+      if (ppeRes.success && ppeRes.data) {
+        console.log('✅ PPE loaded:', ppeRes.data.length);
+        setPPEItems(Array.isArray(ppeRes.data) ? ppeRes.data : []);
+      } else {
+        console.warn('⚠️ PPE not loaded');
+        setPPEItems([]);
+      }
+
+      if (workersRes.success && workersRes.data) {
+        console.log('✅ Workers loaded:', workersRes.data.length);
+        setWorkers(Array.isArray(workersRes.data) ? workersRes.data : []);
+      } else {
+        console.warn('⚠️ Workers not loaded');
+        setWorkers([]);
+      }
+
+      // ✅ FIXED: Don't show error if at least some data loaded
+      const hasData = sitesRes.success || hazardsRes.success || ppeRes.success || workersRes.success;
+      if (!hasData) {
+        alert('Failed to load form data. Please refresh the page.');
+      }
+
+    } catch (error) {
+      console.error('❌ Error loading master data:', error);
+      alert('Failed to load form data. Please refresh the page.');
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('❌ [APPROVERS] Error:', error);
-  }
-};
+  };
+  const loadApprovers = async () => {
+    try {
+      console.log('🔄 [APPROVERS] Loading approvers...');
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/users/approvers', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      console.log('📊 [APPROVERS] Response:', data);
+
+      if (data.success && data.data) {
+        const am = data.data.filter((a: User) => a.role === 'Approver_AreaManager');
+        const so = data.data.filter((a: User) => a.role === 'Approver_Safety');
+        const sl = data.data.filter((a: User) => a.role === 'Approver_SiteLeader');
+
+        console.log('✅ Area Managers:', am.length, am.map((a: User) => a.full_name));
+        console.log('✅ Safety Officers:', so.length, so.map((a: User) => a.full_name));
+        console.log('✅ Site Leaders:', sl.length, sl.map((a: User) => a.full_name));
+
+        setAreaManagers(am);
+        setSafetyOfficers(so);
+        setSiteLeaders(sl);
+
+        console.log('✅ [APPROVERS] Done!');
+      }
+    } catch (error) {
+      console.error('❌ [APPROVERS] Error:', error);
+    }
+  };
   const loadCorrectChecklistQuestions = () => {
-    const correctQuestions: Record<PermitType, Array<{question: string; isTextInput: boolean}>> = {
+    const correctQuestions: Record<PermitType, Array<{ question: string; isTextInput: boolean }>> = {
       'General': [
         { question: 'Job Location has been checked and verified to conduct the activity.', isTextInput: false },
         { question: 'Area has been barricaded to eliminate the possibilities of unauthorized entry.', isTextInput: false },
@@ -427,24 +430,141 @@ const loadApprovers = async () => {
     }));
   };
 
-const handleNext = () => {
-  console.log('📍 Current Step:', currentStep);
-  console.log('📋 Checklist Questions:', checklistQuestions.length);
-  
-  if (currentStep === 1) {
-    if (formData.categories.length === 0) {
-      alert('Please select at least one permit category');
-      return;
+  const handleNext = () => {
+    console.log('📍 Current Step:', currentStep);
+
+    // Step 1: Basic Information Validation
+    if (currentStep === 1) {
+      if (formData.categories.length === 0) {
+        alert('Please select at least one permit category');
+        return;
+      }
+      if (!formData.site_id) {
+        alert('Please select a Site');
+        return;
+      }
+      if (!formData.issueDepartment) {
+        alert('Please select an Issue Department');
+        return;
+      }
+      if (!formData.location.trim()) {
+        alert('Please enter layout/location');
+        return;
+      }
+      if (!formData.workDescription.trim()) {
+        alert('Please enter Work Description');
+        return;
+      }
+      if (!formData.startDate) {
+        alert('Please select Start Date');
+        return;
+      }
+      if (!formData.startTime) {
+        alert('Please select Start Time');
+        return;
+      }
+      if (!formData.endDate) {
+        alert('Please select End Date');
+        return;
+      }
+      if (!formData.endTime) {
+        alert('Please select End Time');
+        return;
+      }
+      if (!formData.issuerSignature) {
+        alert('Issuer Signature is required');
+        return;
+      }
     }
-  }
-  
-  if (currentStep < totalSteps) {
-    console.log('✅ Moving to step:', currentStep + 1);
-    setCurrentStep(currentStep + 1);
-  } else {
-    console.log('⚠️ Already at last step:', currentStep);
-  }
-};
+
+    // Step 2: Workers Validation
+    if (currentStep === 2) {
+      if (!formData.issuedToName.trim()) {
+        alert('Please enter Vendor Name (Issued To)');
+        return;
+      }
+      if (!formData.issuedToContact.trim()) {
+        alert('Please enter Contact Number (Issued To)');
+        return;
+      }
+      if (formData.selectedWorkers.length === 0 && newWorkers.length === 0) {
+        alert('Please assign at least one worker');
+        return;
+      }
+    }
+
+    // Step 3: Hazards Validation
+    if (currentStep === 3) {
+      if (formData.selectedHazards.length === 0) {
+        alert('Please identify at least one hazard');
+        return;
+      }
+    }
+
+    // Step 4: PPE Validation
+    if (currentStep === 4) {
+      if (formData.selectedPPE.length === 0) {
+        alert('Please select required PPE');
+        return;
+      }
+      // Enforce SWMS (Document or Text)
+      if (!formData.swmsFile && (!formData.swmsText || formData.swmsText.trim().length < 20)) {
+        alert('Please upload a SWMS document or provide sufficient SWMS details (text)');
+        return;
+      }
+    }
+
+    // Step 5: Checklist Validation
+    if (currentStep === 5) {
+      const activeQuestions = checklistQuestions.filter(q =>
+        formData.categories.includes(q.permit_type)
+      );
+
+      for (const q of activeQuestions) {
+        if (q.response_type === 'text') {
+          if (!formData.checklistTextResponses[q.id] || !formData.checklistTextResponses[q.id].trim()) {
+            alert(`Please answer the mandatory question: "${q.question_text}"`);
+            return;
+          }
+        } else {
+          // yes_no type
+          if (!formData.checklistResponses[q.id]) {
+            alert(`Please select Yes/No/NA for: "${q.question_text}"`);
+            return;
+          }
+          // If response is 'No', remark is usually mandatory or at least good practice, 
+          // code shows input for remark if No. Let's force remark if No.
+          if (formData.checklistResponses[q.id] === 'No' && !formData.checklistRemarks[q.id]?.trim()) {
+            alert(`Please provide remarks for "No" response to: "${q.question_text}"`);
+            return;
+          }
+        }
+      }
+    }
+
+    // Step 6: Approvers Validation
+    if (currentStep === 6) {
+      if (!approvers.areaManager || approvers.areaManager === 0) {
+        alert('Please select an Area In-charge');
+        return;
+      }
+      if (requiresSafetyOfficer && (!approvers.safetyOfficer || approvers.safetyOfficer === 0)) {
+        alert('Please select a Safety In-charge');
+        return;
+      }
+      if (requiresSiteLeaderApproval && (!approvers.siteLeader || approvers.siteLeader === 0)) {
+        alert('Please select a Site Leader / Senior Ops');
+        return;
+      }
+    }
+
+    if (currentStep < totalSteps) {
+      console.log('✅ Moving to step:', currentStep + 1);
+      setCurrentStep(currentStep + 1);
+    } else {
+      console.log('⚠️ Already at last step:', currentStep);
+    }
+  };
 
   const handleBack = () => {
     if (currentStep > 1) {
@@ -457,17 +577,17 @@ const handleNext = () => {
       alert('Please accept the declaration to submit');
       return;
     }
-// ✅ ADD THESE VALIDATION CHECKS:
-  if (formData.categories.length === 0) {
-    alert('Please select at least one permit category');
-    return;
-  }
+    // ✅ ADD THESE VALIDATION CHECKS:
+    if (formData.categories.length === 0) {
+      alert('Please select at least one permit category');
+      return;
+    }
 
-  if (!formData.site_id || formData.site_id === 0) {
-    alert('Please select a site');
-    return;
-  }
-  // Validate permit types
+    if (!formData.site_id || formData.site_id === 0) {
+      alert('Please select a site');
+      return;
+    }
+    // Validate permit types
     if (!formData.categories || formData.categories.length === 0) {
       alert('⚠️ Please select at least one permit type');
       setIsSubmitting(false);
@@ -522,14 +642,15 @@ const handleNext = () => {
       });
 
       const permitData = {
-        site_id: formData.site_id, 
-       permit_types: formData.categories, 
+        site_id: formData.site_id,
+        permit_type: formData.categories[0], // ✅ Required by backend
+        permit_types: formData.categories,
         work_location: formData.location || 'Location not specified',  // ✅ Better default
         work_description: formData.workDescription || 'Description not provided',  // ✅ Better default
-        start_time: formData.startDate && formData.startTime 
-          ? `${formData.startDate}T${formData.startTime}:00` 
+        start_time: formData.startDate && formData.startTime
+          ? `${formData.startDate}T${formData.startTime}:00`
           : new Date().toISOString(),
-        end_time: formData.endDate && formData.endTime 
+        end_time: formData.endDate && formData.endTime
           ? `${formData.endDate}T${formData.endTime}:00`
           : new Date(Date.now() + 86400000).toISOString(),
         receiver_name: formData.issuedToName || 'Test Receiver',
@@ -546,7 +667,7 @@ const handleNext = () => {
         swms_file_url: swmsUrl,
         swms_text: formData.swmsText,
         area_manager_id: approvers.areaManager || null,
-        safety_officer_id: approvers.safetyOfficer || null,
+        safety_officer_id: requiresSafetyOfficer ? (approvers.safetyOfficer || null) : null,
         site_leader_id: requiresSiteLeaderApproval ? (approvers.siteLeader || null) : null,
         issuer_signature: formData.issuerSignature || null,
       };
@@ -555,15 +676,14 @@ const handleNext = () => {
 
       const response = await permitsAPI.create(permitData);
       console.log('📥 API Response:', response);
+
       if (response.success) {
-        alert('✅ PTW Created Successfully!');
-        try {  // ← ADD THIS
-    if (onSuccess) onSuccess();
-    else onBack();
-  } catch (navError) {  // ← ADD THIS
-    console.error('Navigation error:', navError);
-  }
-  
+        alert('✅ PTW Created Successfully! Redirecting to dashboard...');
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          onBack();
+        }
       } else {
         alert(response.message || 'Failed to create PTW');
       }
@@ -602,7 +722,7 @@ const handleNext = () => {
 
   const handleSignatureSave = (signature: string) => {
     console.log('💾 Saving signature:', signature ? 'Signature captured' : 'No signature');
-    
+
     if (showApproverSignature) {
       setApproverSignatures(prev => {
         const updated = {
@@ -624,12 +744,12 @@ const handleNext = () => {
   };
 
   const addNewWorker = () => {
-    setNewWorkers([...newWorkers, { 
-      name: '', 
-      phone: '', 
-      email: '', 
+    setNewWorkers([...newWorkers, {
+      name: '',
+      phone: '',
+      email: '',
       companyName: '',
-      role: 'Worker' as WorkerRole 
+      role: 'Worker' as WorkerRole
     }]);
   };
 
@@ -638,8 +758,8 @@ const handleNext = () => {
   };
 
   const updateNewWorker = (
-    index: number, 
-    field: 'name' | 'phone' | 'email' | 'companyName' | 'role', 
+    index: number,
+    field: 'name' | 'phone' | 'email' | 'companyName' | 'role',
     value: string
   ) => {
     const updated = [...newWorkers];
@@ -651,105 +771,104 @@ const handleNext = () => {
     setNewWorkers(updated);
   };
 
-interface RequirementRowProps {
-  questionId: number;
-  label: string;
-  value?: ChecklistResponse;
-  onChange: (value: ChecklistResponse) => void;
-  isTextInput?: boolean;
-  textValue?: string;
-  onTextChange?: (value: string) => void;
-}
+  interface RequirementRowProps {
+    questionId: number;
+    label: string;
+    value?: ChecklistResponse;
+    onChange: (value: ChecklistResponse) => void;
+    isTextInput?: boolean;
+    textValue?: string;
+    onTextChange?: (value: string) => void;
+  }
 
 
   // ALTERNATIVE FIX: Uncontrolled input with ref (no re-render issues)
-const RequirementRow = memo(({ 
-  questionId, 
-  label, 
-  value, 
-  onChange, 
-  isTextInput, 
-  textValue, 
-  onTextChange 
-}: RequirementRowProps) => {
-  
-  // Local state prevents focus loss during typing
-  const [localValue, setLocalValue] = useState(textValue || '');
-  
-  // Sync with parent when parent value changes
-  useEffect(() => {
-    if (textValue !== undefined) {
-      setLocalValue(textValue);
-    }
-  }, [textValue]);
-  
-  // Handle input change - update local state and notify parent
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    
-    if (onTextChange) {
-      onTextChange(newValue);
-    }
-  }, [onTextChange]);
-  
-  // Text input field (for names)
-  if (isTextInput) {
-    return (
-      <div className="py-4 space-y-2 border-b border-slate-200">
-        <Label 
-          htmlFor={`text-${questionId}`} 
-          className="text-sm font-medium text-slate-900"
-        >
-          {label} <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id={`text-${questionId}`}
-          type="text"
-          value={localValue}
-          onChange={handleChange}
-          placeholder="Enter full name..."
-          required
-          className="w-full max-w-lg text-base"
-          autoComplete="off"
-        />
-        {localValue && localValue.length < 2 && (
-          <p className="text-xs text-amber-600">
-            Please enter a valid full name (at least 2 characters)
-          </p>
-        )}
-      </div>
-    );
-  }
+  const RequirementRow = memo(({
+    questionId,
+    label,
+    value,
+    onChange,
+    isTextInput,
+    textValue,
+    onTextChange
+  }: RequirementRowProps) => {
 
-  // Yes/No/N/A buttons (for regular questions)
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-slate-100">
-      <span className="text-sm text-slate-700">{label}</span>
-      <div className="flex gap-2">
-        {(['Yes', 'No', 'N/A'] as ChecklistResponse[]).map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => onChange(option)}
-            className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${
-              value === option
+    // Local state prevents focus loss during typing
+    const [localValue, setLocalValue] = useState(textValue || '');
+
+    // Sync with parent when parent value changes
+    useEffect(() => {
+      if (textValue !== undefined) {
+        setLocalValue(textValue);
+      }
+    }, [textValue]);
+
+    // Handle input change - update local state and notify parent
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      setLocalValue(newValue);
+
+      if (onTextChange) {
+        onTextChange(newValue);
+      }
+    }, [onTextChange]);
+
+    // Text input field (for names)
+    if (isTextInput) {
+      return (
+        <div className="py-4 space-y-2 border-b border-slate-200">
+          <Label
+            htmlFor={`text-${questionId}`}
+            className="text-sm font-medium text-slate-900"
+          >
+            {label} <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id={`text-${questionId}`}
+            type="text"
+            value={localValue}
+            onChange={handleChange}
+            placeholder="Enter full name..."
+            required
+            className="w-full max-w-lg text-base"
+            autoComplete="off"
+          />
+          {localValue && localValue.length < 2 && (
+            <p className="text-xs text-amber-600">
+              Please enter a valid full name (at least 2 characters)
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    // Yes/No/N/A buttons (for regular questions)
+    return (
+      <div className="flex items-center justify-between py-3 border-b border-slate-100">
+        <span className="text-sm text-slate-700">{label}</span>
+        <div className="flex gap-2">
+          {(['Yes', 'No', 'N/A'] as ChecklistResponse[]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onChange(option)}
+              className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${value === option
                 ? option === 'Yes'
                   ? 'bg-green-500 text-white'
                   : option === 'No'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-slate-500 text-white'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-slate-500 text-white'
                 : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-            }`}
-          >
-            {option}
-          </button>
-        ))}
+                }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-  RequirementRow.displayName = 'RequirementRow';
-});
+    );
+    RequirementRow.displayName = 'RequirementRow';
+  });
 
   const getCategoryBadgeColor = (category: PermitType) => {
     const colors: Record<PermitType, string> = {
@@ -791,12 +910,12 @@ const RequirementRow = memo(({
 
       {/* Form Content */}
       <div className="p-6 bg-white border rounded-xl border-slate-200">
-        
+
         {/* STEP 1: Basic Information */}
         {currentStep === 1 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Basic Information</h2>
-            
+
             {/* Permit Initiator */}
             <div className="p-4 border-2 border-green-200 rounded-lg bg-green-50">
               <h3 className="mb-3 text-sm font-medium text-green-900">Permit Initiator</h3>
@@ -829,20 +948,19 @@ const RequirementRow = memo(({
             <div>
               <Label>Permit Categories * (Select all that apply)</Label>
               <p className="mb-3 text-sm text-slate-500">You can select multiple permit types for this work</p>
-              
+
               <div className="grid gap-3 md:grid-cols-2">
                 {(['General', 'Height', 'Electrical', 'Hot_Work', 'Confined_Space'] as PermitType[]).map((category) => {
                   const isHighRisk = highRiskPermits.includes(category);
                   return (
                     <label
                       key={category}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        formData.categories.includes(category)
-                          ? isHighRisk
-                            ? 'border-red-500 bg-red-50'
-                            : 'border-blue-500 bg-blue-50'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.categories.includes(category)
+                        ? isHighRisk
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-blue-500 bg-blue-50'
+                        : 'border-slate-200 hover:border-slate-300'
+                        }`}
                     >
                       <Checkbox
                         checked={formData.categories.includes(category)}
@@ -901,8 +1019,8 @@ const RequirementRow = memo(({
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="site">Site *</Label>
-                <Select 
-                  value={formData.site_id.toString()} 
+                <Select
+                  value={formData.site_id.toString()}
                   onValueChange={(value) => {
                     const siteId = parseInt(value);
                     console.log('📍 Site selected - ID:', siteId);
@@ -929,7 +1047,7 @@ const RequirementRow = memo(({
                     )}
                   </SelectContent>
                 </Select>
-                
+
                 {/* Status Indicator */}
                 {sites.length > 0 ? (
                   <p className="flex items-center gap-1 mt-2 text-xs text-green-600">
@@ -957,8 +1075,8 @@ const RequirementRow = memo(({
             {/* FIXED: Issue Department - Now Dropdown */}
             <div>
               <Label htmlFor="issueDepartment">Issue Department *</Label>
-              <Select 
-                value={formData.issueDepartment} 
+              <Select
+                value={formData.issueDepartment}
                 onValueChange={(value) => setFormData({ ...formData, issueDepartment: value })}
               >
                 <SelectTrigger id="issueDepartment">
@@ -1058,7 +1176,7 @@ const RequirementRow = memo(({
         {currentStep === 2 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Issued To & Workers Assignment</h2>
-            
+
             <div className="p-6 space-y-4 border-2 border-blue-200 rounded-lg bg-blue-50">
               <h3 className="flex items-center gap-2 font-medium text-slate-900">
                 <FileText className="w-5 h-5 text-blue-600" />
@@ -1091,7 +1209,7 @@ const RequirementRow = memo(({
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-slate-900">Workers Assignment</h3>
               <p className="text-slate-600">Select the workers who will be performing this work</p>
-              
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex items-center gap-4">
                   <Checkbox
@@ -1153,7 +1271,7 @@ const RequirementRow = memo(({
                     <FileText className="w-4 h-4" />
                     Add New Worker
                   </Button>
-                  
+
                   {newWorkers.map((worker, index) => (
                     <div key={index} className="p-4 space-y-4 border rounded-lg border-slate-200">
                       <div className="grid gap-4 md:grid-cols-2">
@@ -1211,27 +1329,27 @@ const RequirementRow = memo(({
                           </Select>
                         </div>
                         <div className="flex gap-2 pt-3 mt-3 border-t border-blue-300">
-      <button
-        type="button"
-        onClick={() => {
-          if (!worker.name || !worker.phone || !worker.companyName) {
-            alert('Please fill required fields');
-            return;
-          }
-          alert(`Worker "${worker.name}" saved!`);
-        }}
-        className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
-      >
-        💾 Save Worker
-      </button>
-      <button
-        type="button"
-        onClick={() => removeNewWorker(index)}
-        className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700"
-      >
-        ✕ Remove
-      </button>
-    </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!worker.name || !worker.phone || !worker.companyName) {
+                                alert('Please fill required fields');
+                                return;
+                              }
+                              alert(`Worker "${worker.name}" saved!`);
+                            }}
+                            className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+                          >
+                            💾 Save Worker
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeNewWorker(index)}
+                            className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700"
+                          >
+                            ✕ Remove
+                          </button>
+                        </div>
                       </div>
                       <div className="flex justify-end">
                         <Button
@@ -1256,11 +1374,11 @@ const RequirementRow = memo(({
         {currentStep === 3 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Hazard Identification & Control Measures</h2>
-            
+
             <div>
               <Label>Identified Hazards *</Label>
               <p className="mb-3 text-sm text-slate-500">Select all hazards that apply to this work</p>
-              
+
               <div className="space-y-3">
                 {[
                   'Fall from height',
@@ -1274,11 +1392,10 @@ const RequirementRow = memo(({
                 ].map((hazard, index) => (
                   <label
                     key={index}
-                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.selectedHazards.includes(index + 1)
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedHazards.includes(index + 1)
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                      }`}
                   >
                     <Checkbox
                       checked={formData.selectedHazards.includes(index + 1)}
@@ -1355,11 +1472,11 @@ const RequirementRow = memo(({
         {currentStep === 4 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">PPE Requirements & SWMS Upload</h2>
-            
+
             <div>
               <Label>Required Personal Protective Equipment (PPE) *</Label>
               <p className="mb-4 text-sm text-slate-500">Select all required PPE for this work</p>
-              
+
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {['Safety Helmet', 'Safety Vest', 'Safety Gloves', 'Safety Boots', 'Safety Goggles', 'Face Mask', 'Ear Protection', 'Safety Harness'].map((ppeName, index) => (
                   <button
@@ -1374,18 +1491,16 @@ const RequirementRow = memo(({
                           : [...prev.selectedPPE, mockId]
                       }));
                     }}
-                    className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${
-                      formData.selectedPPE.includes(index + 1)
-                        ? 'border-blue-500 bg-blue-50 shadow-md scale-105'
-                        : 'border-slate-200 hover:border-blue-300 bg-white'
-                    }`}
+                    className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${formData.selectedPPE.includes(index + 1)
+                      ? 'border-blue-500 bg-blue-50 shadow-md scale-105'
+                      : 'border-slate-200 hover:border-blue-300 bg-white'
+                      }`}
                   >
                     <div className="transition-transform">
                       <PPEIconComponent name={ppeName} />
                     </div>
-                    <span className={`text-sm font-semibold text-center ${
-                      formData.selectedPPE.includes(index + 1) ? 'text-blue-900' : 'text-slate-700'
-                    }`}>
+                    <span className={`text-sm font-semibold text-center ${formData.selectedPPE.includes(index + 1) ? 'text-blue-900' : 'text-slate-700'
+                      }`}>
                       {ppeName}
                     </span>
                     {formData.selectedPPE.includes(index + 1) && (
@@ -1407,22 +1522,20 @@ const RequirementRow = memo(({
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, swmsMode: 'file' })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'file'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'file'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white text-purple-600 border border-purple-300'
+                    }`}
                 >
                   Upload Document
                 </button>
                 <button
                   type="button"
-                 onClick={() => setFormData({ ...formData, swmsMode: 'text' })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'text'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
+                  onClick={() => setFormData({ ...formData, swmsMode: 'text' })}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'text'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white text-purple-600 border border-purple-300'
+                    }`}
                 >
                   Write Text
                 </button>
@@ -1432,8 +1545,8 @@ const RequirementRow = memo(({
                 <div>
                   <Label htmlFor="swmsFile">Upload SWMS Document</Label>
                   <div className="flex items-center gap-4 mt-2">
-                    <label 
-                      htmlFor="swmsFile" 
+                    <label
+                      htmlFor="swmsFile"
                       className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50"
                     >
                       <Upload className="w-5 h-5 text-purple-600" />
@@ -1456,29 +1569,29 @@ const RequirementRow = memo(({
                   <p className="mt-2 text-xs text-purple-700">
                     Accepted formats: PDF, DOC, DOCX (Max 10MB)
                   </p> {formData.swmsFile && (
-      <div className="flex gap-3 pt-3 mt-3 border-t border-purple-300">
-        <button
-          type="button"
-          onClick={() => alert(`Document saved!`)}
-          className="px-4 py-2 text-white bg-green-600 rounded-lg"
-        >
-          💾 Save Document
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm('Discard changes?')) {
-              setFormData({...formData, swmsFile: null});
-            }
-          }}
-          className="px-4 py-2 border border-gray-300 rounded-lg"
-        >
-          ✕ Cancel
-        </button>
-      </div>
-    )}
-  </div>
-)}
+                    <div className="flex gap-3 pt-3 mt-3 border-t border-purple-300">
+                      <button
+                        type="button"
+                        onClick={() => alert(`Document saved!`)}
+                        className="px-4 py-2 text-white bg-green-600 rounded-lg"
+                      >
+                        💾 Save Document
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm('Discard changes?')) {
+                            setFormData({ ...formData, swmsFile: null });
+                          }
+                        }}
+                        className="px-4 py-2 border border-gray-300 rounded-lg"
+                      >
+                        ✕ Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {formData.swmsMode === 'text' && (
                 <div>
@@ -1499,37 +1612,37 @@ Include:
                     rows={15}
                     className="mt-2 font-mono text-sm bg-white"
                   />
-              
-           
-            <div className="flex gap-3 mt-4">
-      <button
-        type="button"
-        onClick={() => {
-          if (!formData.swmsText.trim() || formData.swmsText.length < 20) {
-            alert('Enter at least 20 characters');
-            return;
-          }
-          alert('Text saved!');
-        }}
-        className="px-4 py-2 text-white bg-green-600 rounded-lg"
-      >
-        💾 Save Text
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          if (confirm('Discard changes?')) {
-            setFormData({...formData, swmsText: ''});
-          }
-        }}
-        className="px-4 py-2 border border-gray-300 rounded-lg"
-      >
-        ✕ Cancel
-      </button>
-    </div>  </div>
+
+
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!formData.swmsText.trim() || formData.swmsText.length < 20) {
+                          alert('Enter at least 20 characters');
+                          return;
+                        }
+                        alert('Text saved!');
+                      }}
+                      className="px-4 py-2 text-white bg-green-600 rounded-lg"
+                    >
+                      💾 Save Text
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Discard changes?')) {
+                          setFormData({ ...formData, swmsText: '' });
+                        }
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      ✕ Cancel
+                    </button>
+                  </div>  </div>
               )}
+            </div>
           </div>
-           </div>
         )}
 
         {/* STEP 5: FIXED Checklist with proper text input handling */}
@@ -1539,14 +1652,14 @@ Include:
             <p className="text-sm text-slate-600">
               Complete the following safety requirements checklist for all permit types
             </p>
-            
+
             <div className="p-6 border rounded-lg border-slate-200">
               <div className="space-y-6">
                 {(['General', 'Hot_Work', 'Electrical', 'Height', 'Confined_Space'] as PermitType[]).map(category => {
                   const categoryQuestions = checklistQuestions.filter(
                     q => q.permit_type === category
                   );
-                  
+
                   const categoryNames: Record<PermitType, string> = {
                     'General': 'General Work',
                     'Hot_Work': 'Hot Work',
@@ -1554,7 +1667,7 @@ Include:
                     'Height': 'Height Work',
                     'Confined_Space': 'Confined Space Work',
                   };
-                  
+
                   return (
                     <div key={category} className="pb-6 border-b border-slate-200 last:border-0">
                       <h3 className="mb-4 text-lg font-semibold text-slate-900">
@@ -1566,32 +1679,32 @@ Include:
 
                           return (
                             <div key={question.id}>
-                             {isTextInput ? (
-  <NameInputField
-    questionId={question.id}
-    label={question.question_text}
-    initialValue={formData.checklistTextResponses[question.id]}
-    onSave={(val) => {
-      setFormData(prev => ({
-        ...prev,
-        checklistTextResponses: { 
-          ...prev.checklistTextResponses, 
-          [question.id]: val 
-        }
-      }));
-    }}
-  />
-) : (
-  <RequirementRow
-    questionId={question.id}
-    label={question.question_text}
-    value={formData.checklistResponses[question.id]}
-    onChange={(val) => setFormData(prev => ({
-      ...prev,
-      checklistResponses: { ...prev.checklistResponses, [question.id]: val }
-    }))}
-  />
-)}
+                              {isTextInput ? (
+                                <NameInputField
+                                  questionId={question.id}
+                                  label={question.question_text}
+                                  initialValue={formData.checklistTextResponses[question.id]}
+                                  onSave={(val) => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      checklistTextResponses: {
+                                        ...prev.checklistTextResponses,
+                                        [question.id]: val
+                                      }
+                                    }));
+                                  }}
+                                />
+                              ) : (
+                                <RequirementRow
+                                  questionId={question.id}
+                                  label={question.question_text}
+                                  value={formData.checklistResponses[question.id]}
+                                  onChange={(val) => setFormData(prev => ({
+                                    ...prev,
+                                    checklistResponses: { ...prev.checklistResponses, [question.id]: val }
+                                  }))}
+                                />
+                              )}
                               {!isTextInput && formData.checklistResponses[question.id] === 'No' && (
                                 <div className="mt-2 mb-4 ml-4">
                                   <Input
@@ -1622,7 +1735,7 @@ Include:
         {currentStep === 6 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Approver Selection & Signatures</h2>
-            
+
             {requiresSiteLeaderApproval && (
               <div className="flex items-start gap-3 p-4 border-2 border-orange-200 rounded-lg bg-orange-50">
                 <AlertTriangle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
@@ -1649,8 +1762,8 @@ Include:
                 </div>
 
                 <div className="space-y-4">
-                  <Select 
-                    value={approvers.areaManager.toString()} 
+                  <Select
+                    value={approvers.areaManager.toString()}
                     onValueChange={(value) => setApprovers({ ...approvers, areaManager: parseInt(value) })}
                   >
                     <SelectTrigger className="bg-white">
@@ -1666,50 +1779,49 @@ Include:
                     </SelectContent>
                   </Select>
 
-                  
+
                 </div>
               </div>
 
               {/* Safety In-charge */}
-              <div className="p-6 border-2 rounded-lg border-slate-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-900">Safety In-charge</h3>
-                  {approverSignatures.safetyOfficerSignature && (
-                    <span className="flex items-center gap-2 px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
-                      <Check className="w-4 h-4" />
-                      Signed
-                    </span>
-                  )}
-                </div>
+              {requiresSafetyOfficer && (
+                <div className="p-6 border-2 rounded-lg border-slate-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">Safety In-charge</h3>
+                    {approverSignatures.safetyOfficerSignature && (
+                      <span className="flex items-center gap-2 px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
+                        <Check className="w-4 h-4" />
+                        Signed
+                      </span>
+                    )}
+                  </div>
 
-                <div className="space-y-4">
-                  <Select 
-                    value={approvers.safetyOfficer.toString()} 
-                    onValueChange={(value) => setApprovers({ ...approvers, safetyOfficer: parseInt(value) })}
-                  >
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Select Safety In-charge" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">-- Select --</SelectItem>
-                      {safetyOfficers.map((officer) => (
-                        <SelectItem key={officer.id} value={officer.id.toString()}>
-                          {officer.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  
+                  <div className="space-y-4">
+                    <Select
+                      value={approvers.safetyOfficer.toString()}
+                      onValueChange={(value) => setApprovers({ ...approvers, safetyOfficer: parseInt(value) })}
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Select Safety In-charge" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">-- Select --</SelectItem>
+                        {safetyOfficers.map((officer) => (
+                          <SelectItem key={officer.id} value={officer.id.toString()}>
+                            {officer.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Site Leader - ALWAYS VISIBLE */}
-              <div className={`p-6 border-2 rounded-lg ${
-                requiresSiteLeaderApproval 
-                  ? 'border-red-300 bg-red-50' 
-                  : 'border-slate-200 bg-slate-50'
-              }`}>
+              <div className={`p-6 border-2 rounded-lg ${requiresSiteLeaderApproval
+                ? 'border-red-300 bg-red-50'
+                : 'border-slate-200 bg-slate-50'
+                }`}>
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">
@@ -1728,8 +1840,8 @@ Include:
                 </div>
 
                 <div className="space-y-4">
-                  <Select 
-                    value={approvers.siteLeader.toString()} 
+                  <Select
+                    value={approvers.siteLeader.toString()}
                     onValueChange={(value) => setApprovers({ ...approvers, siteLeader: parseInt(value) })}
                   >
                     <SelectTrigger className="bg-white">
@@ -1745,7 +1857,7 @@ Include:
                     </SelectContent>
                   </Select>
 
-                  
+
                 </div>
               </div>
             </div>
@@ -1756,7 +1868,7 @@ Include:
         {currentStep === 7 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Review & Submit</h2>
-            
+
             <div className="p-6 space-y-4 rounded-lg bg-slate-50">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
@@ -1819,8 +1931,8 @@ Include:
                 <div>
                   <p className="text-sm font-medium text-slate-900">Declaration</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    I confirm that all information provided is accurate and complete. All necessary safety measures 
-                    have been identified and will be implemented. All workers have been briefed on the hazards and 
+                    I confirm that all information provided is accurate and complete. All necessary safety measures
+                    have been identified and will be implemented. All workers have been briefed on the hazards and
                     control measures for this work.
                   </p>
                 </div>
@@ -1840,13 +1952,13 @@ Include:
         >
           Previous
         </Button>
-        
+
         {currentStep < totalSteps ? (
           <Button onClick={handleNext} disabled={isSubmitting} type="button">
             Next
           </Button>
         ) : (
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={!formData.declaration || isSubmitting}
             className="bg-green-600 hover:bg-green-700"
@@ -1861,10 +1973,10 @@ Include:
       {(showSignature || showApproverSignature) && (
         <DigitalSignature
           title={
-            showApproverSignature 
-              ? `${showApproverSignature === 'areaManager' ? 'Area Manager' : 
-                   showApproverSignature === 'safetyOfficer' ? 'Safety Officer' : 
-                   'Site Leader'} Digital Signature`
+            showApproverSignature
+              ? `${showApproverSignature === 'areaManager' ? 'Area Manager' :
+                showApproverSignature === 'safetyOfficer' ? 'Safety Officer' :
+                  'Site Leader'} Digital Signature`
               : 'Issuer Digital Signature'
           }
           onSave={handleSignatureSave}

@@ -12,18 +12,19 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
     const { unread_only } = req.query;
-
+    // Fetches notifications for the current user
     let query = `
       SELECT 
         n.id,
-        n.permit_id,
-        n.notification_type,
+        n.related_permit_id as permit_id,
+        n.type as notification_type,
+        n.title,
         n.message,
         n.is_read,
         n.created_at,
         p.permit_serial
       FROM notifications n
-      LEFT JOIN permits p ON n.permit_id = p.id
+      LEFT JOIN permits p ON n.related_permit_id = p.id
       WHERE n.user_id = ?
     `;
 
@@ -36,6 +37,7 @@ router.get('/', async (req, res) => {
     query += ' ORDER BY n.created_at DESC LIMIT 50';
 
     const [notifications] = await pool.query(query, params);
+    console.log(`🔔 Fetched ${notifications.length} notifications for user ${userId}`);
 
     // Get unread count
     const [unreadCount] = await pool.query(

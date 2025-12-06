@@ -38,19 +38,22 @@ const approvalsRoutes = require('./src/routes/approvals.routes');
 const masterRoutes = require('./src/routes/master.routes');
 const dashboardRoutes = require('./src/routes/dashboard.routes');
 const requesterAssignmentsRoutes = require('./src/routes/requester-assignments.routes');
+const notificationsRoutes = require('./src/routes/notifications.routes');
+const { initScheduler } = require('./src/services/cronService');
 
-
-// ============= REGISTER ALL ROUTES =============
+// Initialize Scheduler
+initScheduler();
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sites', sitesRoutes);
 app.use('/api/departments', departmentsRoutes);
-app.use('/api/users', usersRoutes);    
-app.use('/api/approvals', approvalsRoutes);      
+app.use('/api/users', usersRoutes);
+app.use('/api/approvals', approvalsRoutes);
 app.use('/api/permits', permitsRoutes);
-app.use('/api/master', masterRoutes);       
+app.use('/api/master', masterRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/requester-assignments', requesterAssignmentsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Vendors route (if separate file exists)
 try {

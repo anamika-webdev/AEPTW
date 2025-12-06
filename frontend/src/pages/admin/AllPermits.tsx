@@ -2,17 +2,19 @@
 // ✅ COMPLETE: Fixed with proper onNavigate prop
 
 import { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  Search, 
-  Filter, 
-  X, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import {
+  FileText,
+  Search,
+  Filter,
+  X,
+  Clock,
+  CheckCircle,
+  XCircle,
   AlertTriangle,
   RefreshCw,
-  Eye
+  Eye,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { permitsAPI } from '../../services/api';
 
@@ -41,8 +43,8 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
-const [currentPage, setCurrentPage] = useState(1);
-const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   useEffect(() => {
     fetchPermits();
   }, []);
@@ -81,7 +83,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
   };
 
   const filteredPermits = permits.filter((permit) => {
-    const matchesSearch = 
+    const matchesSearch =
       permit.permit_serial.toLowerCase().includes(searchTerm.toLowerCase()) ||
       permit.work_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
       permit.work_description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,6 +94,16 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
 
     return matchesSearch && matchesStatus && matchesType;
   });
+
+  const totalPages = Math.ceil(filteredPermits.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPermits = filteredPermits.slice(startIndex, endIndex);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, typeFilter]);
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { icon: any; className: string; label: string }> = {
@@ -130,11 +142,22 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">All Permits</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Manage and view all PTW permits across the system
-            </p>
+          <div className="flex items-center gap-4">
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate('dashboard')}
+                className="p-2 text-gray-600 transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900"
+                title="Back to Dashboard"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">All Permits</h1>
+              <p className="mt-1 text-sm text-gray-600">
+                Manage and view all PTW permits across the system
+              </p>
+            </div>
           </div>
           <button
             onClick={handleRefresh}
@@ -224,19 +247,6 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
             </div>
           </div>
         )}
-
-        <div className="flex items-center justify-between pt-3 mt-3 border-t">
-          <p className="text-sm text-gray-600">
-            Showing <span className="font-medium">{filteredPermits.length}</span> of{' '}
-            <span className="font-medium">{permits.length}</span> permits
-          </p>
-          {(statusFilter !== 'all' || typeFilter !== 'all' || searchTerm) && (
-            <span className="text-xs text-blue-600">
-              Filters active
-              {searchTerm && ` • Searching for "${searchTerm}"`}
-            </span>
-          )}
-        </div>
       </div>
 
       {/* Permits Table */}
@@ -256,8 +266,8 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPermits.length > 0 ? (
-                filteredPermits.map((permit) => (
+              {paginatedPermits.length > 0 ? (
+                paginatedPermits.map((permit) => (
                   <tr key={permit.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-blue-600">{permit.permit_serial}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{permit.permit_type}</td>
@@ -295,6 +305,87 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white border border-t-0 border-gray-200 rounded-b-lg sm:px-6">
+        <div className="flex justify-between flex-1 sm:hidden">
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className={`relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className={`relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Showing <span className="font-medium">{Math.min(filteredPermits.length, startIndex + 1)}</span> to{' '}
+              <span className="font-medium">{Math.min(endIndex, filteredPermits.length)}</span> of{' '}
+              <span className="font-medium">{filteredPermits.length}</span> results
+            </p>
+          </div>
+          <div>
+            <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className={`relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+              >
+                <span className="sr-only">Previous</span>
+                <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+              </button>
+
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    aria-current={currentPage === pageNum ? 'page' : undefined}
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
+                      ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                      : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                      }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className={`relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+              >
+                <span className="sr-only">Next</span>
+                <ChevronRight className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </nav>
+          </div>
         </div>
       </div>
     </div>
