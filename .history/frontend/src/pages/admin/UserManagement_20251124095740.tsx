@@ -98,7 +98,7 @@ export default function UserManagement() {
         await userService.create(userData);
         setSuccess('User created successfully');
       }
-      
+
       setShowForm(false);
       setEditingUser(null);
       setFormData({ login_id: '', full_name: '', email: '', password: '', role: 'Worker', site_id: '' });
@@ -228,7 +228,7 @@ export default function UserManagement() {
                     id="full_name"
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    placeholder="e.g., John Doe"
+                    placeholder="e.g., Gaurav Shukla"
                     required
                   />
                 </div>

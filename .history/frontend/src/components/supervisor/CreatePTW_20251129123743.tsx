@@ -9,19 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { DigitalSignature } from '../shared/DigitalSignature';
-import { 
-  sitesAPI, 
-  masterDataAPI, 
-  usersAPI, 
+import {
+  sitesAPI,
+  masterDataAPI,
+  usersAPI,
   vendorsAPI,
   permitsAPI,
-  uploadAPI 
+  uploadAPI
 } from '../../services/api';
-import type { 
-  Site, 
-  MasterHazard, 
-  MasterPPE, 
-  User, 
+import type {
+  Site,
+  MasterHazard,
+  MasterPPE,
+  User,
   Vendor,
   MasterChecklistQuestion,
   PermitType,
@@ -39,56 +39,56 @@ const PPEIconComponent = ({ name }: { name: string }) => {
   const icons: Record<string, JSX.Element> = {
     'Safety Helmet': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M4 13h16M4 13v1a7 7 0 0 0 7 7h2a7 7 0 0 0 7-7v-1"/>
-        <path d="M12 2a8 8 0 0 0-8 8v3h16v-3a8 8 0 0 0-8-8z"/>
-        <circle cx="8" cy="15" r="1" fill="currentColor"/>
-        <circle cx="16" cy="15" r="1" fill="currentColor"/>
+        <path d="M4 13h16M4 13v1a7 7 0 0 0 7 7h2a7 7 0 0 0 7-7v-1" />
+        <path d="M12 2a8 8 0 0 0-8 8v3h16v-3a8 8 0 0 0-8-8z" />
+        <circle cx="8" cy="15" r="1" fill="currentColor" />
+        <circle cx="16" cy="15" r="1" fill="currentColor" />
       </svg>
     ),
     'Safety Vest': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M7 5L5 7v15h5V8L7 5zM17 5l2 2v15h-5V8l3-3z"/>
-        <path d="M10 8v14h4V8"/>
-        <circle cx="12" cy="5" r="2" fill="currentColor"/>
-        <path d="M6 12h4m4 0h4M6 16h4m4 0h4"/>
+        <path d="M7 5L5 7v15h5V8L7 5zM17 5l2 2v15h-5V8l3-3z" />
+        <path d="M10 8v14h4V8" />
+        <circle cx="12" cy="5" r="2" fill="currentColor" />
+        <path d="M6 12h4m4 0h4M6 16h4m4 0h4" />
       </svg>
     ),
     'Safety Gloves': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M18 7V4a2 2 0 0 0-2-2h-3v5m0 0V2H9a2 2 0 0 0-2 2v3"/>
-        <path d="M7 7h10v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7z"/>
-        <path d="M9 10v4m2-4v4m2-4v4m2-4v4"/>
+        <path d="M18 7V4a2 2 0 0 0-2-2h-3v5m0 0V2H9a2 2 0 0 0-2 2v3" />
+        <path d="M7 7h10v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7z" />
+        <path d="M9 10v4m2-4v4m2-4v4m2-4v4" />
       </svg>
     ),
     'Safety Boots': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M5 20h14v2H5z"/>
-        <path d="M8 20V9a3 3 0 0 1 3-3h2a3 3 0 0 1 3 3v11"/>
-        <path d="M11 6h4M8 11h8M8 15h8"/>
-        <circle cx="10" cy="18" r="0.5" fill="currentColor"/>
-        <circle cx="14" cy="18" r="0.5" fill="currentColor"/>
+        <path d="M5 20h14v2H5z" />
+        <path d="M8 20V9a3 3 0 0 1 3-3h2a3 3 0 0 1 3 3v11" />
+        <path d="M11 6h4M8 11h8M8 15h8" />
+        <circle cx="10" cy="18" r="0.5" fill="currentColor" />
+        <circle cx="14" cy="18" r="0.5" fill="currentColor" />
       </svg>
     ),
     'Safety Goggles': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M2 12a4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6a4 4 0 0 1-4-4z"/>
-        <path d="M22 12a4 4 0 0 0-4-4h-5a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h5a4 4 0 0 0 4-4z"/>
-        <path d="M12 8v8"/>
+        <path d="M2 12a4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6a4 4 0 0 1-4-4z" />
+        <path d="M22 12a4 4 0 0 0-4-4h-5a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h5a4 4 0 0 0 4-4z" />
+        <path d="M12 8v8" />
       </svg>
     ),
     'Ear Protection': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M3 12h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/>
-        <path d="M21 12h-2a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2z"/>
-        <path d="M7 12V8a5 5 0 0 1 10 0v4"/>
+        <path d="M3 12h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z" />
+        <path d="M21 12h-2a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2z" />
+        <path d="M7 12V8a5 5 0 0 1 10 0v4" />
       </svg>
     ),
   };
 
   return icons[name] || (
     <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M12 6v6l4 4"/>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 4" />
     </svg>
   );
 };
@@ -108,14 +108,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [checklistQuestions, setChecklistQuestions] = useState<MasterChecklistQuestion[]>([]);
 
-  const [newWorkers, setNewWorkers] = useState<Array<{ 
-    name: string; 
-    phone: string; 
-    email: string; 
+  const [newWorkers, setNewWorkers] = useState<Array<{
+    name: string;
+    phone: string;
+    email: string;
     companyName: string;
     role: WorkerRole;
   }>>([]);
-  
+
   const [formData, setFormData] = useState({
     // Basic Info
     category: '' as PermitType | '',
@@ -129,34 +129,34 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     vendor_id: 0,
     permitInitiator: '', // NEW: Permit initiator name
     permitInitiatorContact: '', // NEW: Permit initiator contact
-    
+
     // Issued To
     issuedToName: '',
     issuedToContact: '',
-    
+
     // Workers
     selectedWorkers: [] as number[],
-    
+
     // Hazards & Controls
     selectedHazards: [] as number[],
     controlMeasures: '',
     otherHazards: '',
-    
+
     // PPE
     selectedPPE: [] as number[],
-    
+
     // SWMS - UPDATED
     swmsFile: null as File | null,
     swmsText: '', // NEW: Text-based SWMS
     swmsMode: 'file' as 'file' | 'text', // NEW: Toggle between file and text
-    
+
     // Signatures
     issuerSignature: '',
-    
+
     // Requirements/Checklist
     checklistResponses: {} as Record<number, ChecklistResponse>,
     checklistRemarks: {} as Record<number, string>,
-    
+
     // Declaration
     declaration: false,
   });
@@ -356,7 +356,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       const blob = await fetch(signature).then(r => r.blob());
       const file = new File([blob], `signature_${Date.now()}.png`, { type: 'image/png' });
       const uploadRes = await uploadAPI.uploadSignature(file);
-      
+
       if (uploadRes.success && uploadRes.data) {
         setFormData({ ...formData, issuerSignature: uploadRes.data.url });
       }
@@ -367,12 +367,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
   const addNewWorker = () => {
-    setNewWorkers([...newWorkers, { 
-      name: '', 
-      phone: '', 
-      email: '', 
+    setNewWorkers([...newWorkers, {
+      name: '',
+      phone: '',
+      email: '',
       companyName: '',
-      role: 'Worker' as WorkerRole 
+      role: 'Worker' as WorkerRole
     }]);
   };
 
@@ -381,8 +381,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
   const updateNewWorker = (
-    index: number, 
-    field: 'name' | 'phone' | 'email' | 'companyName' | 'role', 
+    index: number,
+    field: 'name' | 'phone' | 'email' | 'companyName' | 'role',
     value: string
   ) => {
     const updated = [...newWorkers];
@@ -409,15 +409,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           <button
             key={option}
             onClick={() => onChange(option)}
-            className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${
-              value === option
+            className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${value === option
                 ? option === 'Yes'
                   ? 'bg-green-500 text-white'
                   : option === 'No'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-slate-500 text-white'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-slate-500 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+              }`}
           >
             {option}
           </button>
@@ -459,7 +458,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 1 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Basic Information</h2>
-            
+
             {/* NEW: Permit Initiator Section */}
             <div className="p-4 border-2 border-green-200 rounded-lg bg-green-50">
               <h3 className="mb-3 text-sm font-medium text-green-900">Permit Initiator</h3>
@@ -490,8 +489,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
             <div>
               <Label htmlFor="category">Permit Category *</Label>
-              <Select 
-                value={formData.category} 
+              <Select
+                value={formData.category}
                 onValueChange={(value) => setFormData({ ...formData, category: value as PermitType })}
               >
                 <SelectTrigger>
@@ -510,8 +509,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="site">Site *</Label>
-                <Select 
-                  value={formData.site_id.toString()} 
+                <Select
+                  value={formData.site_id.toString()}
                   onValueChange={(value) => setFormData({ ...formData, site_id: parseInt(value) })}
                 >
                   <SelectTrigger>
@@ -539,8 +538,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
             <div>
               <Label htmlFor="vendor">Vendor (Optional)</Label>
-              <Select 
-                value={formData.vendor_id.toString()} 
+              <Select
+                value={formData.vendor_id.toString()}
                 onValueChange={(value) => setFormData({ ...formData, vendor_id: parseInt(value) })}
               >
                 <SelectTrigger>
@@ -634,7 +633,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 2 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Issued To & Workers Assignment</h2>
-            
+
             {/* Issued To Section */}
             <div className="p-6 space-y-4 border-2 border-blue-200 rounded-lg bg-blue-50">
               <h3 className="flex items-center gap-2 font-medium text-slate-900">
@@ -648,7 +647,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     id="issuedToName"
                     value={formData.issuedToName}
                     onChange={(e) => setFormData({ ...formData, issuedToName: e.target.value })}
-                    placeholder="e.g., John Doe"
+                    placeholder="e.g., Gaurav Shukla"
                     className="bg-white"
                   />
                 </div>
@@ -671,7 +670,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             {/* Workers Assignment Section */}
             <div className="space-y-4">
               <p className="text-slate-600">Select the workers who will be performing this work</p>
-              
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex items-center gap-4">
                   <Checkbox
@@ -729,7 +728,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     <FileText className="w-4 h-4" />
                     Add New Worker
                   </Button>
-                  
+
                   {newWorkers.map((worker, index) => (
                     <div key={index} className="p-4 space-y-4 border rounded-lg border-slate-200">
                       <div className="grid gap-4 md:grid-cols-2">
@@ -809,18 +808,17 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 3 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Hazard Identification & Control Measures</h2>
-            
+
             <div>
               <Label>Identified Hazards *</Label>
               <div className="grid gap-3 mt-2 md:grid-cols-2">
                 {hazards.map((hazard) => (
                   <label
                     key={hazard.id}
-                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.selectedHazards.includes(hazard.id)
+                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedHazards.includes(hazard.id)
                         ? 'border-orange-500 bg-orange-50'
                         : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                      }`}
                   >
                     <Checkbox
                       checked={formData.selectedHazards.includes(hazard.id)}
@@ -866,36 +864,34 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 4 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">PPE Requirements & SWMS Upload</h2>
-            
+
             {/* PPE Section with VISIBLE Icons */}
             <div>
               <Label>Required Personal Protective Equipment (PPE) *</Label>
               <p className="mb-4 text-sm text-slate-500">Select all required PPE for this work</p>
-              
+
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {ppeItems.map((ppe) => (
                   <button
                     key={ppe.id}
                     type="button"
                     onClick={() => togglePPE(ppe.id)}
-                    className={`flex flex-col items-center gap-3 p-4 border-2 rounded-lg transition-all ${
-                      formData.selectedPPE.includes(ppe.id)
+                    className={`flex flex-col items-center gap-3 p-4 border-2 rounded-lg transition-all ${formData.selectedPPE.includes(ppe.id)
                         ? 'border-blue-500 bg-blue-50 shadow-md'
                         : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
+                      }`}
                   >
                     {/* PPE Icon - Now Visible */}
                     <div className={`${formData.selectedPPE.includes(ppe.id) ? 'text-blue-600' : 'text-slate-400'}`}>
                       <PPEIconComponent name={ppe.name} />
                     </div>
-                    
+
                     {/* PPE Name */}
-                    <span className={`text-sm font-medium text-center ${
-                      formData.selectedPPE.includes(ppe.id) ? 'text-blue-900' : 'text-slate-700'
-                    }`}>
+                    <span className={`text-sm font-medium text-center ${formData.selectedPPE.includes(ppe.id) ? 'text-blue-900' : 'text-slate-700'
+                      }`}>
                       {ppe.name}
                     </span>
-                    
+
                     {/* Checkmark */}
                     {formData.selectedPPE.includes(ppe.id) && (
                       <div className="flex items-center justify-center w-6 h-6 bg-blue-600 rounded-full">
@@ -918,22 +914,20 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, swmsMode: 'file', swmsText: '' })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'file'
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'file'
                       ? 'bg-purple-600 text-white'
                       : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
+                    }`}
                 >
                   Upload Document
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, swmsMode: 'text', swmsFile: null })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'text'
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'text'
                       ? 'bg-purple-600 text-white'
                       : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
+                    }`}
                 >
                   Write Text
                 </button>
@@ -944,8 +938,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <div>
                   <Label htmlFor="swmsFile">Upload SWMS Document</Label>
                   <div className="flex items-center gap-4 mt-2">
-                    <label 
-                      htmlFor="swmsFile" 
+                    <label
+                      htmlFor="swmsFile"
                       className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50"
                     >
                       <Upload className="w-5 h-5 text-purple-600" />
@@ -1004,7 +998,7 @@ Include:
         {currentStep === 5 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Work Requirements Checklist</h2>
-            
+
             <div className="p-6 border rounded-lg border-slate-200">
               <h3 className="mb-4 text-slate-900">{formData.category} Requirements</h3>
               <div>
@@ -1042,7 +1036,7 @@ Include:
         {currentStep === 6 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Review & Submit</h2>
-            
+
             {/* Summary */}
             <div className="p-6 space-y-4 rounded-lg bg-slate-50">
               <div className="grid gap-4 md:grid-cols-2">
@@ -1089,8 +1083,8 @@ Include:
                 <div>
                   <p className="text-sm text-slate-500">SWMS</p>
                   <p className="text-slate-900">
-                    {formData.swmsMode === 'file' 
-                      ? (formData.swmsFile ? 'File uploaded' : 'No file') 
+                    {formData.swmsMode === 'file'
+                      ? (formData.swmsFile ? 'File uploaded' : 'No file')
                       : (formData.swmsText ? 'Text provided' : 'No text')}
                   </p>
                 </div>
@@ -1107,8 +1101,8 @@ Include:
                 <div>
                   <p className="text-sm font-medium text-slate-900">Declaration</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    I confirm that all information provided is accurate and complete. All necessary safety measures 
-                    have been identified and will be implemented. All workers have been briefed on the hazards and 
+                    I confirm that all information provided is accurate and complete. All necessary safety measures
+                    have been identified and will be implemented. All workers have been briefed on the hazards and
                     control measures for this work.
                   </p>
                 </div>
@@ -1127,13 +1121,13 @@ Include:
         >
           Previous
         </Button>
-        
+
         {currentStep < totalSteps ? (
           <Button onClick={handleNext} disabled={isSubmitting}>
             Next
           </Button>
         ) : (
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={!formData.declaration || isSubmitting}
             className="bg-green-600 hover:bg-green-700"

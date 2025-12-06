@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   ArrowLeft,
   ArrowRight,
   Save,
@@ -109,7 +109,7 @@ export default function CreatePTW() {
           const Icon = step.icon;
           const isActive = currentStep === step.number;
           const isCompleted = currentStep > step.number;
-          
+
           return (
             <div key={step.number} className="flex items-center flex-1">
               <div className="flex flex-col items-center flex-1">
@@ -142,7 +142,7 @@ export default function CreatePTW() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => window.history.back()}
               className="p-2 text-gray-600 transition-colors bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
             >
@@ -182,8 +182,8 @@ export default function CreatePTW() {
                         onClick={() => handleInputChange('permitType', type.value)}
                         className={`
                           p-4 border-2 rounded-lg text-left transition-all
-                          ${formData.permitType === type.value 
-                            ? 'border-blue-600 bg-blue-50 shadow-md' 
+                          ${formData.permitType === type.value
+                            ? 'border-blue-600 bg-blue-50 shadow-md'
                             : 'border-gray-200 hover:border-gray-300 bg-white'
                           }
                         `}
@@ -378,7 +378,7 @@ export default function CreatePTW() {
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">Select Workers</label>
                   <div className="p-4 space-y-2 border-2 border-gray-200 rounded-lg">
-                    {['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson'].map((worker) => (
+                    {['Gaurav Shukla', 'Jane Smith', 'arnav kumar', 'Sarah Wilson'].map((worker) => (
                       <label key={worker} className="flex items-center p-3 rounded-lg cursor-pointer hover:bg-gray-50">
                         <input
                           type="checkbox"

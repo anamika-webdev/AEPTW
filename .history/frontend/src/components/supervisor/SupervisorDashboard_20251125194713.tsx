@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  FileText, 
-  Users, 
-  Clock, 
-  CheckCircle, 
-  Plus, 
+import {
+  FileText,
+  Users,
+  Clock,
+  CheckCircle,
+  Plus,
   AlertCircle,
   Search,
   Filter,
@@ -99,7 +99,7 @@ export const SupervisorDashboard = () => {
           created_at: '2024-11-25T08:00:00Z',
           valid_from: '2024-11-25T09:00:00Z',
           valid_to: '2024-11-25T17:00:00Z',
-          workers: ['John Doe', 'Mike Johnson'],
+          workers: ['Gaurav Shukla', 'arnav kumar'],
         },
         {
           id: 2,
@@ -152,9 +152,9 @@ export const SupervisorDashboard = () => {
       ]);
 
       setWorkers([
-        { id: 1, name: 'John Doe', email: 'john@company.com', phone: '+1234567890', assignedPermits: 3, status: 'active' },
+        { id: 1, name: 'Gaurav Shukla', email: 'XYZ@company.com', phone: '+1234567890', assignedPermits: 3, status: 'active' },
         { id: 2, name: 'Jane Smith', email: 'jane@company.com', phone: '+1234567891', assignedPermits: 2, status: 'active' },
-        { id: 3, name: 'Mike Johnson', email: 'mike@company.com', phone: '+1234567892', assignedPermits: 2, status: 'active' },
+        { id: 3, name: 'arnav kumar', email: 'arnav@company.com', phone: '+1234567892', assignedPermits: 2, status: 'active' },
         { id: 4, name: 'Sarah Wilson', email: 'sarah@company.com', phone: '+1234567893', assignedPermits: 1, status: 'active' },
         { id: 5, name: 'Tom Brown', email: 'tom@company.com', phone: '+1234567894', assignedPermits: 3, status: 'active' },
         { id: 6, name: 'Alex Lee', email: 'alex@company.com', phone: '+1234567895', assignedPermits: 1, status: 'active' },
@@ -206,12 +206,12 @@ export const SupervisorDashboard = () => {
     const now = new Date();
     const endTime = new Date(validTo);
     const diffMs = endTime.getTime() - now.getTime();
-    
+
     if (diffMs < 0) return 'Expired';
-    
+
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (diffHours > 0) {
       return `${diffHours}h ${diffMins}m remaining`;
     }
@@ -220,16 +220,16 @@ export const SupervisorDashboard = () => {
 
   const filteredPermits = permits.filter(permit => {
     const matchesSearch = permit.permit_serial.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         permit.work_description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         permit.work_location.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      permit.work_description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      permit.work_location.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesFilter = filterStatus === 'all' || permit.status === filterStatus;
-    
+
     const matchesTab = activeTab === 'overview' ? true :
-                      activeTab === 'active' ? permit.status === 'Active' :
-                      activeTab === 'pending' ? permit.status === 'Pending_Approval' :
-                      true;
-    
+      activeTab === 'active' ? permit.status === 'Active' :
+        activeTab === 'pending' ? permit.status === 'Pending_Approval' :
+          true;
+
     return matchesSearch && matchesFilter && matchesTab;
   });
 
@@ -346,44 +346,40 @@ export const SupervisorDashboard = () => {
             <nav className="flex px-6 -mb-px space-x-8">
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'overview'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <Activity className="inline-block w-4 h-4 mr-2" />
                 Overview
               </button>
               <button
                 onClick={() => setActiveTab('active')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'active'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'active'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <CheckCircle className="inline-block w-4 h-4 mr-2" />
                 Active ({stats.activePermits})
               </button>
               <button
                 onClick={() => setActiveTab('pending')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'pending'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'pending'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <Clock className="inline-block w-4 h-4 mr-2" />
                 Pending ({stats.pendingApprovals})
               </button>
               <button
                 onClick={() => setActiveTab('workers')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'workers'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'workers'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <Users className="inline-block w-4 h-4 mr-2" />
                 Workers ({stats.assignedWorkers})
@@ -485,9 +481,9 @@ export const SupervisorDashboard = () => {
             {(activeTab === 'overview' || activeTab === 'active' || activeTab === 'pending') && (
               <div className="mt-6">
                 <h3 className="mb-4 text-lg font-semibold">
-                  {activeTab === 'active' ? 'Active Permits' : 
-                   activeTab === 'pending' ? 'Pending Approvals' : 
-                   'Recent Permits'}
+                  {activeTab === 'active' ? 'Active Permits' :
+                    activeTab === 'pending' ? 'Pending Approvals' :
+                      'Recent Permits'}
                 </h3>
                 <div className="space-y-4">
                   {filteredPermits.length === 0 ? (
@@ -583,11 +579,10 @@ export const SupervisorDashboard = () => {
                           </div>
                           <div className="flex-1">
                             <h4 className="font-semibold text-gray-900">{worker.name}</h4>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              worker.status === 'active' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${worker.status === 'active'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                              }`}>
                               {worker.status}
                             </span>
                           </div>

@@ -23,7 +23,7 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<UserTab>('all');
-  
+
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -33,7 +33,7 @@ export default function UserManagement() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // ✅ NEW: Assignment states
   const [userAssignments, setUserAssignments] = useState<{
@@ -41,7 +41,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
     workers: any[];
     loading: boolean;
   }>({ sites: [], workers: [], loading: false });
-  
+
   // Form states
   const [newUser, setNewUser] = useState({
     login_id: '',
@@ -52,7 +52,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
     role: 'Worker',
     department: ''
   });
-  
+
   const [editFormData, setEditFormData] = useState({
     full_name: '',
     email: '',
@@ -73,9 +73,9 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setUsers(data.data);
         if (showMessage) {
@@ -102,7 +102,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
     }
 
     setUserAssignments({ sites: [], workers: [], loading: true });
-    
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/requester-assignments/${userId}`, {
@@ -136,12 +136,12 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
         alert('Please fill in all required fields');
         return;
       }
-      
+
       if (newUser.password !== newUser.confirmPassword) {
         alert('Passwords do not match');
         return;
       }
-      
+
       const response = await fetch('/api/users', {
         method: 'POST',
         headers: {
@@ -157,9 +157,9 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
           department: newUser.department
         })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         alert('User created successfully!');
         setShowAddModal(false);
@@ -184,7 +184,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const handleEditUser = async () => {
     if (!editingUser) return;
-    
+
     try {
       const response = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
@@ -194,9 +194,9 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
         },
         body: JSON.stringify(editFormData)
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         alert('User updated successfully!');
         setShowEditModal(false);
@@ -216,11 +216,11 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
       alert(`Cannot delete: User has ${user.permit_count} permit(s)`);
       return;
     }
-    
+
     if (!confirm(`Are you sure you want to delete ${user.full_name}?`)) {
       return;
     }
-    
+
     try {
       const response = await fetch(`/api/users/${user.id}`, {
         method: 'DELETE',
@@ -228,9 +228,9 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         alert('User deleted successfully');
         await fetchUsers(true);
@@ -287,27 +287,27 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
   // ============================================
   // PROPER FILTERING LOGIC - FIXED
   // ============================================
-  
-  const adminUsers = users.filter(u => 
+
+  const adminUsers = users.filter(u =>
     u.role === 'Admin' || u.role === 'Administrator'
   );
-  
-  const supervisorUsers = users.filter(u => 
+
+  const supervisorUsers = users.filter(u =>
     u.role === 'Requester' || u.role === 'Supervisor'
   );
-  
-  const workerUsers = users.filter(u => 
+
+  const workerUsers = users.filter(u =>
     u.role === 'Worker'
   );
-  
-  const approverUsers = users.filter(u => 
+
+  const approverUsers = users.filter(u =>
     u.role.includes('Approver')
   );
 
   // Apply search filter
   const filterBySearch = (userList: User[]) => {
     if (!searchQuery.trim()) return userList;
-    
+
     const query = searchQuery.toLowerCase();
     return userList.filter(user =>
       user.full_name.toLowerCase().includes(query) ||
@@ -320,7 +320,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
   // Get filtered list based on active tab
   const getFilteredUsers = (): User[] => {
     let filtered: User[] = [];
-    
+
     switch (activeTab) {
       case 'admins':
         filtered = adminUsers;
@@ -337,7 +337,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
       default:
         filtered = users;
     }
-    
+
     return filterBySearch(filtered);
   };
 
@@ -352,7 +352,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
             <div className="flex flex-col items-center justify-center">
               <User className="w-12 h-12 mb-3 text-gray-300" />
               <p className="text-sm font-medium text-gray-500">
-                {searchQuery 
+                {searchQuery
                   ? `No users found matching "${searchQuery}"`
                   : `No ${activeTab === 'all' ? 'users' : activeTab} found`
                 }
@@ -412,7 +412,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
           >
             <Eye className="w-4 h-4" />
           </button>
-          
+
           {/* Assignment Button for Supervisors */}
           {(user.role === 'Requester' || user.role === 'Supervisor') && (
             <button
@@ -426,7 +426,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
               <Building2 className="w-4 h-4" />
             </button>
           )}
-          
+
           <button
             onClick={() => openEditModal(user)}
             className="mr-3 text-blue-600 hover:text-blue-900"
@@ -434,17 +434,16 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
           >
             <Edit className="w-4 h-4" />
           </button>
-          
+
           <button
             onClick={() => handleDeleteUser(user)}
             disabled={user.permit_count !== undefined && user.permit_count > 0}
-            className={`${
-              user.permit_count && user.permit_count > 0
+            className={`${user.permit_count && user.permit_count > 0
                 ? 'text-gray-400 cursor-not-allowed'
                 : 'text-red-600 hover:text-red-900'
-            }`}
-            title={user.permit_count && user.permit_count > 0 ? 
-              `Cannot delete: User has ${user.permit_count} permit(s)` : 
+              }`}
+            title={user.permit_count && user.permit_count > 0 ?
+              `Cannot delete: User has ${user.permit_count} permit(s)` :
               'Delete user'
             }
           >
@@ -501,11 +500,10 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
         <div className="flex gap-2 border-b border-gray-200">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'all'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
                 ? 'border-blue-600 text-blue-600 bg-blue-50'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+              }`}
           >
             All Users
             <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700">
@@ -515,11 +513,10 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
 
           <button
             onClick={() => setActiveTab('admins')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'admins'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'admins'
                 ? 'border-red-600 text-red-600 bg-red-50'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+              }`}
           >
             Administrators
             <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700">
@@ -529,11 +526,10 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
 
           <button
             onClick={() => setActiveTab('supervisors')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'supervisors'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'supervisors'
                 ? 'border-purple-600 text-purple-600 bg-purple-50'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+              }`}
           >
             Supervisors
             <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700">
@@ -543,11 +539,10 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
 
           <button
             onClick={() => setActiveTab('workers')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'workers'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'workers'
                 ? 'border-green-600 text-green-600 bg-green-50'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+              }`}
           >
             Workers
             <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700">
@@ -557,11 +552,10 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
 
           <button
             onClick={() => setActiveTab('approvers')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'approvers'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'approvers'
                 ? 'border-blue-600 text-blue-600 bg-blue-50'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+              }`}
           >
             Approvers
             <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700">
@@ -569,7 +563,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
             </span>
           </button>
         </div>
-        
+
         {/* Active filter indicator */}
         {activeTab !== 'all' && (
           <div className="flex items-center gap-2 px-4 py-2 mt-2 border border-blue-200 rounded-lg bg-blue-50">
@@ -610,7 +604,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl">
             <h2 className="mb-4 text-xl font-semibold text-gray-900">Create New User</h2>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
@@ -620,7 +614,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   <input
                     type="text"
                     value={newUser.login_id}
-                    onChange={(e) => setNewUser({...newUser, login_id: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, login_id: e.target.value })}
                     placeholder="username"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -633,8 +627,8 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   <input
                     type="text"
                     value={newUser.full_name}
-                    onChange={(e) => setNewUser({...newUser, full_name: e.target.value})}
-                    placeholder="John Doe"
+                    onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
+                    placeholder="Gaurav Shukla"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -647,7 +641,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                 <input
                   type="email"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   placeholder="john@example.com"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
@@ -661,7 +655,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   <input
                     type="password"
                     value={newUser.password}
-                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                     placeholder="••••••••"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -674,7 +668,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   <input
                     type="password"
                     value={newUser.confirmPassword}
-                    onChange={(e) => setNewUser({...newUser, confirmPassword: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
                     placeholder="••••••••"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -688,7 +682,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   </label>
                   <select
                     value={newUser.role}
-                    onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Worker">Worker</option>
@@ -707,7 +701,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   <input
                     type="text"
                     value={newUser.department}
-                    onChange={(e) => setNewUser({...newUser, department: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
                     placeholder="Operations, IT, etc."
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -738,7 +732,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl">
             <h2 className="mb-4 text-xl font-semibold text-gray-900">Edit User</h2>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
@@ -748,7 +742,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   <input
                     type="text"
                     value={editFormData.full_name}
-                    onChange={(e) => setEditFormData({...editFormData, full_name: e.target.value})}
+                    onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -760,7 +754,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   <input
                     type="email"
                     value={editFormData.email}
-                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -773,7 +767,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                 <input
                   type="password"
                   value={editFormData.password}
-                  onChange={(e) => setEditFormData({...editFormData, password: e.target.value})}
+                  onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
                   placeholder="••••••••"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
@@ -786,7 +780,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   </label>
                   <select
                     value={editFormData.role}
-                    onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
+                    onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Worker">Worker</option>
@@ -805,7 +799,7 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                   <input
                     type="text"
                     value={editFormData.department}
-                    onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
+                    onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -905,9 +899,8 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <span className={`inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full ${
-                    viewingUser.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span className={`inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full ${viewingUser.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
                     {viewingUser.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>

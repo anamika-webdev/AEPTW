@@ -21,7 +21,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
   const [signatureType, setSignatureType] = useState<string>('');
   const [workerSelectionMode, setWorkerSelectionMode] = useState<'existing' | 'new'>('existing');
   const [newWorkers, setNewWorkers] = useState<Array<{ name: string; phone: string; email: string }>>([]);
-  
+
   const [formData, setFormData] = useState({
     // Basic Info
     category: '',
@@ -32,35 +32,35 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
     startTime: '',
     endDate: '',
     endTime: '',
-    
+
     // Workers
     selectedWorkers: [] as string[],
     issuedToName: '',      // NEW: Issued To Name
     issuedToContact: '',   // NEW: Issued To Contact
-    
+
     // Hazards & Controls
     hazards: [] as string[],
     controlMeasures: '',
-    
+
     // PPE
     ppe: [] as string[],
-    
+
     // File
     swmsFile: null as File | null,
-    
+
     // Signatures
     issuerSignature: '',
     areaInChargeSignature: '',
     safetyInChargeSignature: '',
     siteLeaderSignature: '',
-    
+
     // Requirements
     generalReqs: {} as Record<string, 'yes' | 'no' | 'na'>,
     hotWorkReqs: {} as Record<string, 'yes' | 'no' | 'na'>,
     electricalReqs: {} as Record<string, 'yes' | 'no' | 'na'>,
     heightReqs: {} as Record<string, 'yes' | 'no' | 'na'>,
     confinedSpaceReqs: {} as Record<string, 'yes' | 'no' | 'na'>,
-    
+
     // Declaration
     declaration: false,
   });
@@ -118,13 +118,13 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
     }));
   };
 
-  const RequirementRow = ({ 
-    label, 
-    value, 
-    onChange 
-  }: { 
-    label: string; 
-    value: 'yes' | 'no' | 'na'; 
+  const RequirementRow = ({
+    label,
+    value,
+    onChange
+  }: {
+    label: string;
+    value: 'yes' | 'no' | 'na';
     onChange: (val: 'yes' | 'no' | 'na') => void;
   }) => (
     <div className="flex items-center justify-between py-3 border-b border-slate-200 last:border-0">
@@ -135,15 +135,14 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
             key={option}
             type="button"
             onClick={() => onChange(option)}
-            className={`px-4 py-1 rounded text-sm ${
-              value === option
+            className={`px-4 py-1 rounded text-sm ${value === option
                 ? option === 'yes'
                   ? 'bg-green-600 text-white'
                   : option === 'no'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-slate-600 text-white'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-slate-600 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+              }`}
           >
             {option.toUpperCase()}
           </button>
@@ -191,7 +190,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
         {currentStep === 1 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Basic Information</h2>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="category">PTW Category *</Label>
@@ -312,7 +311,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
         {currentStep === 2 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Issued To & Assign Workers</h2>
-            
+
             {/* NEW SECTION: Issued To */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 space-y-4">
               <h3 className="text-slate-900 font-medium flex items-center gap-2">
@@ -345,10 +344,10 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                 The person to whom this permit is issued (usually the work supervisor or contractor lead)
               </p>
             </div>
-            
+
             {/* Worker Selection Mode */}
             <p className="text-slate-600">Select the workers who will be performing this work</p>
-            
+
             <div className="grid md:grid-cols-2 gap-4">
               <div className="flex items-center gap-4">
                 <Checkbox
@@ -371,11 +370,10 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                 {mockWorkers.map((worker) => (
                   <label
                     key={worker.id}
-                    className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.selectedWorkers.includes(worker.id)
+                    className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedWorkers.includes(worker.id)
                         ? 'border-green-500 bg-green-50'
                         : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                      }`}
                   >
                     <Checkbox
                       checked={formData.selectedWorkers.includes(worker.id)}
@@ -420,7 +418,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
                         id={`name-${index}`}
                         value={worker.name}
                         onChange={(e) => updateNewWorker(index, 'name', e.target.value)}
-                        placeholder="e.g., John Doe"
+                        placeholder="e.g., Gaurav Shukla"
                       />
                     </div>
                     <div>
@@ -462,18 +460,17 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
         {currentStep === 3 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Hazard Identification & Control Measures</h2>
-            
+
             <div>
               <Label>Identified Hazards *</Label>
               <div className="grid md:grid-cols-2 gap-3 mt-2">
                 {hazardOptions.map((hazard) => (
                   <label
                     key={hazard}
-                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.hazards.includes(hazard)
+                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.hazards.includes(hazard)
                         ? 'border-orange-500 bg-orange-50'
                         : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                      }`}
                   >
                     <Checkbox
                       checked={formData.hazards.includes(hazard)}
@@ -502,7 +499,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
         {currentStep === 4 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Personal Protective Equipment & Documentation</h2>
-            
+
             <div>
               <Label>Required PPE *</Label>
               <p className="text-sm text-slate-600 mb-4">Select all required protective equipment</p>
@@ -542,7 +539,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
         {currentStep === 5 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Work Requirements Checklist</h2>
-            
+
             {/* General Requirements */}
             <div>
               <h3 className="text-slate-900 mb-4 pb-2 border-b border-slate-200">General Requirements</h3>
@@ -669,7 +666,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
         {currentStep === 6 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Review & Submit</h2>
-            
+
             {/* Summary */}
             <div className="space-y-4">
               <div className="bg-slate-50 rounded-lg p-4">
@@ -789,7 +786,7 @@ export function CreatePTW({ onBack }: CreatePTWProps) {
           >
             Previous
           </Button>
-          
+
           {currentStep < totalSteps ? (
             <Button
               onClick={() => setCurrentStep(Math.min(totalSteps, currentStep + 1))}

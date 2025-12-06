@@ -983,7 +983,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     id="issuedToName"
                     value={formData.issuedToName}
                     onChange={(e) => setFormData({ ...formData, issuedToName: e.target.value })}
-                    placeholder="e.g., John Doe"
+                    placeholder="e.g., Gaurav Shukla"
                     className="bg-white"
                   />
                 </div>

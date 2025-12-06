@@ -24,8 +24,8 @@ export default function UserManagement() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-const [showAssignModal, setShowAssignModal] = useState(false);
-const [assigningUser, setAssigningUser] = useState<User | null>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assigningUser, setAssigningUser] = useState<User | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -109,7 +109,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
 
     try {
       const token = localStorage.getItem('token');
-      
+
       const userData = {
         full_name: newUser.full_name,
         email: newUser.email,
@@ -137,7 +137,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
       }
 
       alert(`User created successfully!\n\nLogin ID: ${result.data.login_id}\nEmail: ${result.data.email}`);
-      
+
       setShowAddModal(false);
       setNewUser({
         full_name: '',
@@ -164,7 +164,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
 
     try {
       const token = localStorage.getItem('token');
-      
+
       const userData = {
         full_name: editFormData.full_name,
         email: editFormData.email,
@@ -192,7 +192,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
       }
 
       alert('User updated successfully!');
-      
+
       setShowEditModal(false);
       setEditingUser(null);
       setEditFormData({
@@ -256,7 +256,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
 
   const getRoleDisplay = (role: string): string => {
     const roleMap: Record<string, string> = {
-   
+
       'Admin': 'Administrator',
       'Administrator': 'Administrator',
       'Approver_Safety': 'Safety Officer',
@@ -368,11 +368,10 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`pb-3 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.key
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`pb-3 px-1 border-b-2 font-medium text-sm ${activeTab === tab.key
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 {tab.label}
                 <span className="px-2 py-1 ml-2 text-xs bg-gray-100 rounded-full">
@@ -458,18 +457,18 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-                       {(user.role === 'Requester' || user.role === 'Supervisor') && (
-    <button
-      onClick={() => {
-        setAssigningUser(user);
-        setShowAssignModal(true);
-      }}
-      className="mr-3 text-purple-600 hover:text-purple-900"
-      title="Assign sites and workers"
-    >
-      <Building2 className="w-4 h-4" />
-    </button>
-  )}
+                        {(user.role === 'Requester' || user.role === 'Supervisor') && (
+                          <button
+                            onClick={() => {
+                              setAssigningUser(user);
+                              setShowAssignModal(true);
+                            }}
+                            className="mr-3 text-purple-600 hover:text-purple-900"
+                            title="Assign sites and workers"
+                          >
+                            <Building2 className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => openEditModal(user)}
                           className="mr-3 text-blue-600 hover:text-blue-900"
@@ -480,11 +479,10 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                         <button
                           onClick={() => handleDeleteUser(user)}
                           disabled={user.permit_count !== undefined && user.permit_count > 0}
-                          className={`${
-                            user.permit_count && user.permit_count > 0
-                              ? 'text-gray-400 cursor-not-allowed'
-                              : 'text-red-600 hover:text-red-900'
-                          }`}
+                          className={`${user.permit_count && user.permit_count > 0
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-red-600 hover:text-red-900'
+                            }`}
                           title={user.permit_count && user.permit_count > 0 ? 'Cannot delete user with permits' : 'Delete user'}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -541,8 +539,8 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   <input
                     type="text"
                     value={newUser.full_name}
-                    onChange={(e) => setNewUser({...newUser, full_name: e.target.value})}
-                    placeholder="John Doe"
+                    onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
+                    placeholder="Gaurav Shukla"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -554,8 +552,8 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   <input
                     type="email"
                     value={newUser.email}
-                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                    placeholder="john@company.com"
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="XYZ@company.com"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="mt-1 text-xs text-gray-500">Login ID will be auto-generated from email</p>
@@ -570,7 +568,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   <input
                     type="password"
                     value={newUser.password}
-                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                     placeholder="Min 8 characters"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -583,7 +581,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   <input
                     type="password"
                     value={newUser.confirmPassword}
-                    onChange={(e) => setNewUser({...newUser, confirmPassword: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
                     placeholder="Re-enter password"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -597,7 +595,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   </label>
                   <select
                     value={newUser.role}
-                    onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Requester">Worker</option>
@@ -616,7 +614,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   <input
                     type="text"
                     value={newUser.department}
-                    onChange={(e) => setNewUser({...newUser, department: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
                     placeholder="Operations, IT, etc."
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -670,7 +668,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   <input
                     type="text"
                     value={editFormData.full_name}
-                    onChange={(e) => setEditFormData({...editFormData, full_name: e.target.value})}
+                    onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -682,7 +680,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   <input
                     type="email"
                     value={editFormData.email}
-                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -695,7 +693,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                 <input
                   type="password"
                   value={editFormData.password}
-                  onChange={(e) => setEditFormData({...editFormData, password: e.target.value})}
+                  onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
                   placeholder="Leave blank to keep current password"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
@@ -708,7 +706,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   </label>
                   <select
                     value={editFormData.role}
-                    onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
+                    onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Worker">Worker</option>
@@ -727,7 +725,7 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
                   <input
                     type="text"
                     value={editFormData.department}
-                    onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
+                    onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -761,19 +759,19 @@ const [assigningUser, setAssigningUser] = useState<User | null>(null);
         </div>
       )}
       {showAssignModal && assigningUser && (
-  <AssignResourcesModal
-    requester={assigningUser}
-    onClose={() => {
-      setShowAssignModal(false);
-      setAssigningUser(null);
-    }}
-    onSuccess={() => {
-      setShowAssignModal(false);
-      setAssigningUser(null);
-      fetchUsers(true); // Refresh the user list
-    }}
-  />
-)}
+        <AssignResourcesModal
+          requester={assigningUser}
+          onClose={() => {
+            setShowAssignModal(false);
+            setAssigningUser(null);
+          }}
+          onSuccess={() => {
+            setShowAssignModal(false);
+            setAssigningUser(null);
+            fetchUsers(true); // Refresh the user list
+          }}
+        />
+      )}
     </div>
   );
 }

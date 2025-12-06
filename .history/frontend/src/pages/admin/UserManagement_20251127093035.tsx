@@ -22,7 +22,7 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  
+
   const [newUser, setNewUser] = useState({
     type: 'Worker',
     fullName: '',
@@ -187,8 +187,8 @@ export default function UserManagement() {
   };
 
   const workers = users.filter(u => u.role === 'Requester');
-  const supervisors = users.filter(u => 
-    u.role === 'Approver_AreaManager' || 
+  const supervisors = users.filter(u =>
+    u.role === 'Approver_AreaManager' ||
     u.role === 'Approver_Safety' ||
     u.role === 'Admin'
   );
@@ -234,7 +234,7 @@ export default function UserManagement() {
             <span className="text-xs text-gray-500">
               {lastUpdated.toLocaleTimeString()}
             </span>
-            <Button 
+            <Button
               onClick={() => setShowAddModal(true)}
               className="bg-blue-600 hover:bg-blue-700"
             >
@@ -249,21 +249,19 @@ export default function UserManagement() {
           <nav className="flex -mb-px space-x-8">
             <button
               onClick={() => setActiveTab('workers')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'workers'
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'workers'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               Workers ({workers.length})
             </button>
             <button
               onClick={() => setActiveTab('supervisors')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'supervisors'
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'supervisors'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               Supervisors ({supervisors.length})
             </button>
@@ -303,17 +301,17 @@ export default function UserManagement() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="flex-1"
                       onClick={() => openEditModal(user)}
                     >
                       <Edit className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleDeleteUser(user.id)}
                       className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700"
@@ -361,7 +359,7 @@ export default function UserManagement() {
                 </label>
                 <select
                   value={newUser.type}
-                  onChange={(e) => setNewUser({...newUser, type: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, type: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Worker">Worker</option>
@@ -378,8 +376,8 @@ export default function UserManagement() {
                 <input
                   type="text"
                   value={newUser.fullName}
-                  onChange={(e) => setNewUser({...newUser, fullName: e.target.value})}
-                  placeholder="e.g., John Doe"
+                  onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                  placeholder="e.g., Gaurav Shukla"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -391,7 +389,7 @@ export default function UserManagement() {
                 <input
                   type="email"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   placeholder="e.g., john.doe@company.com"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
                 />
@@ -402,7 +400,7 @@ export default function UserManagement() {
                 <input
                   type="tel"
                   value={newUser.phone}
-                  onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
                   placeholder="e.g., +1-555-0100"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
                 />
@@ -415,20 +413,20 @@ export default function UserManagement() {
                 <input
                   type="text"
                   value={newUser.site}
-                  onChange={(e) => setNewUser({...newUser, site: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, site: e.target.value })}
                   placeholder="e.g., Operations"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowAddModal(false)}
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleAddUser}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
@@ -462,7 +460,7 @@ export default function UserManagement() {
                 <input
                   type="text"
                   value={editFormData.fullName}
-                  onChange={(e) => setEditFormData({...editFormData, fullName: e.target.value})}
+                  onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -474,7 +472,7 @@ export default function UserManagement() {
                 <input
                   type="email"
                   value={editFormData.email}
-                  onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -483,7 +481,7 @@ export default function UserManagement() {
                 <label className="block mb-2 text-sm font-medium text-gray-700">Role</label>
                 <select
                   value={editFormData.role}
-                  onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
+                  onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Requester">Worker</option>
@@ -500,19 +498,19 @@ export default function UserManagement() {
                 <input
                   type="text"
                   value={editFormData.department}
-                  onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
+                  onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowEditModal(false)}
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleEditUser}
                   className="bg-blue-600 hover:bg-blue-700"
                 >

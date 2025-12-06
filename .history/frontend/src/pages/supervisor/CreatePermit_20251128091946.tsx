@@ -9,19 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { DigitalSignature } from '../shared/DigitalSignature';
-import { 
-  sitesAPI, 
-  masterDataAPI, 
-  usersAPI, 
+import {
+  sitesAPI,
+  masterDataAPI,
+  usersAPI,
   vendorsAPI,
   permitsAPI,
-  uploadAPI 
+  uploadAPI
 } from '../../services/api';
-import type { 
-  Site, 
-  MasterHazard, 
-  MasterPPE, 
-  User, 
+import type {
+  Site,
+  MasterHazard,
+  MasterPPE,
+  User,
   Vendor,
   MasterChecklistQuestion,
   PermitType,
@@ -50,14 +50,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [checklistQuestions, setChecklistQuestions] = useState<MasterChecklistQuestion[]>([]);
 
-  const [newWorkers, setNewWorkers] = useState<Array<{ 
-    name: string; 
-    phone: string; 
-    email: string; 
+  const [newWorkers, setNewWorkers] = useState<Array<{
+    name: string;
+    phone: string;
+    email: string;
     companyName: string;
     role: WorkerRole;
   }>>([]);
-  
+
   const [formData, setFormData] = useState({
     // Basic Info
     category: '' as PermitType | '',
@@ -69,32 +69,32 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     endDate: '',
     endTime: '',
     vendor_id: 0,
-    
+
     // Issued To
     issuedToName: '',
     issuedToContact: '',
-    
+
     // Workers
     selectedWorkers: [] as number[],
-    
+
     // Hazards & Controls
     selectedHazards: [] as number[],
     controlMeasures: '',
     otherHazards: '',
-    
+
     // PPE
     selectedPPE: [] as number[],
-    
+
     // File
     swmsFile: null as File | null,
-    
+
     // Signatures
     issuerSignature: '',
-    
+
     // Requirements/Checklist
     checklistResponses: {} as Record<number, ChecklistResponse>,
     checklistRemarks: {} as Record<number, string>,
-    
+
     // Declaration
     declaration: false,
   });
@@ -275,7 +275,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       const blob = await fetch(signature).then(r => r.blob());
       const file = new File([blob], `signature_${Date.now()}.png`, { type: 'image/png' });
       const uploadRes = await uploadAPI.uploadSignature(file);
-      
+
       if (uploadRes.success && uploadRes.data) {
         setFormData({ ...formData, issuerSignature: uploadRes.data.url });
       }
@@ -286,12 +286,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
   const addNewWorker = () => {
-    setNewWorkers([...newWorkers, { 
-      name: '', 
-      phone: '', 
-      email: '', 
+    setNewWorkers([...newWorkers, {
+      name: '',
+      phone: '',
+      email: '',
       companyName: '',
-      role: 'Worker' as WorkerRole 
+      role: 'Worker' as WorkerRole
     }]);
   };
 
@@ -300,8 +300,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
   const updateNewWorker = (
-    index: number, 
-    field: 'name' | 'phone' | 'email' | 'companyName' | 'role', 
+    index: number,
+    field: 'name' | 'phone' | 'email' | 'companyName' | 'role',
     value: string
   ) => {
     const updated = [...newWorkers];
@@ -337,15 +337,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           <button
             key={option}
             onClick={() => onChange(option)}
-            className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${
-              value === option
+            className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${value === option
                 ? option === 'Yes'
                   ? 'bg-green-500 text-white'
                   : option === 'No'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-slate-500 text-white'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-slate-500 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+              }`}
           >
             {option}
           </button>
@@ -399,12 +398,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 1 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Basic Information</h2>
-            
+
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <Label htmlFor="category">Permit Category *</Label>
-                <Select 
-                  value={formData.category} 
+                <Select
+                  value={formData.category}
                   onValueChange={(value) => setFormData({ ...formData, category: value as PermitType })}
                 >
                   <SelectTrigger id="category">
@@ -422,8 +421,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
               <div>
                 <Label htmlFor="site">Site *</Label>
-                <Select 
-                  value={formData.site_id.toString()} 
+                <Select
+                  value={formData.site_id.toString()}
                   onValueChange={(value) => setFormData({ ...formData, site_id: parseInt(value) })}
                 >
                   <SelectTrigger id="site">
@@ -502,8 +501,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
               <div className="md:col-span-2">
                 <Label htmlFor="vendor">Vendor (Optional)</Label>
-                <Select 
-                  value={formData.vendor_id.toString()} 
+                <Select
+                  value={formData.vendor_id.toString()}
                   onValueChange={(value) => setFormData({ ...formData, vendor_id: parseInt(value) })}
                 >
                   <SelectTrigger id="vendor">
@@ -558,7 +557,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 2 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Issued To & Workers Assignment</h2>
-            
+
             {/* Issued To Section */}
             <div className="p-6 space-y-4 border-2 border-blue-200 rounded-lg bg-blue-50">
               <h3 className="flex items-center gap-2 font-medium text-slate-900">
@@ -572,7 +571,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     id="issuedToName"
                     value={formData.issuedToName}
                     onChange={(e) => setFormData({ ...formData, issuedToName: e.target.value })}
-                    placeholder="e.g., John Doe"
+                    placeholder="e.g., Gaurav Shukla"
                     className="bg-white"
                   />
                 </div>
@@ -596,7 +595,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             <div className="space-y-4">
               <h3 className="font-medium text-slate-900">Workers Assignment</h3>
               <p className="text-sm text-slate-600">Select the workers who will be performing this work</p>
-              
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex items-center gap-4">
                   <Checkbox
@@ -620,11 +619,10 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                   {workers.map(worker => (
                     <label
                       key={worker.id}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        formData.selectedWorkers.includes(worker.id)
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedWorkers.includes(worker.id)
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-slate-200 hover:border-slate-300'
-                      }`}
+                        }`}
                     >
                       <Checkbox
                         checked={formData.selectedWorkers.includes(worker.id)}
@@ -679,7 +677,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                             <X className="w-4 h-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="grid gap-4 md:grid-cols-2">
                           <div>
                             <Label>Name *</Label>
@@ -760,7 +758,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 3 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Hazards & Control Measures</h2>
-            
+
             <div>
               <Label>Identified Hazards *</Label>
               <p className="mb-4 text-sm text-slate-500">Select all applicable hazards for this work</p>
@@ -768,11 +766,10 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 {hazards.map((hazard) => (
                   <label
                     key={hazard.id}
-                    className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.selectedHazards.includes(hazard.id)
+                    className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedHazards.includes(hazard.id)
                         ? 'border-orange-500 bg-orange-50'
                         : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                      }`}
                   >
                     <Checkbox
                       checked={formData.selectedHazards.includes(hazard.id)}
@@ -819,22 +816,21 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 4 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">PPE Requirements & SWMS Upload</h2>
-            
+
             <div>
               <Label>Required Personal Protective Equipment (PPE) *</Label>
               <p className="mb-4 text-sm text-slate-500">Select all required PPE for this work</p>
-              
+
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {ppeItems.map((ppe) => (
                   <button
                     key={ppe.id}
                     type="button"
                     onClick={() => togglePPE(ppe.id)}
-                    className={`flex flex-col items-center gap-2 p-4 border-2 rounded-lg transition-all ${
-                      formData.selectedPPE.includes(ppe.id)
+                    className={`flex flex-col items-center gap-2 p-4 border-2 rounded-lg transition-all ${formData.selectedPPE.includes(ppe.id)
                         ? 'border-green-500 bg-green-50'
                         : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                      }`}
                   >
                     <div className="text-3xl">{ppe.icon || '🦺'}</div>
                     <span className="text-xs text-center text-slate-700">{ppe.ppe_name}</span>
@@ -981,8 +977,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <div>
                   <p className="text-sm font-medium text-slate-900">Declaration</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    I confirm that all information provided is accurate and complete. All necessary safety measures 
-                    have been identified and will be implemented. All workers have been briefed on the hazards and 
+                    I confirm that all information provided is accurate and complete. All necessary safety measures
+                    have been identified and will be implemented. All workers have been briefed on the hazards and
                     control measures for this work.
                   </p>
                 </div>
@@ -1001,13 +997,13 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         >
           Previous
         </Button>
-        
+
         {currentStep < totalSteps ? (
           <Button onClick={handleNext} disabled={isSubmitting}>
             Next
           </Button>
         ) : (
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={!formData.declaration || isSubmitting}
             className="bg-green-600 hover:bg-green-700"

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Search,
   Filter,
   Download,
@@ -50,7 +50,7 @@ export default function AllPermits() {
       valid_from: '2024-11-25T09:00:00Z',
       valid_to: '2024-11-25T17:00:00Z',
       site_name: 'Alpha Site',
-      requester_name: 'John Doe',
+      requester_name: 'Gaurav Shukla',
       department: 'Maintenance',
     },
     {
@@ -78,7 +78,7 @@ export default function AllPermits() {
       valid_from: '2024-11-25T08:00:00Z',
       valid_to: '2024-11-25T16:00:00Z',
       site_name: 'Gamma Site',
-      requester_name: 'Mike Johnson',
+      requester_name: 'arnav kumar',
       department: 'Maintenance',
     },
     {
@@ -163,16 +163,16 @@ export default function AllPermits() {
   };
 
   const filteredPermits = permits.filter(permit => {
-    const matchesSearch = 
+    const matchesSearch =
       permit.permit_serial.toLowerCase().includes(searchQuery.toLowerCase()) ||
       permit.work_description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       permit.work_location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       permit.requester_name.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesType = filterType === 'all' || permit.permit_type === filterType;
     const matchesStatus = filterStatus === 'all' || permit.status === filterStatus;
     const matchesSite = filterSite === 'all' || permit.site_name === filterSite;
-    
+
     return matchesSearch && matchesType && matchesStatus && matchesSite;
   });
 

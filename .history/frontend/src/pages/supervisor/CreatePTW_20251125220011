@@ -378,7 +378,7 @@ export default function CreatePTW() {
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">Select Workers</label>
                   <div className="p-4 space-y-2 border-2 border-gray-200 rounded-lg">
-                    {['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson'].map((worker) => (
+                    {['Gaurav Shukla', 'Jane Smith', 'arnav kumar', 'Sarah Wilson'].map((worker) => (
                       <label key={worker} className="flex items-center p-3 rounded-lg cursor-pointer hover:bg-gray-50">
                         <input
                           type="checkbox"

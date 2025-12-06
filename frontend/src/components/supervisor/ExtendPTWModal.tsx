@@ -42,7 +42,7 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!extensionData.new_end_date || !extensionData.new_end_time || !extensionData.reason || !extensionData.current_completion) {
       alert('Please fill in all required fields');
       return;
@@ -50,7 +50,7 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
 
     // Call onSubmit instead of onExtendPTW
     onSubmit(extensionData);
-    
+
     // Reset form
     setExtensionData({
       new_end_date: '',
@@ -63,9 +63,9 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
   const formatDate = (dateTimeString: string) => {
     if (!dateTimeString) return 'N/A';
     const date = new Date(dateTimeString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: '2-digit', 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
       day: '2-digit'
     });
   };
@@ -73,8 +73,8 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
   const formatTime = (dateTimeString: string) => {
     if (!dateTimeString) return 'N/A';
     const date = new Date(dateTimeString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit'
     });
   };
@@ -188,18 +188,7 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
             </p>
           </div>
 
-          {/* Important Notice */}
-          <div className="p-4 border-l-4 border-yellow-400 bg-yellow-50">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="flex-shrink-0 w-5 h-5 mt-0.5 text-yellow-600" />
-              <div>
-                <p className="text-sm font-medium text-yellow-900">Important Notice</p>
-                <p className="mt-1 text-sm text-yellow-700">
-                  Extension request will be sent for approval. The PTW status will change to "Extension Requested".
-                </p>
-              </div>
-            </div>
-          </div>
+
 
           {/* Form Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">

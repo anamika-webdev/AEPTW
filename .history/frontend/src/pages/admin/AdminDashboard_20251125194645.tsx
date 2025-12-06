@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  FileText, 
-  Users, 
-  Building2, 
-  CheckCircle, 
-  Clock, 
+import {
+  FileText,
+  Users,
+  Building2,
+  CheckCircle,
+  Clock,
   XCircle,
   TrendingUp,
   AlertTriangle,
@@ -103,7 +103,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentPage, onNavigate
           status: 'Active',
           created_at: '2024-11-25T08:00:00Z',
           site_name: 'Alpha Site',
-          requester_name: 'John Doe',
+          requester_name: 'Gaurav Shukla',
         },
         {
           id: 2,
@@ -123,7 +123,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentPage, onNavigate
           status: 'Active',
           created_at: '2024-11-25T10:15:00Z',
           site_name: 'Gamma Site',
-          requester_name: 'Mike Johnson',
+          requester_name: 'arnav kumar',
         },
         {
           id: 4,
@@ -279,8 +279,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentPage, onNavigate
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">{stats.totalSites}</div>
-              <Button 
-                variant="link" 
+              <Button
+                variant="link"
                 className="h-auto p-0 mt-2 text-xs text-blue-600 hover:text-blue-700"
                 onClick={() => onNavigate('site-management')}
               >
@@ -298,8 +298,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentPage, onNavigate
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">{stats.totalUsers}</div>
-              <Button 
-                variant="link" 
+              <Button
+                variant="link"
                 className="h-auto p-0 mt-2 text-xs text-blue-600 hover:text-blue-700"
                 onClick={() => onNavigate('user-management')}
               >
@@ -388,16 +388,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentPage, onNavigate
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <CardTitle className="text-lg font-semibold">Recent Permits</CardTitle>
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => onNavigate('all-permits')}
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   View All
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                 >
                   <Download className="w-4 h-4 mr-2" />

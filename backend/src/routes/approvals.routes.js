@@ -327,29 +327,68 @@ router.post('/:ptwId/approve', async (req, res) => {
     );
 
     const p = updatedPermit[0];
+
+    console.log(`🔍 Checking approval status for PTW ${ptwId}:`, {
+      area_manager_id: p.area_manager_id,
+      area_manager_status: p.area_manager_status,
+      safety_officer_id: p.safety_officer_id,
+      safety_officer_status: p.safety_officer_status,
+      site_leader_id: p.site_leader_id,
+      site_leader_status: p.site_leader_status
+    });
+
     let allApproved = true;
 
     // Check Area Manager (Always required, but safe to check ID)
     if (p.area_manager_id && p.area_manager_status !== 'Approved') {
+      console.log(`❌ Area Manager not approved: ${p.area_manager_status}`);
       allApproved = false;
+    } else if (p.area_manager_id) {
+      console.log(`✅ Area Manager approved`);
     }
 
     // Check Safety Officer (Optional)
     if (p.safety_officer_id && p.safety_officer_status !== 'Approved') {
+      console.log(`❌ Safety Officer not approved: ${p.safety_officer_status}`);
       allApproved = false;
+    } else if (p.safety_officer_id) {
+      console.log(`✅ Safety Officer approved`);
+    } else {
+      console.log(`ℹ️ No Safety Officer assigned`);
     }
 
     // Check Site Leader (Optional)
     if (p.site_leader_id && p.site_leader_status !== 'Approved') {
+      console.log(`❌ Site Leader not approved: ${p.site_leader_status}`);
       allApproved = false;
+    } else if (p.site_leader_id) {
+      console.log(`✅ Site Leader approved`);
+    } else {
+      console.log(`ℹ️ No Site Leader assigned`);
     }
 
+    console.log(`🎯 Final approval decision: ${allApproved ? 'FULLY APPROVED' : 'PARTIALLY APPROVED'}`);
+
     if (allApproved) {
-      await pool.query(
-        `UPDATE permits SET status = 'Approved' WHERE id = ?`,
-        [ptwId]
-      );
-      console.log(`✅ PTW ${ptwId} fully approved`);
+      try {
+        const [updateResult] = await pool.query(
+          `UPDATE permits SET status = 'Approved', updated_at = NOW() WHERE id = ?`,
+          [ptwId]
+        );
+        console.log(`✅ PTW ${ptwId} fully approved - Status updated to 'Approved'`);
+        console.log(`📝 UPDATE result:`, {
+          affectedRows: updateResult.affectedRows,
+          changedRows: updateResult.changedRows,
+          warningCount: updateResult.warningCount
+        });
+
+        if (updateResult.affectedRows === 0) {
+          console.error(`⚠️  WARNING: UPDATE affected 0 rows for PTW ${ptwId}!`);
+        }
+      } catch (updateError) {
+        console.error(`❌ Error updating permit status:`, updateError);
+        throw updateError;
+      }
 
       // Notify Creator - FULL APPROVAL
       if (p.created_by_user_id) {

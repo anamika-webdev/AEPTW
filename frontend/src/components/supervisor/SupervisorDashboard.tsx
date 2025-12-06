@@ -9,7 +9,9 @@ import {
   XCircle,
   Play,
   RefreshCw,
-  AlertOctagon
+  AlertOctagon,
+  Calendar,
+  X
 } from 'lucide-react';
 import { ExtendPTWModal } from './ExtendPTWModal';
 import { ClosePTWModal } from './ClosePTWModal';
@@ -57,7 +59,7 @@ interface ClosureData {
 
 export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
   const [loading, setLoading] = useState(true);
-  
+
   // PTW States
   const [initiatedPermits, setInitiatedPermits] = useState<Permit[]>([]);
   const [approvedPermits, setApprovedPermits] = useState<Permit[]>([]);
@@ -65,7 +67,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
   const [readyToStartPermits, setReadyToStartPermits] = useState<Permit[]>([]);
   const [inProgressPermits, setInProgressPermits] = useState<Permit[]>([]);
   const [closedPermits, setClosedPermits] = useState<Permit[]>([]);
-  const [extendedPermits, setExtendedPermits] = useState<Permit[]>([]); 
+  const [extendedPermits, setExtendedPermits] = useState<Permit[]>([]);
 
   // Modal states
   const [extendModalOpen, setExtendModalOpen] = useState(false);
@@ -89,27 +91,27 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
         fetch(`${baseURL}/permits/my-initiated`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json()),
-        
+
         fetch(`${baseURL}/permits/my-approved`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json()),
-        
+
         fetch(`${baseURL}/permits/my-rejected`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json()),
-        
+
         fetch(`${baseURL}/permits/my-ready-to-start`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json()),
-        
+
         fetch(`${baseURL}/permits/my-active`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json()),
-        
+
         fetch(`${baseURL}/permits/my-extended`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json()),
-        
+
         fetch(`${baseURL}/permits/my-closed`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json())
@@ -294,7 +296,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     if (!approverName) {
       return <span className="text-xs text-gray-400">-</span>;
     }
-    
+
     if (!status || status === 'Pending') {
       return (
         <div className="flex items-center gap-1 text-xs text-yellow-600">
@@ -348,128 +350,163 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     );
   };
 
- const PermitTable = ({ 
-  permits, 
-  title, 
-  emptyMessage, 
-  showActions = false,
-  actionType,
-  showApprovers = false
-}: { 
-  permits: Permit[]; 
-  title: string; 
-  emptyMessage: string; 
-  showActions?: boolean;
-  actionType?: 'final-submit' | 'start' | 'extend-close' | 'close-only' | 'view' | 'view-close' | 'none';
-  showApprovers?: boolean;
-}) => {
-  // ADD PAGINATION HOOK HERE
-  const {
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    paginatedData,
-    setCurrentPage,
-    setItemsPerPage
-  } = usePagination({
-    data: permits,
-    initialItemsPerPage: 10
-  });
+  const PermitTable = ({
+    permits,
+    title,
+    emptyMessage,
+    showActions = false,
+    actionType,
+    showApprovers = false
+  }: {
+    permits: Permit[];
+    title: string;
+    emptyMessage: string;
+    showActions?: boolean;
+    actionType?: 'final-submit' | 'start' | 'extend-close' | 'close-only' | 'view' | 'view-close' | 'none';
+    showApprovers?: boolean;
+  }) => {
+    // ADD PAGINATION HOOK HERE
+    const {
+      currentPage,
+      totalPages,
+      itemsPerPage,
+      paginatedData,
+      setCurrentPage,
+      setItemsPerPage
+    } = usePagination({
+      data: permits,
+      initialItemsPerPage: 10
+    });
 
-  return (
-    <div className="p-6 mb-6 bg-white rounded-lg shadow">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        <span className="px-3 py-1 text-sm font-medium text-blue-600 rounded-full bg-blue-50">
-          {permits.length} Permits
-        </span>
-      </div>
-
-      {permits.length === 0 ? (
-        <div className="py-12 text-center">
-          <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-          <p className="text-sm text-slate-500">{emptyMessage}</p>
+    return (
+      <div className="p-6 mb-6 bg-white rounded-lg shadow">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+          <span className="px-3 py-1 text-sm font-medium text-blue-600 rounded-full bg-blue-50">
+            {permits.length} Permits
+          </span>
         </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs uppercase text-slate-600 bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left">Permit #</th>
-                  <th className="px-4 py-3 text-left">Type</th>
-                  <th className="px-4 py-3 text-left">Location</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Start Time</th>
-                  {showApprovers && <th className="px-4 py-3 text-left">Approvers Status</th>}
-                  {showActions && <th className="px-4 py-3 text-right">Actions</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {/* CHANGE: Map paginatedData instead of permits */}
-                {paginatedData.map((permit) => (
-                  <tr key={permit.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-blue-600">
-                      <button
-                        onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
-                        className="hover:underline"
-                      >
-                        {permit.permit_serial}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">{permit.permit_type}</td>
-                    <td className="px-4 py-3">{permit.work_location}</td>
-                    <td className="px-4 py-3">{getStatusBadge(permit.status)}</td>
-                    <td className="px-4 py-3">{new Date(permit.start_time).toLocaleString()}</td>
-                    
-                    {showApprovers && (
-                      <td className="px-4 py-3">
-                        {renderApproversColumn(permit)}
-                      </td>
-                    )}
-                    
-                    {showActions && (
-                      <td className="px-4 py-3 text-right">
-                        {actionType === 'final-submit' && (
-                          <button onClick={() => handleFinalSubmit(permit.id)} className="px-3 py-1 text-xs font-medium text-white transition-colors bg-blue-600 rounded hover:bg-blue-700">
-                            Final Submit
-                          </button>
-                        )}
-                        {actionType === 'start' && (
-                          <button onClick={() => handleStartPermit(permit.id)} className="px-3 py-1 text-xs font-medium text-white transition-colors bg-green-600 rounded hover:bg-green-700">
-                            Start Work
-                          </button>
-                        )}
-                        {actionType === 'view' && (
-                          <button 
-                            onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
-                            className="px-3 py-1 text-xs font-medium text-blue-600 transition-colors bg-blue-100 rounded hover:bg-blue-200"
-                          >
-                            View
-                          </button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
 
-          {/* ADD PAGINATION COMPONENT */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={permits.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        </>
-      )}
-    </div>
-  );
-};
+        {permits.length === 0 ? (
+          <div className="py-12 text-center">
+            <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+            <p className="text-sm text-slate-500">{emptyMessage}</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-xs uppercase text-slate-600 bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Permit #</th>
+                    <th className="px-4 py-3 text-left">Type</th>
+                    <th className="px-4 py-3 text-left">Location</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Start Time</th>
+                    {showApprovers && <th className="px-4 py-3 text-left">Approvers Status</th>}
+                    {showActions && <th className="px-4 py-3 text-right">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {/* CHANGE: Map paginatedData instead of permits */}
+                  {paginatedData.map((permit) => (
+                    <tr key={permit.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium text-blue-600">
+                        <button
+                          onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
+                          className="hover:underline"
+                        >
+                          {permit.permit_serial}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">{permit.permit_type}</td>
+                      <td className="px-4 py-3">{permit.work_location}</td>
+                      <td className="px-4 py-3">{getStatusBadge(permit.status)}</td>
+                      <td className="px-4 py-3">{new Date(permit.start_time).toLocaleString()}</td>
+
+                      {showApprovers && (
+                        <td className="px-4 py-3">
+                          {renderApproversColumn(permit)}
+                        </td>
+                      )}
+
+                      {showActions && (
+                        <td className="px-4 py-3 text-right">
+                          {actionType === 'final-submit' && (
+                            <button onClick={() => handleFinalSubmit(permit.id)} className="px-3 py-1 text-xs font-medium text-white transition-colors bg-blue-600 rounded hover:bg-blue-700">
+                              Final Submit
+                            </button>
+                          )}
+                          {actionType === 'start' && (
+                            <button onClick={() => handleStartPermit(permit.id)} className="px-3 py-1 text-xs font-medium text-white transition-colors bg-green-600 rounded hover:bg-green-700">
+                              Start Work
+                            </button>
+                          )}
+                          {actionType === 'extend-close' && (
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => handleExtend(permit)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                              >
+                                <Calendar className="w-3.5 h-3.5" />
+                                Extend
+                              </button>
+                              <button
+                                onClick={() => handleClose(permit)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                Close
+                              </button>
+                            </div>
+                          )}
+                          {actionType === 'view-close' && (
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() => handleClose(permit)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                Close
+                              </button>
+                            </div>
+                          )}
+                          {actionType === 'view' && (
+                            <button
+                              onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
+                              className="px-3 py-1 text-xs font-medium text-blue-600 transition-colors bg-blue-100 rounded hover:bg-blue-200"
+                            >
+                              View
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ADD PAGINATION COMPONENT */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={permits.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+          </>
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -482,9 +519,9 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     );
   }
 
-  const totalPermits = initiatedPermits.length + approvedPermits.length + 
-                       rejectedPermits.length + readyToStartPermits.length + 
-                       inProgressPermits.length + extendedPermits.length + closedPermits.length;
+  const totalPermits = initiatedPermits.length + approvedPermits.length +
+    rejectedPermits.length + readyToStartPermits.length +
+    inProgressPermits.length + extendedPermits.length + closedPermits.length;
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -615,13 +652,13 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
         />
 
         {/* Table 6: Extended PTWs (Extension Requested) */}
-<PermitTable
-  permits={extendedPermits}
-  title="Extended PTWs (Extension Requested)"
-  emptyMessage="No extension requests"
-  showActions={true}
-  actionType="view-close"
-/>
+        <PermitTable
+          permits={extendedPermits}
+          title="Extended PTWs (Extension Requested)"
+          emptyMessage="No extension requests"
+          showActions={true}
+          actionType="view-close"
+        />
 
         {/* Table 7: Closed PTWs */}
         <PermitTable

@@ -312,7 +312,7 @@ router.get('/my-extended', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     console.log('📥 GET /api/permits - Fetching all permits');
-    
+
     const [permits] = await pool.query(`
       SELECT 
         p.*,
@@ -359,15 +359,15 @@ router.get('/', async (req, res) => {
 // POST /api/permits - Create new permit
 router.post('/', async (req, res) => {
   let connection;
-  
+
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
-    
+
     const userId = req.user.id;
     console.log('📥 Creating new PTW...');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
-    
+
     const {
       site_id,
       permit_types,
@@ -415,7 +415,7 @@ router.post('/', async (req, res) => {
     const [lastPermit] = await connection.query(
       'SELECT permit_serial FROM permits ORDER BY id DESC LIMIT 1'
     );
-    
+
     let serialNumber = 1;
     if (lastPermit.length > 0 && lastPermit[0].permit_serial) {
       const lastSerial = lastPermit[0].permit_serial.split('-')[1];
@@ -551,21 +551,21 @@ router.post('/', async (req, res) => {
     // Create notifications for approvers
     if (initialStatus === 'Initiated') {
       const approverNotifications = [];
-      
+
       if (area_manager_id) {
         approverNotifications.push({
           user_id: area_manager_id,
           role: 'Area Manager'
         });
       }
-      
+
       if (safety_officer_id) {
         approverNotifications.push({
           user_id: safety_officer_id,
           role: 'Safety Officer'
         });
       }
-      
+
       if (site_leader_id) {
         approverNotifications.push({
           user_id: site_leader_id,
@@ -583,7 +583,7 @@ router.post('/', async (req, res) => {
           `PTW ${permit_serial} requires your approval as ${approver.role}`
         ]);
       }
-      
+
       console.log(`✅ Created ${approverNotifications.length} approval notifications`);
     }
 
@@ -622,22 +622,22 @@ router.post('/', async (req, res) => {
 // POST /api/permits/:id/final-submit - Supervisor does final submit after all approvals
 router.post('/:id/final-submit', async (req, res) => {
   let connection;
-  
+
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
-    
+
     const { id } = req.params;
     const userId = req.user.id;
-    
+
     console.log(`📥 POST /api/permits/${id}/final-submit - User: ${userId}`);
-    
+
     // Get permit details
     const [permits] = await connection.query(
       `SELECT * FROM permits WHERE id = ?`,
       [id]
     );
-    
+
     if (permits.length === 0) {
       await connection.rollback();
       return res.status(404).json({
@@ -645,9 +645,9 @@ router.post('/:id/final-submit', async (req, res) => {
         message: 'Permit not found'
       });
     }
-    
+
     const permit = permits[0];
-    
+
     // Verify user is the creator
     if (permit.created_by_user_id !== userId) {
       await connection.rollback();
@@ -656,7 +656,7 @@ router.post('/:id/final-submit', async (req, res) => {
         message: 'Only the permit creator can do final submit'
       });
     }
-    
+
     // Verify status is 'Approved'
     if (permit.status !== 'Approved') {
       await connection.rollback();
@@ -665,7 +665,7 @@ router.post('/:id/final-submit', async (req, res) => {
         message: `Cannot final submit. Current status: ${permit.status}. Must be 'Approved'.`
       });
     }
-    
+
     // Update permit status to Ready_To_Start
     await connection.query(
       `UPDATE permits 
@@ -675,11 +675,11 @@ router.post('/:id/final-submit', async (req, res) => {
        WHERE id = ?`,
       [id]
     );
-    
+
     await connection.commit();
-    
+
     console.log(`✅ Permit ${id} final submitted - Status: Ready_To_Start`);
-    
+
     res.json({
       success: true,
       message: 'PTW final submitted successfully',
@@ -689,7 +689,7 @@ router.post('/:id/final-submit', async (req, res) => {
         final_submitted_at: new Date()
       }
     });
-    
+
   } catch (error) {
     if (connection) await connection.rollback();
     console.error('❌ Error in final submit:', error);
@@ -706,22 +706,22 @@ router.post('/:id/final-submit', async (req, res) => {
 // POST /api/permits/:id/start - Start PTW (work begins)
 router.post('/:id/start', async (req, res) => {
   let connection;
-  
+
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
-    
+
     const { id } = req.params;
     const userId = req.user.id;
-    
+
     console.log(`📥 POST /api/permits/${id}/start - User: ${userId}`);
-    
+
     // Get permit details
     const [permits] = await connection.query(
       `SELECT * FROM permits WHERE id = ?`,
       [id]
     );
-    
+
     if (permits.length === 0) {
       await connection.rollback();
       return res.status(404).json({
@@ -729,9 +729,9 @@ router.post('/:id/start', async (req, res) => {
         message: 'Permit not found'
       });
     }
-    
+
     const permit = permits[0];
-    
+
     // Verify user is the creator
     if (permit.created_by_user_id !== userId) {
       await connection.rollback();
@@ -740,7 +740,7 @@ router.post('/:id/start', async (req, res) => {
         message: 'Only the permit creator can start the PTW'
       });
     }
-    
+
     // Verify status is 'Ready_To_Start'
     if (permit.status !== 'Ready_To_Start') {
       await connection.rollback();
@@ -749,7 +749,7 @@ router.post('/:id/start', async (req, res) => {
         message: `Cannot start PTW. Current status: ${permit.status}. Must be 'Ready_To_Start'.`
       });
     }
-    
+
     // Update permit status to Active
     await connection.query(
       `UPDATE permits 
@@ -759,11 +759,11 @@ router.post('/:id/start', async (req, res) => {
        WHERE id = ?`,
       [id]
     );
-    
+
     await connection.commit();
-    
+
     console.log(`✅ Permit ${id} started - Status: Active`);
-    
+
     res.json({
       success: true,
       message: 'PTW started successfully',
@@ -773,7 +773,7 @@ router.post('/:id/start', async (req, res) => {
         started_at: new Date()
       }
     });
-    
+
   } catch (error) {
     if (connection) await connection.rollback();
     console.error('❌ Error starting PTW:', error);
@@ -796,7 +796,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     console.log(`🔍 Fetching permit details for ID: ${id}`);
-    
+
     // Get permit details
     const [permits] = await pool.query(`
       SELECT 
@@ -818,7 +818,7 @@ router.get('/:id', async (req, res) => {
       LEFT JOIN users sl ON p.site_leader_id = sl.id
       WHERE p.id = ?
     `, [id]);
-    
+
     if (permits.length === 0) {
       console.log(`⚠️ Permit not found with ID: ${id}`);
       return res.status(404).json({
@@ -826,16 +826,16 @@ router.get('/:id', async (req, res) => {
         message: 'Permit not found'
       });
     }
-    
+
     const permit = permits[0];
     console.log(`✅ Found permit: ${permit.permit_serial}`);
-    
+
     // Get team members
     const [teamMembers] = await pool.query(
       `SELECT * FROM permit_team_members WHERE permit_id = ? ORDER BY id`,
       [id]
     );
-    
+
     // Get hazards
     const [hazards] = await pool.query(
       `SELECT ph.*, mh.name as hazard_name 
@@ -844,7 +844,7 @@ router.get('/:id', async (req, res) => {
        WHERE ph.permit_id = ?`,
       [id]
     );
-    
+
     // Get PPE
     const [ppe] = await pool.query(
       `SELECT pp.*, mp.name as ppe_name 
@@ -853,7 +853,7 @@ router.get('/:id', async (req, res) => {
        WHERE pp.permit_id = ?`,
       [id]
     );
-    
+
     // Get checklist responses
     const [checklistResponses] = await pool.query(
       `SELECT pcr.*, mcq.question_text 
@@ -863,7 +863,7 @@ router.get('/:id', async (req, res) => {
        ORDER BY pcr.question_id`,
       [id]
     );
-    
+
     // Combine all data
     const fullPermit = {
       ...permit,
@@ -872,12 +872,12 @@ router.get('/:id', async (req, res) => {
       ppe: ppe,
       checklist_responses: checklistResponses
     };
-    
+
     res.json({
       success: true,
       data: fullPermit
     });
-    
+
   } catch (error) {
     console.error('❌ Error fetching permit details:', error);
     res.status(500).json({
@@ -895,31 +895,31 @@ router.get('/:id', async (req, res) => {
 // PUT /api/permits/:id - Update permit
 router.put('/:id', async (req, res) => {
   let connection;
-  
+
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
-    
+
     const { id } = req.params;
     const updateFields = req.body;
-    
+
     // Build dynamic update query
     const allowedFields = [
       'work_description', 'work_location', 'start_time', 'end_time',
-      'receiver_name', 'receiver_contact', 'control_measures', 
+      'receiver_name', 'receiver_contact', 'control_measures',
       'other_hazards', 'status'
     ];
-    
+
     const updates = [];
     const values = [];
-    
+
     Object.keys(updateFields).forEach(key => {
       if (allowedFields.includes(key)) {
         updates.push(`${key} = ?`);
         values.push(updateFields[key]);
       }
     });
-    
+
     if (updates.length === 0) {
       await connection.rollback();
       return res.status(400).json({
@@ -927,22 +927,22 @@ router.put('/:id', async (req, res) => {
         message: 'No valid fields to update'
       });
     }
-    
+
     updates.push('updated_at = NOW()');
     values.push(id);
-    
+
     await connection.query(
       `UPDATE permits SET ${updates.join(', ')} WHERE id = ?`,
       values
     );
-    
+
     await connection.commit();
-    
+
     res.json({
       success: true,
       message: 'Permit updated successfully'
     });
-    
+
   } catch (error) {
     if (connection) await connection.rollback();
     console.error('❌ Error updating permit:', error);
@@ -959,30 +959,30 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/permits/:id - Delete permit
 router.delete('/:id', async (req, res) => {
   let connection;
-  
+
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
-    
+
     const { id } = req.params;
-    
+
     // Delete related records first
     await connection.query('DELETE FROM permit_team_members WHERE permit_id = ?', [id]);
     await connection.query('DELETE FROM permit_hazards WHERE permit_id = ?', [id]);
     await connection.query('DELETE FROM permit_ppe WHERE permit_id = ?', [id]);
     await connection.query('DELETE FROM permit_checklist_responses WHERE permit_id = ?', [id]);
     await connection.query('DELETE FROM notifications WHERE permit_id = ?', [id]);
-    
+
     // Delete the permit
     await connection.query('DELETE FROM permits WHERE id = ?', [id]);
-    
+
     await connection.commit();
-    
+
     res.json({
       success: true,
       message: 'Permit deleted successfully'
     });
-    
+
   } catch (error) {
     if (connection) await connection.rollback();
     console.error('❌ Error deleting permit:', error);
@@ -1001,7 +1001,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     console.log(`🔍 GET /api/permits/${id} - Fetching complete permit details`);
-    
+
     // Validate ID
     if (!id || isNaN(parseInt(id))) {
       return res.status(400).json({
@@ -1009,7 +1009,7 @@ router.get('/:id', async (req, res) => {
         message: 'Invalid permit ID'
       });
     }
-    
+
     // Get permit details with all joins
     const [permits] = await pool.query(`
       SELECT 
@@ -1031,7 +1031,7 @@ router.get('/:id', async (req, res) => {
       LEFT JOIN users sl ON p.site_leader_id = sl.id
       WHERE p.id = ?
     `, [id]);
-    
+
     if (permits.length === 0) {
       console.log(`⚠️ Permit not found with ID: ${id}`);
       return res.status(404).json({
@@ -1039,10 +1039,10 @@ router.get('/:id', async (req, res) => {
         message: `Permit with ID ${id} not found`
       });
     }
-    
+
     const permit = permits[0];
     console.log(`✅ Found permit: ${permit.permit_serial}`);
-    
+
     // Get team members
     let teamMembers = [];
     try {
@@ -1058,7 +1058,7 @@ router.get('/:id', async (req, res) => {
     } catch (err) {
       console.log('⚠️ Error fetching team members (table may not exist):', err.message);
     }
-    
+
     // Get hazards
     let hazards = [];
     try {
@@ -1074,7 +1074,7 @@ router.get('/:id', async (req, res) => {
     } catch (err) {
       console.log('⚠️ Error fetching hazards (tables may not exist):', err.message);
     }
-    
+
     // Get PPE
     let ppe = [];
     try {
@@ -1090,7 +1090,7 @@ router.get('/:id', async (req, res) => {
     } catch (err) {
       console.log('⚠️ Error fetching PPE (tables may not exist):', err.message);
     }
-    
+
     // Get checklist responses
     let checklistResponses = [];
     try {
@@ -1110,7 +1110,7 @@ router.get('/:id', async (req, res) => {
     } catch (err) {
       console.log('⚠️ Error fetching checklist (tables may not exist):', err.message);
     }
-    
+
     // Return complete permit details
     console.log('✅ Sending complete permit data');
     res.json({
@@ -1123,7 +1123,7 @@ router.get('/:id', async (req, res) => {
         checklist_responses: checklistResponses
       }
     });
-    
+
   } catch (error) {
     console.error('❌ Error fetching permit details:', error);
     res.status(500).json({
@@ -1140,18 +1140,18 @@ router.get('/:id', async (req, res) => {
 // ============================================================================
 router.post('/:id/request-extension', async (req, res) => {
   let connection;
-  
+
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
-    
+
     const { id } = req.params;
     const { new_end_time, reason } = req.body;
     const userId = req.user.id;
-    
+
     console.log(`📥 POST /api/permits/${id}/request-extension - User: ${userId}`);
     console.log('Extension data:', { new_end_time, reason });
-    
+
     // Validate inputs
     if (!new_end_time || !reason) {
       await connection.rollback();
@@ -1160,13 +1160,13 @@ router.post('/:id/request-extension', async (req, res) => {
         message: 'New end time and reason are required'
       });
     }
-    
+
     // Check if permit exists and is in Active status
     const [permits] = await connection.query(
       'SELECT id, status, permit_serial FROM permits WHERE id = ?',
       [id]
     );
-    
+
     if (permits.length === 0) {
       await connection.rollback();
       return res.status(404).json({
@@ -1174,9 +1174,9 @@ router.post('/:id/request-extension', async (req, res) => {
         message: 'Permit not found'
       });
     }
-    
+
     const permit = permits[0];
-    
+
     if (permit.status !== 'Active' && permit.status !== 'Extension_Requested') {
       await connection.rollback();
       return res.status(400).json({
@@ -1184,7 +1184,7 @@ router.post('/:id/request-extension', async (req, res) => {
         message: `Cannot extend permit with status: ${permit.status}. Only Active permits can be extended.`
       });
     }
-    
+
     // Insert extension request into permit_extensions table
     try {
       await connection.query(`
@@ -1197,13 +1197,13 @@ router.post('/:id/request-extension', async (req, res) => {
           status
         ) VALUES (?, ?, NOW(), ?, ?, 'Pending')
       `, [id, userId, new_end_time, reason]);
-      
+
       console.log('✅ Extension request inserted into permit_extensions');
     } catch (err) {
       console.log('⚠️ permit_extensions table may not exist:', err.message);
       // Continue anyway - we'll still update the permit status
     }
-    
+
     // Update permit status to Extension_Requested
     await connection.query(
       `UPDATE permits 
@@ -1212,11 +1212,11 @@ router.post('/:id/request-extension', async (req, res) => {
        WHERE id = ?`,
       [id]
     );
-    
+
     console.log(`✅ Permit ${permit.permit_serial} status changed to Extension_Requested`);
-    
+
     await connection.commit();
-    
+
     res.json({
       success: true,
       message: 'Extension requested successfully',
@@ -1226,7 +1226,7 @@ router.post('/:id/request-extension', async (req, res) => {
         status: 'Extension_Requested'
       }
     });
-    
+
   } catch (error) {
     if (connection) await connection.rollback();
     console.error('❌ Error requesting extension:', error);
@@ -1245,29 +1245,29 @@ router.post('/:id/request-extension', async (req, res) => {
 // ============================================================================
 router.post('/:id/close', async (req, res) => {
   let connection;
-  
+
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
-    
+
     const { id } = req.params;
-    const { 
-      housekeeping_done, 
-      tools_removed, 
-      locks_removed, 
-      area_restored, 
-      remarks 
+    const {
+      housekeeping_done,
+      tools_removed,
+      locks_removed,
+      area_restored,
+      remarks
     } = req.body;
     const userId = req.user.id;
-    
+
     console.log(`📥 POST /api/permits/${id}/close - User: ${userId}`);
     console.log('Closure data:', req.body);
-    
+
     // Validate required fields
     if (
-      housekeeping_done === undefined || 
-      tools_removed === undefined || 
-      locks_removed === undefined || 
+      housekeeping_done === undefined ||
+      tools_removed === undefined ||
+      locks_removed === undefined ||
       area_restored === undefined
     ) {
       await connection.rollback();
@@ -1276,7 +1276,7 @@ router.post('/:id/close', async (req, res) => {
         message: 'All checklist items are required: housekeeping_done, tools_removed, locks_removed, area_restored'
       });
     }
-    
+
     // Check if all items are true
     if (!housekeeping_done || !tools_removed || !locks_removed || !area_restored) {
       await connection.rollback();
@@ -1285,13 +1285,13 @@ router.post('/:id/close', async (req, res) => {
         message: 'All checklist items must be completed before closing the permit'
       });
     }
-    
+
     // Check if permit exists and is in Active status
     const [permits] = await connection.query(
       'SELECT id, status, permit_serial FROM permits WHERE id = ?',
       [id]
     );
-    
+
     if (permits.length === 0) {
       await connection.rollback();
       return res.status(404).json({
@@ -1299,9 +1299,9 @@ router.post('/:id/close', async (req, res) => {
         message: 'Permit not found'
       });
     }
-    
+
     const permit = permits[0];
-    
+
     if (permit.status !== 'Active' && permit.status !== 'Extension_Requested') {
       await connection.rollback();
       return res.status(400).json({
@@ -1309,7 +1309,7 @@ router.post('/:id/close', async (req, res) => {
         message: `Cannot close permit with status: ${permit.status}. Only Active permits can be closed.`
       });
     }
-    
+
     // Insert closure record into permit_closure table (optional)
     try {
       await connection.query(`
@@ -1324,13 +1324,13 @@ router.post('/:id/close', async (req, res) => {
           remarks
         ) VALUES (?, ?, NOW(), ?, ?, ?, ?, ?)
       `, [id, userId, housekeeping_done, tools_removed, locks_removed, area_restored, remarks || null]);
-      
+
       console.log('✅ Closure record inserted into permit_closure');
     } catch (err) {
       console.log('⚠️ permit_closure table may not exist:', err.message);
       // Continue anyway - we'll still update the permit status
     }
-    
+
     // Update permit status to Closed
     await connection.query(
       `UPDATE permits 
@@ -1339,11 +1339,11 @@ router.post('/:id/close', async (req, res) => {
        WHERE id = ?`,
       [id]
     );
-    
+
     console.log(`✅ Permit ${permit.permit_serial} closed successfully`);
-    
+
     await connection.commit();
-    
+
     res.json({
       success: true,
       message: 'Permit closed successfully',
@@ -1353,7 +1353,7 @@ router.post('/:id/close', async (req, res) => {
         status: 'Closed'
       }
     });
-    
+
   } catch (error) {
     if (connection) await connection.rollback();
     console.error('❌ Error closing permit:', error);

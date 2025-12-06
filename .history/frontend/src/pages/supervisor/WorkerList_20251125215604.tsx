@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Search,
   Plus,
   Edit,
@@ -39,7 +39,7 @@ export default function WorkerList() {
     {
       id: 1,
       employeeId: 'EMP1001',
-      name: 'John Doe',
+      name: 'Gaurav Shukla',
       email: 'john.doe@company.com',
       phone: '+1 234-567-8901',
       department: 'Maintenance',
@@ -65,7 +65,7 @@ export default function WorkerList() {
     {
       id: 3,
       employeeId: 'EMP1003',
-      name: 'Mike Johnson',
+      name: 'arnav kumar',
       email: 'mike.johnson@company.com',
       phone: '+1 234-567-8903',
       department: 'Maintenance',
@@ -117,14 +117,14 @@ export default function WorkerList() {
   ];
 
   const filteredWorkers = workers.filter(worker => {
-    const matchesSearch = 
+    const matchesSearch =
       worker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       worker.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       worker.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesDepartment = filterDepartment === 'all' || worker.department === filterDepartment;
     const matchesStatus = filterStatus === 'all' || worker.status === filterStatus;
-    
+
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
@@ -318,8 +318,8 @@ export default function WorkerList() {
                         <td className="px-6 py-4">
                           <span className={`
                             inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold
-                            ${worker.status === 'active' 
-                              ? 'bg-green-100 text-green-800' 
+                            ${worker.status === 'active'
+                              ? 'bg-green-100 text-green-800'
                               : 'bg-gray-100 text-gray-800'
                             }
                           `}>

@@ -9,18 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { DigitalSignature } from '../shared/DigitalSignature';
-import { 
-  sitesAPI, 
-  masterDataAPI, 
-  usersAPI, 
+import {
+  sitesAPI,
+  masterDataAPI,
+  usersAPI,
   permitsAPI,
-  uploadAPI 
+  uploadAPI
 } from '../../services/api.bak.ts';
-import type { 
-  Site, 
-  MasterHazard, 
-  MasterPPE, 
-  User, 
+import type {
+  Site,
+  MasterHazard,
+  MasterPPE,
+  User,
   MasterChecklistQuestion,
   PermitType,
   WorkerRole,
@@ -37,76 +37,76 @@ const PPEIconComponent = ({ name }: { name: string }) => {
   const icons: Record<string, JSX.Element> = {
     'Safety Helmet': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="48" rx="28" ry="4" fill="#E8505B" opacity="0.2"/>
-        <path d="M32 12C20 12 12 20 12 28V38C12 40 13 42 15 42H49C51 42 52 40 52 38V28C52 20 44 12 32 12Z" fill="#E8505B"/>
-        <ellipse cx="32" cy="42" rx="17" ry="3" fill="#D13D47"/>
-        <rect x="28" y="8" width="8" height="6" rx="2" fill="#E8505B"/>
-        <circle cx="32" cy="10" r="3" fill="white"/>
+        <ellipse cx="32" cy="48" rx="28" ry="4" fill="#E8505B" opacity="0.2" />
+        <path d="M32 12C20 12 12 20 12 28V38C12 40 13 42 15 42H49C51 42 52 40 52 38V28C52 20 44 12 32 12Z" fill="#E8505B" />
+        <ellipse cx="32" cy="42" rx="17" ry="3" fill="#D13D47" />
+        <rect x="28" y="8" width="8" height="6" rx="2" fill="#E8505B" />
+        <circle cx="32" cy="10" r="3" fill="white" />
       </svg>
     ),
     'Safety Vest': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="22" ry="3" fill="#FF6B35" opacity="0.2"/>
-        <path d="M22 16L18 20V52H28V22L22 16Z" fill="#FF6B35"/>
-        <path d="M42 16L46 20V52H36V22L42 16Z" fill="#FF6B35"/>
-        <rect x="26" y="22" width="12" height="30" fill="#FF8C42"/>
-        <circle cx="32" cy="14" r="4" fill="#FFB480"/>
-        <rect x="20" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8"/>
-        <rect x="36" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8"/>
+        <ellipse cx="32" cy="54" rx="22" ry="3" fill="#FF6B35" opacity="0.2" />
+        <path d="M22 16L18 20V52H28V22L22 16Z" fill="#FF6B35" />
+        <path d="M42 16L46 20V52H36V22L42 16Z" fill="#FF6B35" />
+        <rect x="26" y="22" width="12" height="30" fill="#FF8C42" />
+        <circle cx="32" cy="14" r="4" fill="#FFB480" />
+        <rect x="20" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8" />
+        <rect x="36" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8" />
       </svg>
     ),
     'Safety Gloves': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="18" ry="3" fill="#9B59B6" opacity="0.2"/>
-        <rect x="20" y="18" width="24" height="28" rx="4" fill="#9B59B6"/>
-        <path d="M24 24V38M28 24V38M32 24V38M36 24V38M40 24V38" stroke="white" strokeWidth="2" opacity="0.3"/>
+        <ellipse cx="32" cy="54" rx="18" ry="3" fill="#9B59B6" opacity="0.2" />
+        <rect x="20" y="18" width="24" height="28" rx="4" fill="#9B59B6" />
+        <path d="M24 24V38M28 24V38M32 24V38M36 24V38M40 24V38" stroke="white" strokeWidth="2" opacity="0.3" />
       </svg>
     ),
     'Safety Boots': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#D4A574" opacity="0.2"/>
-        <path d="M18 46H46V52H18V46Z" fill="#8B6F47"/>
-        <path d="M22 22C22 18 24 16 26 16H38C40 16 42 18 42 22V46H22V22Z" fill="#D4A574"/>
-        <rect x="22" y="28" width="20" height="2" fill="#8B6F47" opacity="0.3"/>
+        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#D4A574" opacity="0.2" />
+        <path d="M18 46H46V52H18V46Z" fill="#8B6F47" />
+        <path d="M22 22C22 18 24 16 26 16H38C40 16 42 18 42 22V46H22V22Z" fill="#D4A574" />
+        <rect x="22" y="28" width="20" height="2" fill="#8B6F47" opacity="0.3" />
       </svg>
     ),
     'Safety Goggles': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="52" rx="26" ry="3" fill="#4A9EFF" opacity="0.2"/>
-        <circle cx="18" cy="32" r="7" fill="#87CEEB"/>
-        <circle cx="46" cy="32" r="7" fill="#87CEEB"/>
-        <path d="M28 32H36" stroke="#4A9EFF" strokeWidth="3"/>
+        <ellipse cx="32" cy="52" rx="26" ry="3" fill="#4A9EFF" opacity="0.2" />
+        <circle cx="18" cy="32" r="7" fill="#87CEEB" />
+        <circle cx="46" cy="32" r="7" fill="#87CEEB" />
+        <path d="M28 32H36" stroke="#4A9EFF" strokeWidth="3" />
       </svg>
     ),
     'Face Mask': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#FFB74D" opacity="0.2"/>
-        <path d="M12 28C12 28 14 24 18 24H46C50 24 52 28 52 28V40C52 44 48 46 44 46H20C16 46 12 44 12 40V28Z" fill="#FFB74D"/>
-        <rect x="16" y="30" width="32" height="2" rx="1" fill="white" opacity="0.3"/>
-        <rect x="16" y="36" width="32" height="2" rx="1" fill="white" opacity="0.3"/>
+        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#FFB74D" opacity="0.2" />
+        <path d="M12 28C12 28 14 24 18 24H46C50 24 52 28 52 28V40C52 44 48 46 44 46H20C16 46 12 44 12 40V28Z" fill="#FFB74D" />
+        <rect x="16" y="30" width="32" height="2" rx="1" fill="white" opacity="0.3" />
+        <rect x="16" y="36" width="32" height="2" rx="1" fill="white" opacity="0.3" />
       </svg>
     ),
     'Ear Protection': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="28" ry="3" fill="#78909C" opacity="0.2"/>
-        <rect x="6" y="28" width="12" height="16" rx="6" fill="#607D8B"/>
-        <rect x="46" y="28" width="12" height="16" rx="6" fill="#607D8B"/>
-        <path d="M18 28V22C18 16 22 12 28 12H36C42 12 46 16 46 22V28" stroke="#78909C" strokeWidth="4" fill="none"/>
+        <ellipse cx="32" cy="54" rx="28" ry="3" fill="#78909C" opacity="0.2" />
+        <rect x="6" y="28" width="12" height="16" rx="6" fill="#607D8B" />
+        <rect x="46" y="28" width="12" height="16" rx="6" fill="#607D8B" />
+        <path d="M18 28V22C18 16 22 12 28 12H36C42 12 46 16 46 22V28" stroke="#78909C" strokeWidth="4" fill="none" />
       </svg>
     ),
     'Safety Harness': (
       <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="20" ry="3" fill="#4FC3F7" opacity="0.2"/>
-        <circle cx="32" cy="14" r="6" fill="#FFB74D"/>
-        <ellipse cx="32" cy="26" rx="8" ry="4" fill="#0288D1"/>
-        <circle cx="32" cy="38" r="4" fill="#FFD54F" stroke="#FFA726" strokeWidth="2"/>
+        <ellipse cx="32" cy="54" rx="20" ry="3" fill="#4FC3F7" opacity="0.2" />
+        <circle cx="32" cy="14" r="6" fill="#FFB74D" />
+        <ellipse cx="32" cy="26" rx="8" ry="4" fill="#0288D1" />
+        <circle cx="32" cy="38" r="4" fill="#FFD54F" stroke="#FFA726" strokeWidth="2" />
       </svg>
     ),
   };
 
   return icons[name] || (
     <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none">
-      <circle cx="32" cy="32" r="28" stroke="#94A3B8" strokeWidth="2" fill="none"/>
+      <circle cx="32" cy="32" r="28" stroke="#94A3B8" strokeWidth="2" fill="none" />
     </svg>
   );
 };
@@ -130,14 +130,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [safetyOfficers, setSafetyOfficers] = useState<User[]>([]);
   const [siteLeaders, setSiteLeaders] = useState<User[]>([]);
 
-  const [newWorkers, setNewWorkers] = useState<Array<{ 
-    name: string; 
-    phone: string; 
-    email: string; 
+  const [newWorkers, setNewWorkers] = useState<Array<{
+    name: string;
+    phone: string;
+    email: string;
     companyName: string;
     role: WorkerRole;
   }>>([]);
-  
+
   const [formData, setFormData] = useState({
     // UPDATED: Multiple categories instead of single
     categories: [] as PermitType[],
@@ -151,35 +151,35 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     issueDepartment: '', // Changed from vendor_id
     permitInitiator: '',
     permitInitiatorContact: '',
-    
+
     // Issued To
     issuedToName: '',
     issuedToContact: '',
-    
+
     // Workers
     selectedWorkers: [] as number[],
-    
+
     // Hazards & Controls
     selectedHazards: [] as number[],
     controlMeasures: '',
     otherHazards: '',
-    
+
     // PPE
     selectedPPE: [] as number[],
-    
+
     // SWMS
     swmsFile: null as File | null,
     swmsText: '',
     swmsMode: 'file' as 'file' | 'text',
-    
+
     // Signatures
     issuerSignature: '',
-    
+
     // Checklist
     checklistResponses: {} as Record<number, ChecklistResponse>,
     checklistRemarks: {} as Record<number, string>,
     checklistTextResponses: {} as Record<number, string>, // NEW: For name input fields
-    
+
     // Declaration
     declaration: false,
   });
@@ -248,7 +248,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       ]);
 
       console.log('Sites response:', sitesRes); // Debug log
-      
+
       if (sitesRes.success && sitesRes.data) {
         console.log('Setting sites:', sitesRes.data); // Debug log
         setSites(sitesRes.data);
@@ -287,7 +287,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const loadAllChecklistQuestions = async (categories: PermitType[]) => {
     try {
       const allQuestions: MasterChecklistQuestion[] = [];
-      
+
       // Comprehensive fallback checklist questions
       const comprehensiveQuestions: Record<PermitType, string[]> = {
         'General': [
@@ -353,7 +353,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           'Stand-by person name',
         ],
       };
-      
+
       for (const category of categories) {
         try {
           const response = await masterDataAPI.getChecklistQuestions(category);
@@ -382,7 +382,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           allQuestions.push(...fallbackQuestions);
         }
       }
-      
+
       setChecklistQuestions(allQuestions);
     } catch (error) {
       console.error('Error loading checklist questions:', error);
@@ -412,7 +412,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
     // Approver validation - RELAXED FOR TESTING
     // Skip approver validation in testing mode
-    
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -481,10 +481,10 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         permit_types: formData.categories, // Multiple categories
         work_location: formData.location || 'Test Location',
         work_description: formData.workDescription || 'Test Work Description',
-        start_time: formData.startDate && formData.startTime 
-          ? `${formData.startDate}T${formData.startTime}:00` 
+        start_time: formData.startDate && formData.startTime
+          ? `${formData.startDate}T${formData.startTime}:00`
           : new Date().toISOString(),
-        end_time: formData.endDate && formData.endTime 
+        end_time: formData.endDate && formData.endTime
           ? `${formData.endDate}T${formData.endTime}:00`
           : new Date(Date.now() + 86400000).toISOString(), // +1 day
         receiver_name: formData.issuedToName || 'Test Receiver',
@@ -562,7 +562,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       const blob = await fetch(signature).then(r => r.blob());
       const file = new File([blob], `signature_${Date.now()}.png`, { type: 'image/png' });
       const uploadRes = await uploadAPI.uploadSignature(file);
-      
+
       if (uploadRes.success && uploadRes.data) {
         if (showApproverSignature) {
           // Save approver signature
@@ -583,12 +583,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
   const addNewWorker = () => {
-    setNewWorkers([...newWorkers, { 
-      name: '', 
-      phone: '', 
-      email: '', 
+    setNewWorkers([...newWorkers, {
+      name: '',
+      phone: '',
+      email: '',
       companyName: '',
-      role: 'Worker' as WorkerRole 
+      role: 'Worker' as WorkerRole
     }]);
   };
 
@@ -597,8 +597,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
   const updateNewWorker = (
-    index: number, 
-    field: 'name' | 'phone' | 'email' | 'companyName' | 'role', 
+    index: number,
+    field: 'name' | 'phone' | 'email' | 'companyName' | 'role',
     value: string
   ) => {
     const updated = [...newWorkers];
@@ -622,7 +622,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
   const RequirementRow = ({ questionId, label, value, onChange, isTextInput, textValue, onTextChange }: RequirementRowProps) => {
     // Check if this question requires a text input instead of YES/NO/NA
-    const requiresTextInput = isTextInput || 
+    const requiresTextInput = isTextInput ||
       label.toLowerCase().includes('entrant name') ||
       label.toLowerCase().includes('attendant name') ||
       label.toLowerCase().includes('supervisor name') ||
@@ -653,15 +653,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             <button
               key={option}
               onClick={() => onChange(option)}
-              className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${
-                value === option
+              className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${value === option
                   ? option === 'Yes'
                     ? 'bg-green-500 text-white'
                     : option === 'No'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-slate-500 text-white'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-slate-500 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+                }`}
             >
               {option}
             </button>
@@ -712,12 +711,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
       {/* Form Content */}
       <div className="p-6 bg-white border rounded-xl border-slate-200">
-        
+
         {/* STEP 1: Basic Information with MULTIPLE CATEGORY SELECTION */}
         {currentStep === 1 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Basic Information</h2>
-            
+
             {/* Testing Mode Notice */}
             <div className="p-4 border-2 rounded-lg border-amber-200 bg-amber-50">
               <div className="flex items-start gap-3">
@@ -725,13 +724,13 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <div>
                   <p className="font-semibold text-amber-900">Testing Mode Enabled</p>
                   <p className="text-sm text-amber-700">
-                    Validation is relaxed for frontend testing. Most fields are optional. 
+                    Validation is relaxed for frontend testing. Most fields are optional.
                     Only permit category selection is required to proceed.
                   </p>
                 </div>
               </div>
             </div>
-            
+
             {/* Permit Initiator */}
             <div className="p-4 border-2 border-green-200 rounded-lg bg-green-50">
               <h3 className="mb-3 text-sm font-medium text-green-900">Permit Initiator</h3>
@@ -764,20 +763,19 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             <div>
               <Label>Permit Categories * (Select all that apply)</Label>
               <p className="mb-3 text-sm text-slate-500">You can select multiple permit types for this work</p>
-              
+
               <div className="grid gap-3 md:grid-cols-2">
                 {(['General', 'Height', 'Electrical', 'Hot_Work', 'Confined_Space'] as PermitType[]).map((category) => {
                   const isHighRisk = highRiskPermits.includes(category);
                   return (
                     <label
                       key={category}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        formData.categories.includes(category)
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.categories.includes(category)
                           ? isHighRisk
                             ? 'border-red-500 bg-red-50'
                             : 'border-blue-500 bg-blue-50'
                           : 'border-slate-200 hover:border-slate-300'
-                      }`}
+                        }`}
                     >
                       <Checkbox
                         checked={formData.categories.includes(category)}
@@ -836,8 +834,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="site">Site (Optional - Backend Issue)</Label>
-                <Select 
-                  value={formData.site_id.toString()} 
+                <Select
+                  value={formData.site_id.toString()}
                   onValueChange={(value) => {
                     console.log('Site selected:', value); // Debug
                     setFormData({ ...formData, site_id: parseInt(value) });
@@ -970,7 +968,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 2 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Issued To & Workers Assignment</h2>
-            
+
             <div className="p-6 space-y-4 border-2 border-blue-200 rounded-lg bg-blue-50">
               <h3 className="flex items-center gap-2 font-medium text-slate-900">
                 <FileText className="w-5 h-5 text-blue-600" />
@@ -983,7 +981,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     id="issuedToName"
                     value={formData.issuedToName}
                     onChange={(e) => setFormData({ ...formData, issuedToName: e.target.value })}
-                    placeholder="e.g., John Doe"
+                    placeholder="e.g., Gaurav Shukla"
                     className="bg-white"
                   />
                 </div>
@@ -1002,7 +1000,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
             <div className="space-y-4">
               <p className="text-slate-600">Select the workers who will be performing this work</p>
-              
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex items-center gap-4">
                   <Checkbox
@@ -1060,7 +1058,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     <FileText className="w-4 h-4" />
                     Add New Worker
                   </Button>
-                  
+
                   {newWorkers.map((worker, index) => (
                     <div key={index} className="p-4 space-y-4 border rounded-lg border-slate-200">
                       <div className="grid gap-4 md:grid-cols-2">
@@ -1140,11 +1138,11 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 3 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Hazard Identification & Control Measures</h2>
-            
+
             <div>
               <Label>Identified Hazards *</Label>
               <p className="mb-3 text-sm text-slate-500">Select all hazards that apply to this work</p>
-              
+
               {/* Predefined Hazards Dropdown */}
               <div className="space-y-3">
                 {[
@@ -1159,11 +1157,10 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 ].map((hazard, index) => (
                   <label
                     key={index}
-                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.selectedHazards.includes(index + 1)
+                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedHazards.includes(index + 1)
                         ? 'border-orange-500 bg-orange-50'
                         : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                      }`}
                   >
                     <Checkbox
                       checked={formData.selectedHazards.includes(index + 1)}
@@ -1245,11 +1242,11 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 4 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">PPE Requirements & SWMS Upload</h2>
-            
+
             <div>
               <Label>Required Personal Protective Equipment (PPE) *</Label>
               <p className="mb-4 text-sm text-slate-500">Select all required PPE for this work</p>
-              
+
               {ppeItems.length === 0 ? (
                 <div className="p-8 text-center border-2 border-dashed rounded-lg border-slate-200 bg-slate-50">
                   <p className="mb-4 text-slate-600">No PPE items loaded from backend. Using default PPE list.</p>
@@ -1267,18 +1264,16 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                               : [...prev.selectedPPE, mockId]
                           }));
                         }}
-                        className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${
-                          formData.selectedPPE.includes(index + 1)
+                        className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${formData.selectedPPE.includes(index + 1)
                             ? 'border-blue-500 bg-blue-50 shadow-md scale-105'
                             : 'border-slate-200 hover:border-blue-300 bg-white'
-                        }`}
+                          }`}
                       >
                         <div className="transition-transform">
                           <PPEIconComponent name={ppeName} />
                         </div>
-                        <span className={`text-sm font-semibold text-center ${
-                          formData.selectedPPE.includes(index + 1) ? 'text-blue-900' : 'text-slate-700'
-                        }`}>
+                        <span className={`text-sm font-semibold text-center ${formData.selectedPPE.includes(index + 1) ? 'text-blue-900' : 'text-slate-700'
+                          }`}>
                           {ppeName}
                         </span>
                         {formData.selectedPPE.includes(index + 1) && (
@@ -1297,22 +1292,20 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                       key={ppe.id}
                       type="button"
                       onClick={() => togglePPE(ppe.id)}
-                      className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${
-                        formData.selectedPPE.includes(ppe.id)
+                      className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${formData.selectedPPE.includes(ppe.id)
                           ? 'border-blue-500 bg-blue-50 shadow-md scale-105'
                           : 'border-slate-200 hover:border-blue-300 bg-white'
-                      }`}
+                        }`}
                     >
                       <div className="transition-transform">
                         <PPEIconComponent name={ppe.name} />
                       </div>
-                      
-                      <span className={`text-sm font-semibold text-center ${
-                        formData.selectedPPE.includes(ppe.id) ? 'text-blue-900' : 'text-slate-700'
-                      }`}>
+
+                      <span className={`text-sm font-semibold text-center ${formData.selectedPPE.includes(ppe.id) ? 'text-blue-900' : 'text-slate-700'
+                        }`}>
                         {ppe.name}
                       </span>
-                      
+
                       {formData.selectedPPE.includes(ppe.id) && (
                         <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-full shadow-sm">
                           <Check className="w-5 h-5 text-white" />
@@ -1333,22 +1326,20 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, swmsMode: 'file', swmsText: '' })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'file'
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'file'
                       ? 'bg-purple-600 text-white'
                       : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
+                    }`}
                 >
                   Upload Document
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, swmsMode: 'text', swmsFile: null })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'text'
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'text'
                       ? 'bg-purple-600 text-white'
                       : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
+                    }`}
                 >
                   Write Text
                 </button>
@@ -1358,8 +1349,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <div>
                   <Label htmlFor="swmsFile">Upload SWMS Document</Label>
                   <div className="flex items-center gap-4 mt-2">
-                    <label 
-                      htmlFor="swmsFile" 
+                    <label
+                      htmlFor="swmsFile"
                       className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50"
                     >
                       <Upload className="w-5 h-5 text-purple-600" />
@@ -1417,7 +1408,7 @@ Include:
             <p className="text-sm text-slate-600">
               Complete the following safety requirements checklist for all permit types
             </p>
-            
+
             <div className="p-6 border rounded-lg border-slate-200">
               <div className="space-y-6">
                 {/* Always show ALL categories */}
@@ -1425,7 +1416,7 @@ Include:
                   const categoryQuestions = checklistQuestions.filter(
                     q => q.permit_type === category
                   );
-                  
+
                   // Category display names
                   const categoryNames: Record<PermitType, string> = {
                     'General': 'General Work',
@@ -1434,7 +1425,7 @@ Include:
                     'Height': 'Height Work',
                     'Confined_Space': 'Confined Space Work',
                   };
-                  
+
                   return (
                     <div key={category} className="pb-6 border-b border-slate-200 last:border-0">
                       <h3 className="mb-4 text-lg font-semibold text-slate-900">
@@ -1443,7 +1434,7 @@ Include:
                       {categoryQuestions.length > 0 ? (
                         categoryQuestions.map((question) => {
                           // Check if this question requires text input
-                          const isTextInput = 
+                          const isTextInput =
                             question.question_text.toLowerCase().includes('entrant name') ||
                             question.question_text.toLowerCase().includes('attendant name') ||
                             question.question_text.toLowerCase().includes('supervisor name') ||
@@ -1516,8 +1507,8 @@ Include:
               {/* Area Manager */}
               <div>
                 <Label htmlFor="areaManager">Area Manager (Optional for testing)</Label>
-                <Select 
-                  value={approvers.areaManager.toString()} 
+                <Select
+                  value={approvers.areaManager.toString()}
                   onValueChange={(value) => setApprovers({ ...approvers, areaManager: parseInt(value) })}
                 >
                   <SelectTrigger>
@@ -1536,7 +1527,7 @@ Include:
                     )}
                   </SelectContent>
                 </Select>
-                
+
                 {/* Digital Signature Button */}
                 <div className="flex items-center gap-4 mt-3">
                   <Button
@@ -1559,8 +1550,8 @@ Include:
               {/* Safety Officer */}
               <div>
                 <Label htmlFor="safetyOfficer">Safety Officer (Optional for testing)</Label>
-                <Select 
-                  value={approvers.safetyOfficer.toString()} 
+                <Select
+                  value={approvers.safetyOfficer.toString()}
                   onValueChange={(value) => setApprovers({ ...approvers, safetyOfficer: parseInt(value) })}
                 >
                   <SelectTrigger>
@@ -1579,7 +1570,7 @@ Include:
                     )}
                   </SelectContent>
                 </Select>
-                
+
                 {/* Digital Signature Button */}
                 <div className="flex items-center gap-4 mt-3">
                   <Button
@@ -1605,8 +1596,8 @@ Include:
                   <Label htmlFor="siteLeader" className="text-red-900">
                     Site Leader (Optional for testing - Required for High-Risk in Production)
                   </Label>
-                  <Select 
-                    value={approvers.siteLeader.toString()} 
+                  <Select
+                    value={approvers.siteLeader.toString()}
                     onValueChange={(value) => setApprovers({ ...approvers, siteLeader: parseInt(value) })}
                   >
                     <SelectTrigger className="mt-2 bg-white">
@@ -1625,7 +1616,7 @@ Include:
                       )}
                     </SelectContent>
                   </Select>
-                  
+
                   {/* Digital Signature Button */}
                   <div className="flex items-center gap-4 mt-3">
                     <Button
@@ -1644,7 +1635,7 @@ Include:
                       </span>
                     )}
                   </div>
-                  
+
                   <p className="mt-2 text-xs text-red-700">
                     Site Leader approval is mandatory for permits with 2 or more high-risk work types
                   </p>
@@ -1658,7 +1649,7 @@ Include:
         {currentStep === 7 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Review & Submit</h2>
-            
+
             <div className="p-6 space-y-4 rounded-lg bg-slate-50">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
@@ -1717,8 +1708,8 @@ Include:
                 <div>
                   <p className="text-sm font-medium text-slate-900">Declaration</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    I confirm that all information provided is accurate and complete. All necessary safety measures 
-                    have been identified and will be implemented. All workers have been briefed on the hazards and 
+                    I confirm that all information provided is accurate and complete. All necessary safety measures
+                    have been identified and will be implemented. All workers have been briefed on the hazards and
                     control measures for this work.
                   </p>
                 </div>
@@ -1737,13 +1728,13 @@ Include:
         >
           Previous
         </Button>
-        
+
         {currentStep < totalSteps ? (
           <Button onClick={handleNext} disabled={isSubmitting}>
             Next
           </Button>
         ) : (
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={!formData.declaration || isSubmitting}
             className="bg-green-600 hover:bg-green-700"
@@ -1758,10 +1749,10 @@ Include:
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="w-full max-w-2xl p-6 bg-white rounded-xl">
             <h3 className="mb-4 text-lg font-semibold text-slate-900">
-              {showApproverSignature 
-                ? `${showApproverSignature === 'areaManager' ? 'Area Manager' : 
-                     showApproverSignature === 'safetyOfficer' ? 'Safety Officer' : 
-                     'Site Leader'} Digital Signature`
+              {showApproverSignature
+                ? `${showApproverSignature === 'areaManager' ? 'Area Manager' :
+                  showApproverSignature === 'safetyOfficer' ? 'Safety Officer' :
+                    'Site Leader'} Digital Signature`
                 : 'Issuer Digital Signature'}
             </h3>
             <DigitalSignature

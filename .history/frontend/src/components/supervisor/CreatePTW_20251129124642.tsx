@@ -9,19 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { DigitalSignature } from '../shared/DigitalSignature';
-import { 
-  sitesAPI, 
-  masterDataAPI, 
-  usersAPI, 
+import {
+  sitesAPI,
+  masterDataAPI,
+  usersAPI,
   vendorsAPI,
   permitsAPI,
-  uploadAPI 
+  uploadAPI
 } from '../../services/api';
-import type { 
-  Site, 
-  MasterHazard, 
-  MasterPPE, 
-  User, 
+import type {
+  Site,
+  MasterHazard,
+  MasterPPE,
+  User,
   Vendor,
   MasterChecklistQuestion,
   PermitType,
@@ -39,56 +39,56 @@ const PPEIconComponent = ({ name }: { name: string }) => {
   const icons: Record<string, JSX.Element> = {
     'Safety Helmet': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M4 13h16M4 13v1a7 7 0 0 0 7 7h2a7 7 0 0 0 7-7v-1"/>
-        <path d="M12 2a8 8 0 0 0-8 8v3h16v-3a8 8 0 0 0-8-8z"/>
-        <circle cx="8" cy="15" r="1" fill="currentColor"/>
-        <circle cx="16" cy="15" r="1" fill="currentColor"/>
+        <path d="M4 13h16M4 13v1a7 7 0 0 0 7 7h2a7 7 0 0 0 7-7v-1" />
+        <path d="M12 2a8 8 0 0 0-8 8v3h16v-3a8 8 0 0 0-8-8z" />
+        <circle cx="8" cy="15" r="1" fill="currentColor" />
+        <circle cx="16" cy="15" r="1" fill="currentColor" />
       </svg>
     ),
     'Safety Vest': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M7 5L5 7v15h5V8L7 5zM17 5l2 2v15h-5V8l3-3z"/>
-        <path d="M10 8v14h4V8"/>
-        <circle cx="12" cy="5" r="2" fill="currentColor"/>
-        <path d="M6 12h4m4 0h4M6 16h4m4 0h4"/>
+        <path d="M7 5L5 7v15h5V8L7 5zM17 5l2 2v15h-5V8l3-3z" />
+        <path d="M10 8v14h4V8" />
+        <circle cx="12" cy="5" r="2" fill="currentColor" />
+        <path d="M6 12h4m4 0h4M6 16h4m4 0h4" />
       </svg>
     ),
     'Safety Gloves': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M18 7V4a2 2 0 0 0-2-2h-3v5m0 0V2H9a2 2 0 0 0-2 2v3"/>
-        <path d="M7 7h10v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7z"/>
-        <path d="M9 10v4m2-4v4m2-4v4m2-4v4"/>
+        <path d="M18 7V4a2 2 0 0 0-2-2h-3v5m0 0V2H9a2 2 0 0 0-2 2v3" />
+        <path d="M7 7h10v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7z" />
+        <path d="M9 10v4m2-4v4m2-4v4m2-4v4" />
       </svg>
     ),
     'Safety Boots': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M5 20h14v2H5z"/>
-        <path d="M8 20V9a3 3 0 0 1 3-3h2a3 3 0 0 1 3 3v11"/>
-        <path d="M11 6h4M8 11h8M8 15h8"/>
-        <circle cx="10" cy="18" r="0.5" fill="currentColor"/>
-        <circle cx="14" cy="18" r="0.5" fill="currentColor"/>
+        <path d="M5 20h14v2H5z" />
+        <path d="M8 20V9a3 3 0 0 1 3-3h2a3 3 0 0 1 3 3v11" />
+        <path d="M11 6h4M8 11h8M8 15h8" />
+        <circle cx="10" cy="18" r="0.5" fill="currentColor" />
+        <circle cx="14" cy="18" r="0.5" fill="currentColor" />
       </svg>
     ),
     'Safety Goggles': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M2 12a4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6a4 4 0 0 1-4-4z"/>
-        <path d="M22 12a4 4 0 0 0-4-4h-5a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h5a4 4 0 0 0 4-4z"/>
-        <path d="M12 8v8"/>
+        <path d="M2 12a4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6a4 4 0 0 1-4-4z" />
+        <path d="M22 12a4 4 0 0 0-4-4h-5a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h5a4 4 0 0 0 4-4z" />
+        <path d="M12 8v8" />
       </svg>
     ),
     'Ear Protection': (
       <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M3 12h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/>
-        <path d="M21 12h-2a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2z"/>
-        <path d="M7 12V8a5 5 0 0 1 10 0v4"/>
+        <path d="M3 12h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z" />
+        <path d="M21 12h-2a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2z" />
+        <path d="M7 12V8a5 5 0 0 1 10 0v4" />
       </svg>
     ),
   };
 
   return icons[name] || (
     <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M12 6v6l4 4"/>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 4" />
     </svg>
   );
 };
@@ -108,14 +108,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [checklistQuestions, setChecklistQuestions] = useState<MasterChecklistQuestion[]>([]);
 
-  const [newWorkers, setNewWorkers] = useState<Array<{ 
-    name: string; 
-    phone: string; 
-    email: string; 
+  const [newWorkers, setNewWorkers] = useState<Array<{
+    name: string;
+    phone: string;
+    email: string;
     companyName: string;
     role: WorkerRole;
   }>>([]);
-  
+
   const [formData, setFormData] = useState({
     // Basic Info
     category: '' as PermitType | '',
@@ -129,34 +129,34 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     vendor_id: 0,
     permitInitiator: '', // NEW: Permit initiator name
     permitInitiatorContact: '', // NEW: Permit initiator contact
-    
+
     // Issued To
     issuedToName: '',
     issuedToContact: '',
-    
+
     // Workers
     selectedWorkers: [] as number[],
-    
+
     // Hazards & Controls
     selectedHazards: [] as number[],
     controlMeasures: '',
     otherHazards: '',
-    
+
     // PPE
     selectedPPE: [] as number[],
-    
+
     // SWMS - UPDATED
     swmsFile: null as File | null,
     swmsText: '', // NEW: Text-based SWMS
     swmsMode: 'file' as 'file' | 'text', // NEW: Toggle between file and text
-    
+
     // Signatures
     issuerSignature: '',
-    
+
     // Requirements/Checklist
     checklistResponses: {} as Record<number, ChecklistResponse>,
     checklistRemarks: {} as Record<number, string>,
-    
+
     // Declaration
     declaration: false,
   });
@@ -356,7 +356,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       const blob = await fetch(signature).then(r => r.blob());
       const file = new File([blob], `signature_${Date.now()}.png`, { type: 'image/png' });
       const uploadRes = await uploadAPI.uploadSignature(file);
-      
+
       if (uploadRes.success && uploadRes.data) {
         setFormData({ ...formData, issuerSignature: uploadRes.data.url });
       }
@@ -367,12 +367,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
   const addNewWorker = () => {
-    setNewWorkers([...newWorkers, { 
-      name: '', 
-      phone: '', 
-      email: '', 
+    setNewWorkers([...newWorkers, {
+      name: '',
+      phone: '',
+      email: '',
       companyName: '',
-      role: 'Worker' as WorkerRole 
+      role: 'Worker' as WorkerRole
     }]);
   };
 
@@ -381,8 +381,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
   const updateNewWorker = (
-    index: number, 
-    field: 'name' | 'phone' | 'email' | 'companyName' | 'role', 
+    index: number,
+    field: 'name' | 'phone' | 'email' | 'companyName' | 'role',
     value: string
   ) => {
     const updated = [...newWorkers];
@@ -409,15 +409,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           <button
             key={option}
             onClick={() => onChange(option)}
-            className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${
-              value === option
+            className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${value === option
                 ? option === 'Yes'
                   ? 'bg-green-500 text-white'
                   : option === 'No'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-slate-500 text-white'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-slate-500 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+              }`}
           >
             {option}
           </button>
@@ -459,7 +458,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 1 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Basic Information</h2>
-            
+
             {/* NEW: Permit Initiator Section */}
             <div className="p-4 border-2 border-green-200 rounded-lg bg-green-50">
               <h3 className="mb-3 text-sm font-medium text-green-900">Permit Initiator</h3>
@@ -490,8 +489,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
             <div>
               <Label htmlFor="category">Permit Category *</Label>
-              <Select 
-                value={formData.category} 
+              <Select
+                value={formData.category}
                 onValueChange={(value) => setFormData({ ...formData, category: value as PermitType })}
               >
                 <SelectTrigger>
@@ -510,8 +509,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="site">Site *</Label>
-                <Select 
-                  value={formData.site_id.toString()} 
+                <Select
+                  value={formData.site_id.toString()}
                   onValueChange={(value) => setFormData({ ...formData, site_id: parseInt(value) })}
                 >
                   <SelectTrigger>
@@ -539,8 +538,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
             <div>
               <Label htmlFor="vendor">Vendor (Optional)</Label>
-              <Select 
-                value={formData.vendor_id.toString()} 
+              <Select
+                value={formData.vendor_id.toString()}
                 onValueChange={(value) => setFormData({ ...formData, vendor_id: parseInt(value) })}
               >
                 <SelectTrigger>
@@ -634,7 +633,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 2 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Issued To & Workers Assignment</h2>
-            
+
             {/* Issued To Section */}
             <div className="p-6 space-y-4 border-2 border-blue-200 rounded-lg bg-blue-50">
               <h3 className="flex items-center gap-2 font-medium text-slate-900">
@@ -648,7 +647,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     id="issuedToName"
                     value={formData.issuedToName}
                     onChange={(e) => setFormData({ ...formData, issuedToName: e.target.value })}
-                    placeholder="e.g., John Doe"
+                    placeholder="e.g., Gaurav Shukla"
                     className="bg-white"
                   />
                 </div>
@@ -671,7 +670,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             {/* Workers Assignment Section */}
             <div className="space-y-4">
               <p className="text-slate-600">Select the workers who will be performing this work</p>
-              
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex items-center gap-4">
                   <Checkbox
@@ -729,7 +728,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     <FileText className="w-4 h-4" />
                     Add New Worker
                   </Button>
-                  
+
                   {newWorkers.map((worker, index) => (
                     <div key={index} className="p-4 space-y-4 border rounded-lg border-slate-200">
                       <div className="grid gap-4 md:grid-cols-2">
@@ -809,18 +808,17 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         {currentStep === 3 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Hazard Identification & Control Measures</h2>
-            
+
             <div>
               <Label>Identified Hazards *</Label>
               <div className="grid gap-3 mt-2 md:grid-cols-2">
                 {hazards.map((hazard) => (
                   <label
                     key={hazard.id}
-                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.selectedHazards.includes(hazard.id)
+                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedHazards.includes(hazard.id)
                         ? 'border-orange-500 bg-orange-50'
                         : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                      }`}
                   >
                     <Checkbox
                       checked={formData.selectedHazards.includes(hazard.id)}
@@ -863,159 +861,157 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         )}
 
         {/* Step 4: PPE & SWMS - UPDATED */}
-        const PPEIconComponent = ({ name }: { name: string }) => {
+        const PPEIconComponent = ({name}: {name: string }) => {
   const icons: Record<string, JSX.Element> = {
-    'Safety Helmet': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="48" rx="28" ry="4" fill="#E8505B" opacity="0.2"/>
-        <path d="M32 12C20 12 12 20 12 28V38C12 40 13 42 15 42H49C51 42 52 40 52 38V28C52 20 44 12 32 12Z" fill="#E8505B"/>
-        <ellipse cx="32" cy="42" rx="17" ry="3" fill="#D13D47"/>
-        <rect x="28" y="8" width="8" height="6" rx="2" fill="#E8505B"/>
-        <circle cx="32" cy="10" r="3" fill="white"/>
-        <path d="M16 38C16 38 18 32 32 32C46 32 48 38 48 38" stroke="white" strokeWidth="2" opacity="0.3"/>
-      </svg>
-    ),
-    'Safety Vest': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="22" ry="3" fill="#FF6B35" opacity="0.2"/>
-        <path d="M22 16L18 20V52H28V22L22 16Z" fill="#FF6B35"/>
-        <path d="M42 16L46 20V52H36V22L42 16Z" fill="#FF6B35"/>
-        <rect x="26" y="22" width="12" height="30" fill="#FF8C42"/>
-        <circle cx="32" cy="14" r="4" fill="#FFB480"/>
-        <rect x="20" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8"/>
-        <rect x="36" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8"/>
-        <rect x="20" y="38" width="8" height="3" fill="#FFE55C" opacity="0.8"/>
-        <rect x="36" y="38" width="8" height="3" fill="#FFE55C" opacity="0.8"/>
-      </svg>
-    ),
-    'Safety Gloves': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="18" ry="3" fill="#9B59B6" opacity="0.2"/>
-        <path d="M42 18V12C42 10 40 8 38 8H36V16" stroke="#9B59B6" strokeWidth="3" fill="none"/>
-        <path d="M22 18V12C22 10 24 8 26 8H28V16" stroke="#9B59B6" strokeWidth="3" fill="none"/>
-        <rect x="20" y="18" width="24" height="28" rx="4" fill="#9B59B6"/>
-        <path d="M24 24V38M28 24V38M32 24V38M36 24V38M40 24V38" stroke="white" strokeWidth="2" opacity="0.3"/>
-        <rect x="20" y="42" width="24" height="4" fill="#8E44AD"/>
-      </svg>
-    ),
-    'Safety Boots': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#D4A574" opacity="0.2"/>
-        <path d="M18 46H46V52H18V46Z" fill="#8B6F47"/>
-        <path d="M22 22C22 18 24 16 26 16H38C40 16 42 18 42 22V46H22V22Z" fill="#D4A574"/>
-        <rect x="26" y="18" width="12" height="3" fill="#8B6F47"/>
-        <rect x="22" y="28" width="20" height="2" fill="#8B6F47" opacity="0.3"/>
-        <rect x="22" y="36" width="20" height="2" fill="#8B6F47" opacity="0.3"/>
-        <circle cx="28" cy="48" r="1.5" fill="#5D4E37"/>
-        <circle cx="36" cy="48" r="1.5" fill="#5D4E37"/>
-      </svg>
-    ),
-    'Safety Goggles': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="52" rx="26" ry="3" fill="#4A9EFF" opacity="0.2"/>
-        <rect x="8" y="24" width="20" height="16" rx="8" fill="#4A9EFF" opacity="0.3"/>
-        <rect x="36" y="24" width="20" height="16" rx="8" fill="#4A9EFF" opacity="0.3"/>
-        <circle cx="18" cy="32" r="7" fill="#87CEEB"/>
-        <circle cx="46" cy="32" r="7" fill="#87CEEB"/>
-        <path d="M28 32H36" stroke="#4A9EFF" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M8 32C8 32 6 28 6 28C4 28 4 32 4 32" stroke="#4A9EFF" strokeWidth="2"/>
-        <path d="M56 32C56 32 58 28 58 28C60 28 60 32 60 32" stroke="#4A9EFF" strokeWidth="2"/>
-        <circle cx="18" cy="32" r="3" fill="white" opacity="0.5"/>
-        <circle cx="46" cy="32" r="3" fill="white" opacity="0.5"/>
-      </svg>
-    ),
-    'Face Mask': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#FFB74D" opacity="0.2"/>
-        <path d="M12 28C12 28 14 24 18 24H46C50 24 52 28 52 28V40C52 44 48 46 44 46H20C16 46 12 44 12 40V28Z" fill="#FFB74D"/>
-        <path d="M12 28L8 30V38L12 40" stroke="#FF9800" strokeWidth="2" fill="none"/>
-        <path d="M52 28L56 30V38L52 40" stroke="#FF9800" strokeWidth="2" fill="none"/>
-        <rect x="16" y="30" width="32" height="2" rx="1" fill="white" opacity="0.3"/>
-        <rect x="16" y="36" width="32" height="2" rx="1" fill="white" opacity="0.3"/>
-        <rect x="16" y="42" width="32" height="2" rx="1" fill="white" opacity="0.3"/>
-        <circle cx="24" cy="35" r="1.5" fill="#FF9800"/>
-        <circle cx="40" cy="35" r="1.5" fill="#FF9800"/>
-      </svg>
-    ),
-    'Ear Protection': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="28" ry="3" fill="#78909C" opacity="0.2"/>
-        <rect x="6" y="28" width="12" height="16" rx="6" fill="#607D8B"/>
-        <rect x="46" y="28" width="12" height="16" rx="6" fill="#607D8B"/>
-        <path d="M18 28V22C18 16 22 12 28 12H36C42 12 46 16 46 22V28" stroke="#78909C" strokeWidth="4" fill="none" strokeLinecap="round"/>
-        <ellipse cx="12" cy="36" rx="5" ry="7" fill="#455A64"/>
-        <ellipse cx="52" cy="36" rx="5" ry="7" fill="#455A64"/>
-        <rect x="8" y="32" width="8" height="8" rx="2" fill="#B0BEC5" opacity="0.3"/>
-        <rect x="48" y="32" width="8" height="8" rx="2" fill="#B0BEC5" opacity="0.3"/>
-      </svg>
-    ),
-    'Safety Harness': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="20" ry="3" fill="#4FC3F7" opacity="0.2"/>
-        <circle cx="32" cy="14" r="6" fill="#FFB74D"/>
-        <path d="M20 24L16 48H24L28 28" stroke="#4FC3F7" strokeWidth="4" fill="none" strokeLinecap="round"/>
-        <path d="M44 24L48 48H40L36 28" stroke="#4FC3F7" strokeWidth="4" fill="none" strokeLinecap="round"/>
-        <ellipse cx="32" cy="26" rx="8" ry="4" fill="#0288D1"/>
-        <path d="M28 28V48M36 28V48" stroke="#4FC3F7" strokeWidth="3" strokeLinecap="round"/>
-        <circle cx="32" cy="38" r="4" fill="#FFD54F" stroke="#FFA726" strokeWidth="2"/>
-        <rect x="14" y="46" width="10" height="4" rx="2" fill="#0288D1"/>
-        <rect x="40" y="46" width="10" height="4" rx="2" fill="#0288D1"/>
-      </svg>
-    ),
+          'Safety Helmet': (
+        <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="48" rx="28" ry="4" fill="#E8505B" opacity="0.2" />
+          <path d="M32 12C20 12 12 20 12 28V38C12 40 13 42 15 42H49C51 42 52 40 52 38V28C52 20 44 12 32 12Z" fill="#E8505B" />
+          <ellipse cx="32" cy="42" rx="17" ry="3" fill="#D13D47" />
+          <rect x="28" y="8" width="8" height="6" rx="2" fill="#E8505B" />
+          <circle cx="32" cy="10" r="3" fill="white" />
+          <path d="M16 38C16 38 18 32 32 32C46 32 48 38 48 38" stroke="white" strokeWidth="2" opacity="0.3" />
+        </svg>
+        ),
+        'Safety Vest': (
+        <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="54" rx="22" ry="3" fill="#FF6B35" opacity="0.2" />
+          <path d="M22 16L18 20V52H28V22L22 16Z" fill="#FF6B35" />
+          <path d="M42 16L46 20V52H36V22L42 16Z" fill="#FF6B35" />
+          <rect x="26" y="22" width="12" height="30" fill="#FF8C42" />
+          <circle cx="32" cy="14" r="4" fill="#FFB480" />
+          <rect x="20" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8" />
+          <rect x="36" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8" />
+          <rect x="20" y="38" width="8" height="3" fill="#FFE55C" opacity="0.8" />
+          <rect x="36" y="38" width="8" height="3" fill="#FFE55C" opacity="0.8" />
+        </svg>
+        ),
+        'Safety Gloves': (
+        <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="54" rx="18" ry="3" fill="#9B59B6" opacity="0.2" />
+          <path d="M42 18V12C42 10 40 8 38 8H36V16" stroke="#9B59B6" strokeWidth="3" fill="none" />
+          <path d="M22 18V12C22 10 24 8 26 8H28V16" stroke="#9B59B6" strokeWidth="3" fill="none" />
+          <rect x="20" y="18" width="24" height="28" rx="4" fill="#9B59B6" />
+          <path d="M24 24V38M28 24V38M32 24V38M36 24V38M40 24V38" stroke="white" strokeWidth="2" opacity="0.3" />
+          <rect x="20" y="42" width="24" height="4" fill="#8E44AD" />
+        </svg>
+        ),
+        'Safety Boots': (
+        <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="54" rx="24" ry="3" fill="#D4A574" opacity="0.2" />
+          <path d="M18 46H46V52H18V46Z" fill="#8B6F47" />
+          <path d="M22 22C22 18 24 16 26 16H38C40 16 42 18 42 22V46H22V22Z" fill="#D4A574" />
+          <rect x="26" y="18" width="12" height="3" fill="#8B6F47" />
+          <rect x="22" y="28" width="20" height="2" fill="#8B6F47" opacity="0.3" />
+          <rect x="22" y="36" width="20" height="2" fill="#8B6F47" opacity="0.3" />
+          <circle cx="28" cy="48" r="1.5" fill="#5D4E37" />
+          <circle cx="36" cy="48" r="1.5" fill="#5D4E37" />
+        </svg>
+        ),
+        'Safety Goggles': (
+        <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="52" rx="26" ry="3" fill="#4A9EFF" opacity="0.2" />
+          <rect x="8" y="24" width="20" height="16" rx="8" fill="#4A9EFF" opacity="0.3" />
+          <rect x="36" y="24" width="20" height="16" rx="8" fill="#4A9EFF" opacity="0.3" />
+          <circle cx="18" cy="32" r="7" fill="#87CEEB" />
+          <circle cx="46" cy="32" r="7" fill="#87CEEB" />
+          <path d="M28 32H36" stroke="#4A9EFF" strokeWidth="3" strokeLinecap="round" />
+          <path d="M8 32C8 32 6 28 6 28C4 28 4 32 4 32" stroke="#4A9EFF" strokeWidth="2" />
+          <path d="M56 32C56 32 58 28 58 28C60 28 60 32 60 32" stroke="#4A9EFF" strokeWidth="2" />
+          <circle cx="18" cy="32" r="3" fill="white" opacity="0.5" />
+          <circle cx="46" cy="32" r="3" fill="white" opacity="0.5" />
+        </svg>
+        ),
+        'Face Mask': (
+        <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="54" rx="24" ry="3" fill="#FFB74D" opacity="0.2" />
+          <path d="M12 28C12 28 14 24 18 24H46C50 24 52 28 52 28V40C52 44 48 46 44 46H20C16 46 12 44 12 40V28Z" fill="#FFB74D" />
+          <path d="M12 28L8 30V38L12 40" stroke="#FF9800" strokeWidth="2" fill="none" />
+          <path d="M52 28L56 30V38L52 40" stroke="#FF9800" strokeWidth="2" fill="none" />
+          <rect x="16" y="30" width="32" height="2" rx="1" fill="white" opacity="0.3" />
+          <rect x="16" y="36" width="32" height="2" rx="1" fill="white" opacity="0.3" />
+          <rect x="16" y="42" width="32" height="2" rx="1" fill="white" opacity="0.3" />
+          <circle cx="24" cy="35" r="1.5" fill="#FF9800" />
+          <circle cx="40" cy="35" r="1.5" fill="#FF9800" />
+        </svg>
+        ),
+        'Ear Protection': (
+        <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="54" rx="28" ry="3" fill="#78909C" opacity="0.2" />
+          <rect x="6" y="28" width="12" height="16" rx="6" fill="#607D8B" />
+          <rect x="46" y="28" width="12" height="16" rx="6" fill="#607D8B" />
+          <path d="M18 28V22C18 16 22 12 28 12H36C42 12 46 16 46 22V28" stroke="#78909C" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <ellipse cx="12" cy="36" rx="5" ry="7" fill="#455A64" />
+          <ellipse cx="52" cy="36" rx="5" ry="7" fill="#455A64" />
+          <rect x="8" y="32" width="8" height="8" rx="2" fill="#B0BEC5" opacity="0.3" />
+          <rect x="48" y="32" width="8" height="8" rx="2" fill="#B0BEC5" opacity="0.3" />
+        </svg>
+        ),
+        'Safety Harness': (
+        <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="54" rx="20" ry="3" fill="#4FC3F7" opacity="0.2" />
+          <circle cx="32" cy="14" r="6" fill="#FFB74D" />
+          <path d="M20 24L16 48H24L28 28" stroke="#4FC3F7" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <path d="M44 24L48 48H40L36 28" stroke="#4FC3F7" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <ellipse cx="32" cy="26" rx="8" ry="4" fill="#0288D1" />
+          <path d="M28 28V48M36 28V48" stroke="#4FC3F7" strokeWidth="3" strokeLinecap="round" />
+          <circle cx="32" cy="38" r="4" fill="#FFD54F" stroke="#FFA726" strokeWidth="2" />
+          <rect x="14" y="46" width="10" height="4" rx="2" fill="#0288D1" />
+          <rect x="40" y="46" width="10" height="4" rx="2" fill="#0288D1" />
+        </svg>
+        ),
   };
 
-  return icons[name] || (
-    <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="32" r="28" stroke="#94A3B8" strokeWidth="2" fill="none"/>
-      <path d="M32 20V32L40 40" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  );
+        return icons[name] || (
+        <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="28" stroke="#94A3B8" strokeWidth="2" fill="none" />
+          <path d="M32 20V32L40 40" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        );
 };
 
 
-{currentStep === 4 && (
-  <div className="space-y-6">
-    <h2 className="text-xl font-semibold text-slate-900">PPE Requirements & SWMS Upload</h2>
-    
-    {/* PPE Section with Professional Icons */}
-    <div>
-      <Label>Required Personal Protective Equipment (PPE) *</Label>
-      <p className="mb-4 text-sm text-slate-500">Select all required PPE for this work</p>
-      
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {ppeItems.map((ppe) => (
-          <button
-            key={ppe.id}
-            type="button"
-            onClick={() => togglePPE(ppe.id)}
-            className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${
-              formData.selectedPPE.includes(ppe.id)
-                ? 'border-blue-500 bg-blue-50 shadow-md scale-105'
-                : 'border-slate-200 hover:border-blue-300 bg-white'
-            }`}
-          >
-            {/* Professional PPE Icon */}
-            <div className="transition-transform">
-              <PPEIconComponent name={ppe.name} />
-            </div>
-            
-            {/* PPE Name */}
-            <span className={`text-sm font-semibold text-center ${
-              formData.selectedPPE.includes(ppe.id) ? 'text-blue-900' : 'text-slate-700'
-            }`}>
-              {ppe.name}
-            </span>
-            
-            {/* Selection Indicator */}
-            {formData.selectedPPE.includes(ppe.id) && (
-              <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-full shadow-sm">
-                <Check className="w-5 h-5 text-white" />
+        {currentStep === 4 && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-slate-900">PPE Requirements & SWMS Upload</h2>
+
+            {/* PPE Section with Professional Icons */}
+            <div>
+              <Label>Required Personal Protective Equipment (PPE) *</Label>
+              <p className="mb-4 text-sm text-slate-500">Select all required PPE for this work</p>
+
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                {ppeItems.map((ppe) => (
+                  <button
+                    key={ppe.id}
+                    type="button"
+                    onClick={() => togglePPE(ppe.id)}
+                    className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${formData.selectedPPE.includes(ppe.id)
+                        ? 'border-blue-500 bg-blue-50 shadow-md scale-105'
+                        : 'border-slate-200 hover:border-blue-300 bg-white'
+                      }`}
+                  >
+                    {/* Professional PPE Icon */}
+                    <div className="transition-transform">
+                      <PPEIconComponent name={ppe.name} />
+                    </div>
+
+                    {/* PPE Name */}
+                    <span className={`text-sm font-semibold text-center ${formData.selectedPPE.includes(ppe.id) ? 'text-blue-900' : 'text-slate-700'
+                      }`}>
+                      {ppe.name}
+                    </span>
+
+                    {/* Selection Indicator */}
+                    {formData.selectedPPE.includes(ppe.id) && (
+                      <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-full shadow-sm">
+                        <Check className="w-5 h-5 text-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
+            </div>
 
             {/* SWMS Section - UPDATED with Text Option */}
             <div className="p-6 border-2 border-purple-200 rounded-lg bg-purple-50">
@@ -1028,22 +1024,20 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, swmsMode: 'file', swmsText: '' })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'file'
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'file'
                       ? 'bg-purple-600 text-white'
                       : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
+                    }`}
                 >
                   Upload Document
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, swmsMode: 'text', swmsFile: null })}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    formData.swmsMode === 'text'
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'text'
                       ? 'bg-purple-600 text-white'
                       : 'bg-white text-purple-600 border border-purple-300'
-                  }`}
+                    }`}
                 >
                   Write Text
                 </button>
@@ -1054,8 +1048,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <div>
                   <Label htmlFor="swmsFile">Upload SWMS Document</Label>
                   <div className="flex items-center gap-4 mt-2">
-                    <label 
-                      htmlFor="swmsFile" 
+                    <label
+                      htmlFor="swmsFile"
                       className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50"
                     >
                       <Upload className="w-5 h-5 text-purple-600" />
@@ -1114,7 +1108,7 @@ Include:
         {currentStep === 5 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Work Requirements Checklist</h2>
-            
+
             <div className="p-6 border rounded-lg border-slate-200">
               <h3 className="mb-4 text-slate-900">{formData.category} Requirements</h3>
               <div>
@@ -1152,7 +1146,7 @@ Include:
         {currentStep === 6 && (
           <div className="space-y-6">
             <h2 className="text-slate-900">Review & Submit</h2>
-            
+
             {/* Summary */}
             <div className="p-6 space-y-4 rounded-lg bg-slate-50">
               <div className="grid gap-4 md:grid-cols-2">
@@ -1199,8 +1193,8 @@ Include:
                 <div>
                   <p className="text-sm text-slate-500">SWMS</p>
                   <p className="text-slate-900">
-                    {formData.swmsMode === 'file' 
-                      ? (formData.swmsFile ? 'File uploaded' : 'No file') 
+                    {formData.swmsMode === 'file'
+                      ? (formData.swmsFile ? 'File uploaded' : 'No file')
                       : (formData.swmsText ? 'Text provided' : 'No text')}
                   </p>
                 </div>
@@ -1217,8 +1211,8 @@ Include:
                 <div>
                   <p className="text-sm font-medium text-slate-900">Declaration</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    I confirm that all information provided is accurate and complete. All necessary safety measures 
-                    have been identified and will be implemented. All workers have been briefed on the hazards and 
+                    I confirm that all information provided is accurate and complete. All necessary safety measures
+                    have been identified and will be implemented. All workers have been briefed on the hazards and
                     control measures for this work.
                   </p>
                 </div>
@@ -1237,13 +1231,13 @@ Include:
         >
           Previous
         </Button>
-        
+
         {currentStep < totalSteps ? (
           <Button onClick={handleNext} disabled={isSubmitting}>
             Next
           </Button>
         ) : (
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={!formData.declaration || isSubmitting}
             className="bg-green-600 hover:bg-green-700"
