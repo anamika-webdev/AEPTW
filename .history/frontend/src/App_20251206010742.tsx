@@ -162,12 +162,6 @@ function App() {
               {currentPage === 'user-management' && <UserManagement />}
               {currentPage === 'all-permits' && <AllPermits onNavigate={handleNavigate} />}
               {currentPage === 'reports' && <Reports />}
-              {currentPage === 'permit-detail' && selectedPermitId && (
-  <PermitDetails 
-    ptwId={selectedPermitId} 
-    onBack={() => handleNavigate('all-permits')} 
-  />
-)}
             </>
           )}
           

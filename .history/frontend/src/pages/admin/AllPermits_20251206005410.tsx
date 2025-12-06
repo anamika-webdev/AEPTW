@@ -1,5 +1,5 @@
 // frontend/src/pages/admin/AllPermits.tsx
-// ✅ COMPLETE: Fixed with proper onNavigate prop
+// ✅ UPDATED: Added "View" button to each permit row
 
 import { useState, useEffect } from 'react';
 import { 
@@ -12,7 +12,7 @@ import {
   XCircle, 
   AlertTriangle,
   RefreshCw,
-  Eye
+  Eye // ✅ NEW: Eye icon for View button
 } from 'lucide-react';
 import { permitsAPI } from '../../services/api';
 
@@ -31,7 +31,7 @@ interface Permit {
 }
 
 interface AllPermitsProps {
-  onNavigate?: (page: string, data?: any) => void;
+  onNavigate?: (page: string, data?: any) => void; // ✅ NEW: Added navigation prop
 }
 
 export default function AllPermits({ onNavigate }: AllPermitsProps) {
@@ -70,12 +70,10 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
     setTypeFilter('all');
   };
 
+  // ✅ NEW: Handle view button click
   const handleViewPermit = (permitId: number) => {
-    console.log('🔍 View permit clicked:', permitId);
     if (onNavigate) {
       onNavigate('permit-detail', { permitId });
-    } else {
-      console.error('❌ onNavigate prop not provided!');
     }
   };
 
@@ -148,6 +146,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
       {/* Filters */}
       <div className="p-4 mb-6 bg-white rounded-lg shadow-md">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          {/* Search */}
           <div className="relative flex-1 max-w-md">
             <Search className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
             <input
@@ -155,7 +154,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
               placeholder="Search permits..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
             {searchTerm && (
               <button
@@ -167,6 +166,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
             )}
           </div>
 
+          {/* Filter Button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
@@ -181,14 +181,17 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
           </button>
         </div>
 
+        {/* Filter Dropdowns */}
         {showFilters && (
           <div className="grid grid-cols-1 gap-4 pt-4 mt-4 border-t md:grid-cols-3">
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">Status</label>
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Status
+              </label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 {uniqueStatuses.map((status) => (
                   <option key={status} value={status}>
@@ -199,11 +202,13 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">Permit Type</label>
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Permit Type
+              </label>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 {uniqueTypes.map((type) => (
                   <option key={type} value={type}>
@@ -224,6 +229,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
           </div>
         )}
 
+        {/* Results Count */}
         <div className="flex items-center justify-between pt-3 mt-3 border-t">
           <p className="text-sm text-gray-600">
             Showing <span className="font-medium">{filteredPermits.length}</span> of{' '}
@@ -244,34 +250,65 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
           <table className="w-full">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">PTW Number</th>
-                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Type</th>
-                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Location</th>
-                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Description</th>
-                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Created By</th>
-                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">Actions</th>
+                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                  PTW Number
+                </th>
+                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                  Type
+                </th>
+                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                  Location
+                </th>
+                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                  Description
+                </th>
+                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                  Created By
+                </th>
+                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                  Status
+                </th>
+                {/* ✅ NEW: Actions column header */}
+                <th className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPermits.length > 0 ? (
                 filteredPermits.map((permit) => (
                   <tr key={permit.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-blue-600">{permit.permit_serial}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{permit.permit_type}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{permit.work_location}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      <div className="max-w-xs truncate">{permit.work_description}</div>
+                    <td className="px-6 py-4 text-sm font-medium text-blue-600">
+                      {permit.permit_serial}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{permit.created_by_name || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{new Date(permit.created_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 text-sm">{getStatusBadge(permit.status)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {permit.permit_type}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {permit.work_location}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      <div className="max-w-xs truncate">
+                        {permit.work_description}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {permit.created_by_name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {new Date(permit.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {getStatusBadge(permit.status)}
+                    </td>
+                    {/* ✅ NEW: Actions cell with View button */}
                     <td className="px-6 py-4 text-sm text-right">
                       <button
                         onClick={() => handleViewPermit(permit.id)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
-                        title="View permit details"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         View

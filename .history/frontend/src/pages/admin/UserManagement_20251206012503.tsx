@@ -2,7 +2,7 @@
 // This version has PROPER filtering with separate tables for each role
 
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Building2, Eye, X } from 'lucide-react';
+import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Building2, Eye } from 'lucide-react';
 import { AssignResourcesModal } from '../../components/admin/AssignResourcesModal';
 
 interface User {
@@ -803,8 +803,7 @@ const handleViewUser = (user: User) => {
           }}
         />
       )}
-      {/* View User Modal */}
-     
+  
       {showViewModal && viewingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">

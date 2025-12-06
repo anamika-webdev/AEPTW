@@ -2,7 +2,7 @@
 // This version has PROPER filtering with separate tables for each role
 
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Building2, Eye, X } from 'lucide-react';
+import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Building2, Eye } from 'lucide-react';
 import { AssignResourcesModal } from '../../components/admin/AssignResourcesModal';
 
 interface User {
@@ -354,14 +354,6 @@ const handleViewUser = (user: User) => {
           </div>
         </td>
         <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-            {/* ✅ ADD THIS VIEW BUTTON: */}
-  <button
-    onClick={() => handleViewUser(user)}
-    className="mr-3 text-green-600 hover:text-green-900"
-    title="View user details"
-  >
-    <Eye className="w-4 h-4" />
-  </button>
           {/* Assignment Button for Supervisors */}
           {(user.role === 'Requester' || user.role === 'Supervisor') && (
             <button
@@ -802,98 +794,6 @@ const handleViewUser = (user: User) => {
             fetchUsers(true);
           }}
         />
-      )}
-      {/* View User Modal */}
-     
-      {showViewModal && viewingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">User Details</h3>
-              <button
-                onClick={() => setShowViewModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              <div className="p-4 rounded-lg bg-gray-50">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
-                    <User className="w-8 h-8 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900">{viewingUser.full_name}</h4>
-                    <p className="text-sm text-gray-600">{getRoleDisplay(viewingUser.role)}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Login ID</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingUser.login_id}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingUser.email}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Role</label>
-                  <span className={`inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full border ${getRoleBadgeColor(viewingUser.role)}`}>
-                    {getRoleDisplay(viewingUser.role)}
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Department</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingUser.department_name || 'Not assigned'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <span className={`inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full ${
-                    viewingUser.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {viewingUser.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Created</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {new Date(viewingUser.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                {viewingUser.permit_count !== undefined && (
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Associated Permits</label>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {viewingUser.permit_count} permit{viewingUser.permit_count !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
-              <button
-                onClick={() => {
-                  setShowViewModal(false);
-                  openEditModal(viewingUser);
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-              >
-                Edit User
-              </button>
-              <button
-                onClick={() => setShowViewModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
