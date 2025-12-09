@@ -159,7 +159,7 @@ export function PTWExpirationNotifications({ permits, onViewPermit }: PTWExpirat
                   <Clock className="w-3 h-3" />
                   Expires in {formatTimeRemaining(permit.minutesRemaining)}
                 </span>
-                <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
+                <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-orange-800 bg-orange-100 rounded-full">
                   {permit.permit_type}
                 </span>
               </div>

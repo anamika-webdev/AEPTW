@@ -22,7 +22,7 @@ export const PTWActionButtons: React.FC<PTWActionButtonsProps> = ({
       {showExtend && (
         <button
           onClick={onExtend}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 transition-all bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:border-blue-300"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-600 transition-all bg-white border border-orange-200 rounded-lg hover:bg-orange-50 hover:border-orange-300"
         >
           <Calendar className="w-4 h-4" />
           Extend

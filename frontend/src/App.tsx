@@ -103,7 +103,7 @@ function App() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+          <div className="w-12 h-12 mx-auto border-4 border-orange-600 rounded-full border-t-transparent animate-spin"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -138,7 +138,13 @@ function App() {
   console.log('📊 Role checks:', { isAdmin, isSupervisor, isApprover });
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 relative">
+      {/* Decorative background pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-yellow-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
       <Sidebar
         currentUser={currentUser}
         currentPage={currentPage}
@@ -147,7 +153,7 @@ function App() {
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuClose={() => setIsMobileMenuOpen(false)}
       />
-      <div className="flex flex-col flex-1 lg:ml-64">
+      <div className="flex flex-col flex-1 lg:ml-64 relative z-10">
         <Header
           currentUser={currentUser}
           onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -181,7 +187,7 @@ function App() {
                 <CreatePTW onBack={() => handleNavigate('dashboard')} />
               )}
               {currentPage === 'worker-list' && (
-                <WorkerList onNavigate={handleNavigate} />
+                <WorkerList onBack={() => handleNavigate('dashboard')} />
               )}
               {currentPage === 'permit-detail' && selectedPermitId && (
                 <PermitDetails

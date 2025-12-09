@@ -81,9 +81,9 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ onLogin }) => {
   }, [searchParams, onLogin, navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-orange-50 to-amber-100">
       <div className="text-center">
-        <div className="inline-block w-12 h-12 border-b-2 border-blue-600 rounded-full animate-spin"></div>
+        <div className="inline-block w-12 h-12 border-b-2 border-orange-600 rounded-full animate-spin"></div>
         <p className="mt-4 text-lg font-medium text-gray-700">Completing sign in...</p>
         <p className="mt-2 text-sm text-gray-500">Please wait while we authenticate you</p>
       </div>

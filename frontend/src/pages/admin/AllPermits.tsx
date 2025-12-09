@@ -110,7 +110,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
       'Draft': { icon: Clock, className: 'bg-gray-100 text-gray-800', label: 'Draft' },
       'Initiated': { icon: AlertTriangle, className: 'bg-yellow-100 text-yellow-800', label: 'Pending Approval' },
       'Approved': { icon: CheckCircle, className: 'bg-green-100 text-green-800', label: 'Approved' },
-      'Active': { icon: CheckCircle, className: 'bg-blue-100 text-blue-800', label: 'Active' },
+      'Active': { icon: CheckCircle, className: 'bg-orange-100 text-orange-800', label: 'Active' },
       'Closed': { icon: CheckCircle, className: 'bg-purple-100 text-purple-800', label: 'Closed' },
       'Rejected': { icon: XCircle, className: 'bg-red-100 text-red-800', label: 'Rejected' }
     };
@@ -132,7 +132,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+        <RefreshCw className="w-8 h-8 text-orange-600 animate-spin" />
       </div>
     );
   }
@@ -179,7 +179,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
               placeholder="Search permits..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
             />
             {searchTerm && (
               <button
@@ -198,7 +198,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
             <Filter className="w-4 h-4" />
             Filters
             {(statusFilter !== 'all' || typeFilter !== 'all') && (
-              <span className="flex items-center justify-center w-5 h-5 text-xs text-white bg-blue-600 rounded-full">
+              <span className="flex items-center justify-center w-5 h-5 text-xs text-white bg-orange-600 rounded-full">
                 {(statusFilter !== 'all' ? 1 : 0) + (typeFilter !== 'all' ? 1 : 0)}
               </span>
             )}
@@ -212,7 +212,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
               >
                 {uniqueStatuses.map((status) => (
                   <option key={status} value={status}>
@@ -227,7 +227,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
               >
                 {uniqueTypes.map((type) => (
                   <option key={type} value={type}>
@@ -269,7 +269,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
               {paginatedPermits.length > 0 ? (
                 paginatedPermits.map((permit) => (
                   <tr key={permit.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-blue-600">{permit.permit_serial}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-orange-600">{permit.permit_serial}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{permit.permit_type}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{permit.work_location}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">
@@ -281,7 +281,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
                     <td className="px-6 py-4 text-sm text-right">
                       <button
                         onClick={() => handleViewPermit(permit.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors"
                         title="View permit details"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -366,7 +366,7 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
                     onClick={() => setCurrentPage(pageNum)}
                     aria-current={currentPage === pageNum ? 'page' : undefined}
                     className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
-                      ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                      ? 'z-10 bg-orange-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
                       : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
                       }`}
                   >

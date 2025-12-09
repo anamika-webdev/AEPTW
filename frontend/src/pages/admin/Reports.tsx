@@ -374,7 +374,7 @@ export default function Reports({ onBack }: ReportsProps) {
   const paginatedPermits = permits.slice(startIndex, endIndex);
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 bg-white sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
@@ -398,7 +398,7 @@ export default function Reports({ onBack }: ReportsProps) {
         {/* Filters Card */}
         <div className="p-6 mb-6 bg-white rounded-lg shadow-md">
           <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-blue-600" />
+            <Filter className="w-5 h-5 text-orange-600" />
             <h3 className="text-lg font-semibold text-gray-900">Report Filters</h3>
           </div>
 
@@ -414,7 +414,7 @@ export default function Reports({ onBack }: ReportsProps) {
                   type="date"
                   value={filters.startDate}
                   onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                  className="w-full py-2 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full py-2 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             </div>
@@ -430,7 +430,7 @@ export default function Reports({ onBack }: ReportsProps) {
                   type="date"
                   value={filters.endDate}
                   onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                  className="w-full py-2 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full py-2 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             </div>
@@ -443,7 +443,7 @@ export default function Reports({ onBack }: ReportsProps) {
               <select
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
               >
                 <option value="">All Statuses</option>
                 <option value="Active">Active</option>
@@ -462,7 +462,7 @@ export default function Reports({ onBack }: ReportsProps) {
               <select
                 value={filters.permit_type}
                 onChange={(e) => handleFilterChange('permit_type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
               >
                 <option value="">All Types</option>
                 <option value="General">General</option>
@@ -483,7 +483,7 @@ export default function Reports({ onBack }: ReportsProps) {
                 <select
                   value={filters.site_id}
                   onChange={(e) => handleFilterChange('site_id', e.target.value)}
-                  className="w-full py-2 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full py-2 pl-10 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">All Sites</option>
                   {sites.map(site => (
@@ -501,7 +501,7 @@ export default function Reports({ onBack }: ReportsProps) {
             <button
               onClick={handleApplyFilters}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Apply Filters
@@ -555,7 +555,7 @@ export default function Reports({ onBack }: ReportsProps) {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <RefreshCw className="w-8 h-8 mx-auto mb-4 text-blue-600 animate-spin" />
+                <RefreshCw className="w-8 h-8 mx-auto mb-4 text-orange-600 animate-spin" />
                 <p className="text-gray-600">Loading report data...</p>
               </div>
             </div>
@@ -565,7 +565,7 @@ export default function Reports({ onBack }: ReportsProps) {
               <p className="text-gray-600">No permits found matching the filters</p>
               <button
                 onClick={handleClearFilters}
-                className="mt-4 text-sm text-blue-600 hover:underline"
+                className="mt-4 text-sm text-orange-600 hover:underline"
               >
                 Clear filters to see all permits
               </button>
@@ -685,7 +685,7 @@ export default function Reports({ onBack }: ReportsProps) {
                           onClick={() => setCurrentPage(pageNum)}
                           aria-current={currentPage === pageNum ? 'page' : undefined}
                           className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
-                            ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                            ? 'z-10 bg-orange-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
                             : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
                             }`}
                         >

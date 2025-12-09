@@ -239,11 +239,6 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
   };
 
   const handleDeleteSite = async (site: Site) => {
-    if (site.permit_count && site.permit_count > 0) {
-      alert(`Cannot delete site "${site.name}" - it has ${site.permit_count} existing permit(s). Please close or cancel all permits first.`);
-      return;
-    }
-
     if (!confirm(`Are you sure you want to delete "${site.name}"?`)) return;
 
     try {
@@ -290,7 +285,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <RefreshCw className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
+          <RefreshCw className="w-12 h-12 mx-auto mb-4 text-orange-600 animate-spin" />
           <p className="text-lg font-medium text-gray-900">Loading sites...</p>
         </div>
       </div>
@@ -310,7 +305,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
               setLoading(true);
               fetchSites();
             }}
-            className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
           >
             Try Again
           </button>
@@ -320,7 +315,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
   }
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 bg-white sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -352,7 +347,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700"
             >
               <Plus className="w-4 h-4" />
               Add Site
@@ -371,7 +366,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <Building className="w-5 h-5 text-blue-600" />
+                          <Building className="w-5 h-5 text-orange-600" />
                           <h3 className="text-lg font-semibold text-gray-900">{site.name}</h3>
                         </div>
                         <p className="mb-2 text-xs text-gray-500">Code: {site.site_code}</p>
@@ -401,13 +396,13 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                       </div>
                     </div>
 
-                    {site.permit_count !== undefined && (
-                      <div className="p-2 mb-4 rounded bg-blue-50">
-                        <p className="text-xs text-blue-800">
+                    {/* {site.permit_count !== undefined && (
+                      <div className="p-2 mb-4 rounded bg-orange-50">
+                        <p className="text-xs text-orange-800">
                           {site.permit_count} active permit{site.permit_count !== 1 ? 's' : ''}
                         </p>
                       </div>
-                    )}
+                    )}*/}
 
                     <div className="flex gap-2">
                       {/* ✅ ADD THIS VIEW BUTTON FIRST: */}
@@ -421,18 +416,14 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
 
                       <button
                         onClick={() => openEditModal(site)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-orange-600 bg-orange-50 rounded hover:bg-orange-100"
                       >
                         <Edit className="w-4 h-4" />
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteSite(site)}
-                        disabled={site.permit_count !== undefined && site.permit_count > 0}
-                        className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded ${site.permit_count && site.permit_count > 0
-                          ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
-                          : 'text-red-600 bg-red-50 hover:bg-red-100'
-                          }`}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm rounded text-red-600 bg-red-50 hover:bg-red-100"
                       >
                         <Trash2 className="w-4 h-4" />
                         Delete
@@ -446,7 +437,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                 <p className="mb-4 text-gray-500">No sites found</p>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-orange-600 hover:text-orange-700"
                 >
                   + Add your first site
                 </button>
@@ -516,7 +507,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                           onClick={() => setCurrentPage(pageNum)}
                           aria-current={currentPage === pageNum ? 'page' : undefined}
                           className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
-                            ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                            ? 'z-10 bg-orange-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
                             : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
                             }`}
                         >
@@ -570,7 +561,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                       value={newSite.name}
                       onChange={(e) => setNewSite({ ...newSite, name: e.target.value })}
                       placeholder="e.g., Building A, Warehouse 1"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
 
@@ -583,7 +574,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                       value={newSite.site_code}
                       onChange={(e) => setNewSite({ ...newSite, site_code: e.target.value })}
                       placeholder="Auto-generated if empty"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     />
                     <p className="mt-1 text-xs text-gray-500">Leave empty to auto-generate</p>
                   </div>
@@ -598,7 +589,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                     value={newSite.location}
                     onChange={(e) => setNewSite({ ...newSite, location: e.target.value })}
                     placeholder="e.g., North Wing, Ground Floor"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -611,7 +602,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                     onChange={(e) => setNewSite({ ...newSite, address: e.target.value })}
                     placeholder="Full address"
                     rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -623,7 +614,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                       value={newSite.city}
                       onChange={(e) => setNewSite({ ...newSite, city: e.target.value })}
                       placeholder="City"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
 
@@ -634,7 +625,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                       value={newSite.state}
                       onChange={(e) => setNewSite({ ...newSite, state: e.target.value })}
                       placeholder="State"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
 
@@ -645,7 +636,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                       value={newSite.country}
                       onChange={(e) => setNewSite({ ...newSite, country: e.target.value })}
                       placeholder="Country"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                 </div>
@@ -659,7 +650,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                   </button>
                   <button
                     onClick={handleAddSite}
-                    className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
                   >
                     Add Site
                   </button>
@@ -699,7 +690,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                     type="text"
                     value={editFormData.name}
                     onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -711,7 +702,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                     type="text"
                     value={editFormData.location}
                     onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -721,7 +712,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                     value={editFormData.address}
                     onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
                     rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -732,7 +723,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                       type="text"
                       value={editFormData.city}
                       onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
 
@@ -742,7 +733,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                       type="text"
                       value={editFormData.state}
                       onChange={(e) => setEditFormData({ ...editFormData, state: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
 
@@ -752,19 +743,19 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                       type="text"
                       value={editFormData.country}
                       onChange={(e) => setEditFormData({ ...editFormData, country: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                 </div>
 
-                {editingSite.permit_count !== undefined && editingSite.permit_count > 0 && (
+                {/*{editingSite.permit_count !== undefined && editingSite.permit_count > 0 && (
                   <div className="p-3 rounded-lg bg-yellow-50">
                     <p className="text-sm text-yellow-800">
                       ⚠️ This site has {editingSite.permit_count} active permit{editingSite.permit_count !== 1 ? 's' : ''}.
                       Changes will affect existing permits.
                     </p>
                   </div>
-                )}
+                )}*/}
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <button
@@ -775,7 +766,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
                   </button>
                   <button
                     onClick={handleEditSite}
-                    className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
                   >
                     Save Changes
                   </button>
@@ -803,8 +794,8 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
               <div className="space-y-6">
                 <div className="p-4 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
-                      <Building className="w-8 h-8 text-blue-600" />
+                    <div className="flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full">
+                      <Building className="w-8 h-8 text-orange-600" />
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900">{viewingSite.name}</h4>

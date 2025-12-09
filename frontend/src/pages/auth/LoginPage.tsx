@@ -21,37 +21,37 @@ interface LoginPageProps {
 // Map database roles to frontend roles - PRESERVE APPROVER ROLES
 function mapDatabaseRoleToFrontend(dbRole: string): string {
   const role = dbRole?.toLowerCase();
-  
+
   console.log('🔍 Mapping role:', dbRole);
-  
+
   // Admin roles
   if (role === 'admin' || role === 'administrator') {
     return 'Admin';
   }
-  
+
   // Approver roles - KEEP THESE AS-IS
   if (role === 'approver_areamanager' || role === 'approver_area_manager') {
     return 'Approver_AreaManager';
   }
-  
+
   if (role === 'approver_safety' || role === 'approver_safety_officer') {
     return 'Approver_Safety';
   }
-  
+
   if (role === 'approver_siteleader' || role === 'approver_site_leader') {
     return 'Approver_SiteLeader';
   }
-  
+
   // Worker role
   if (role === 'worker') {
     return 'Worker';
   }
-  
+
   // Requester/Supervisor roles
   if (role === 'requester' || role === 'supervisor') {
     return 'Supervisor';
   }
-  
+
   // Default to Supervisor
   console.warn('⚠️ Unknown role, defaulting to Supervisor:', dbRole);
   return 'Supervisor';
@@ -76,7 +76,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
     try {
       console.log('🔐 Attempting login...');
-      
+
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         login_id: loginId.trim(),
         password: password,
@@ -87,14 +87,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
       if (response.data.success) {
         const { token, user } = response.data.data;
-        
+
         console.log('✅ Login successful');
         console.log('👤 User role from DB:', user.role);
-        
+
         // Map the role
         const frontendRole = mapDatabaseRoleToFrontend(user.role);
         console.log('🎭 Mapped frontend role:', frontendRole);
-        
+
         const mappedUser: User = {
           ...user,
           frontendRole: frontendRole
@@ -103,18 +103,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         // Save token
         localStorage.setItem('token', token);
         sessionStorage.setItem('token', token);
-        
+
         // Save user
         const userStr = JSON.stringify(mappedUser);
         localStorage.setItem('user', userStr);
         sessionStorage.setItem('user', userStr);
-        
+
         // Also store role separately for easy access
         localStorage.setItem('userRole', frontendRole);
         sessionStorage.setItem('userRole', frontendRole);
-        
+
         console.log('💾 Stored user data:', mappedUser);
-        
+
         // Call onLogin
         onLogin(mappedUser);
       } else {
@@ -129,12 +129,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white shadow-2xl rounded-2xl">
+    <div className="relative flex items-center justify-center min-h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100">
+      {/* Animated background pattern */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+      </div>
+
+      {/* Main content */}
+      <div className="relative z-10 w-full max-w-md p-8 space-y-6 bg-white/90 backdrop-blur-xl shadow-2xl rounded-2xl border border-white/20">
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <div className="flex items-center justify-center w-32 h-20 shadow-lg bg-gradient-to-br from-orange-400 to-orange-400 rounded-xl">
-              <span className="text-3xl font-bold text-white">Amazon</span>
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-amber-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition duration-300"></div>
+              <div className="relative flex items-center justify-center p-4 bg-white shadow-lg rounded-xl">
+                <img src="/logo.jpg" alt="Amazon Logo" className="h-16 w-auto object-contain" />
+              </div>
             </div>
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
@@ -184,7 +195,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-3 font-semibold text-white transition-all rounded-lg shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 font-semibold text-white transition-all rounded-lg shadow-lg bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <span className="flex items-center justify-center">
@@ -222,8 +233,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
         <p className="text-sm text-center text-gray-600">
           Don't have an account?{' '}
-          <Link 
-            to="/signup" 
+          <Link
+            to="/signup"
             className="font-semibold text-blue-600 transition-colors hover:text-blue-700"
           >
             Sign up here

@@ -1,13 +1,13 @@
 // frontend/src/components/common/Sidebar.tsx
 // FIXED SIDEBAR WITH WORKING APPROVER NAVIGATION
 
-import { 
-  LayoutDashboard, 
-  Users, 
-  Plus, 
-  LogOut, 
-  X, 
-  Building2, 
+import {
+  LayoutDashboard,
+  Users,
+  Plus,
+  LogOut,
+  X,
+  Building2,
   FileText,
   Clock,
   CheckCircle,
@@ -34,15 +34,15 @@ interface SidebarProps {
   onMobileMenuClose: () => void;
 }
 
-export default function Sidebar({ 
-  currentUser, 
-  currentPage, 
-  onNavigate, 
+export default function Sidebar({
+  currentUser,
+  currentPage,
+  onNavigate,
   onLogout,
   isMobileMenuOpen,
   onMobileMenuClose
 }: SidebarProps) {
-  
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -55,16 +55,16 @@ export default function Sidebar({
   // Check BOTH role field AND frontendRole field (case-insensitive)
   const userRole = currentUser.role?.toLowerCase();
   const frontendRole = currentUser.frontendRole?.toLowerCase();
-  
-  const isAdmin = 
-    userRole === 'admin' || 
+
+  const isAdmin =
+    userRole === 'admin' ||
     userRole === 'administrator' ||
     frontendRole === 'admin';
 
   // ✅ Check if user is an approver
-  const isApprover = 
-    userRole === 'approver_areamanager' || 
-    userRole === 'approver_safety' || 
+  const isApprover =
+    userRole === 'approver_areamanager' ||
+    userRole === 'approver_safety' ||
     userRole === 'approver_siteleader' ||
     userRole?.includes('approver');
 
@@ -78,8 +78,8 @@ export default function Sidebar({
         { id: 'all-permits', label: 'All Permits', icon: FileText },
         { id: 'reports', label: 'Reports', icon: BarChart },
       ];
-    } 
-    
+    }
+
     // ✅ APPROVER MENU - Fixed to use special navigation
     else if (isApprover) {
       return [
@@ -88,8 +88,8 @@ export default function Sidebar({
         { id: 'approved', label: 'Approved Requests', icon: CheckCircle, isApproverTab: true },
         { id: 'rejected', label: 'Rejected Requests', icon: XCircle, isApproverTab: true },
       ];
-    } 
-    
+    }
+
     // ✅ SUPERVISOR MENU
     else {
       return [
@@ -114,19 +114,19 @@ export default function Sidebar({
 
   const NavButton = ({ item }: { item: any }) => {
     const Icon = item.icon;
-    
+
     // For approver tabs, check if we're on dashboard AND if this is the active tab
-    const isActive = item.isApproverTab 
+    const isActive = item.isApproverTab
       ? currentPage === 'dashboard' && false // Will be handled by parent component
       : currentPage === item.id;
-    
+
     return (
       <button
         onClick={() => handleNavClick(item)}
         className={`
           w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all
-          ${isActive 
-            ? 'bg-blue-600 text-white shadow-md' 
+          ${isActive
+            ? 'bg-orange-600 text-white shadow-md'
             : 'text-gray-700 hover:bg-gray-100'
           }
         `}
@@ -141,7 +141,7 @@ export default function Sidebar({
     <>
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={onMobileMenuClose}
         />
@@ -155,30 +155,32 @@ export default function Sidebar({
         lg:translate-x-0
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 text-white bg-blue-600 rounded-lg">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-gray-900">PTW System</h2>
-              <p className="text-xs text-gray-500">
+        <div className="relative p-4 border-b">
+          <div className="flex flex-col items-center gap-2">
+            <img
+              src="/logo.jpg"
+              alt="PTW System Logo"
+              className="w-50 h-50 object-contain rounded-lg"
+            />
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-gray-900">PTW System</h2>
+              <p className="text-xl text-gray-500">
                 {isAdmin ? 'Admin Panel' : isApprover ? 'Approver Panel' : 'Supervisor Panel'}
               </p>
             </div>
           </div>
           <button
             onClick={onMobileMenuClose}
-            className="text-gray-500 lg:hidden hover:text-gray-700"
+            className="absolute top-4 right-4 text-gray-500 lg:hidden hover:text-gray-700"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* User Profile */}
-        <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="p-4 border-b bg-gradient-to-r from-orange-50 to-amber-50">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-12 h-12 text-lg font-bold text-white rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
+            <div className="flex items-center justify-center w-12 h-12 text-lg font-bold text-white rounded-full bg-gradient-to-br from-orange-500 to-amber-600">
               {getInitials(currentUser.full_name)}
             </div>
             <div className="flex-1 min-w-0">
@@ -188,7 +190,7 @@ export default function Sidebar({
               <p className="text-xs text-gray-600 truncate">
                 {currentUser.email}
               </p>
-              <p className="text-xs font-medium text-blue-600 capitalize">
+              <p className="text-xs font-medium text-orange-600 capitalize">
                 {currentUser.role.replace(/_/g, ' ')}
               </p>
             </div>

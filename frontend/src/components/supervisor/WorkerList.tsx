@@ -83,8 +83,8 @@ export function WorkerList({ onBack }: WorkerListProps) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="p-6 bg-white border rounded-xl border-slate-200">
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
-              <User className="w-6 h-6 text-blue-600" />
+            <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
+              <User className="w-6 h-6 text-orange-600" />
             </div>
             <div>
               <p className="text-sm text-slate-600">Total Workers</p>
@@ -169,8 +169,8 @@ export function WorkerList({ onBack }: WorkerListProps) {
                   <tr key={worker.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full">
-                          <User className="w-5 h-5 text-blue-600" />
+                        <div className="flex items-center justify-center w-10 h-10 bg-orange-100 rounded-full">
+                          <User className="w-5 h-5 text-orange-600" />
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-slate-900">{worker.full_name}</div>
@@ -206,8 +206,8 @@ export function WorkerList({ onBack }: WorkerListProps) {
       </div>
 
       {/* Summary */}
-      <div className="p-4 border border-blue-200 bg-blue-50 rounded-xl">
-        <p className="text-sm text-blue-900">
+      <div className="p-4 border border-orange-200 bg-orange-50 rounded-xl">
+        <p className="text-sm text-orange-900">
           <span className="font-semibold">Showing:</span> {filteredWorkers.length} of {workers.length} workers
         </p>
       </div>

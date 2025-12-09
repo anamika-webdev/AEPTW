@@ -10,7 +10,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantClasses = {
-  primary: 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600',
+  primary: 'bg-orange-600 text-white hover:bg-orange-700 border-orange-600',
   secondary: 'bg-gray-600 text-white hover:bg-gray-700 border-gray-600',
   success: 'bg-green-600 text-white hover:bg-green-700 border-green-600',
   danger: 'bg-red-600 text-white hover:bg-red-700 border-red-600',
@@ -47,7 +47,7 @@ export const Button: React.FC<ButtonProps> = ({
         font-medium rounded-lg border
         transition-colors duration-200
         disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500
         ${variantClass}
         ${sizeClass}
         ${widthClass}
