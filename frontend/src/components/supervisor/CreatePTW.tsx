@@ -1922,6 +1922,51 @@ Include:
                   </div>
                 </div>
               </div>
+              {/* ====== NEW SECTION: Safety Observation Link & QR Code ====== */}
+              <div className="p-6 border-2 border-blue-200 rounded-lg bg-blue-50">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    {/* QR Code Placeholder */}
+                    <div className="w-24 h-24 bg-white border-2 border-blue-300 rounded-lg flex items-center justify-center">
+                      <img
+                        src="/QR.png"
+                        alt="Safety Observations QR Code"
+                        className="w-20 h-20 object-contain"
+                        onError={(e) => {
+                          // Fallback if image not found
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          if (target.parentElement) {
+                            target.parentElement.innerHTML = '<div class="text-xs text-blue-600 text-center p-2">QR Code</div>';
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-2">Safety Observations</h3>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Report safety concerns or observations during work execution
+                    </p>
+                    <a
+                      href="https://atoz.amazon.work/safety_observations"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                      Submit Safety Observation
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                    <p className="text-xs text-blue-600 mt-2">
+                      Scan the QR code or click the link above to access the safety observation system
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {/* ====== END NEW SECTION ====== */}
 
 
               <div className="p-4 border rounded-lg border-slate-200">
