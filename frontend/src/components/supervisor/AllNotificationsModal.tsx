@@ -67,7 +67,7 @@ export default function AllNotificationsModal({ isOpen, onClose, onViewPermit }:
         switch (type) {
             case 'PTW_APPROVED': return <Check className="w-5 h-5 text-green-600" />;
             case 'PTW_REJECTED': return <AlertCircle className="w-5 h-5 text-red-600" />;
-            case 'APPROVAL_REQUEST': return <Clock className="w-5 h-5 text-blue-600" />;
+            case 'APPROVAL_REQUEST': return <Clock className="w-5 h-5 text-orange-600" />;
             case 'EXTENSION_REQUEST': return <Clock className="w-5 h-5 text-orange-600" />;
             case 'PTW_CLOSED': return <Check className="w-5 h-5 text-gray-600" />;
             default: return <Clock className="w-5 h-5 text-gray-600" />;
@@ -91,7 +91,7 @@ export default function AllNotificationsModal({ isOpen, onClose, onViewPermit }:
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                     {loading ? (
                         <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
                         </div>
                     ) : notifications.length === 0 ? (
                         <div className="text-center py-12 text-gray-500">
@@ -99,7 +99,7 @@ export default function AllNotificationsModal({ isOpen, onClose, onViewPermit }:
                         </div>
                     ) : (
                         notifications.map((n) => (
-                            <div key={n.id} className={`flex items-start gap-4 p-4 rounded-lg border ${n.is_read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-100'}`}>
+                            <div key={n.id} className={`flex items-start gap-4 p-4 rounded-lg border ${n.is_read ? 'bg-white border-gray-200' : 'bg-orange-50 border-orange-100'}`}>
                                 <div className={`p-2 rounded-full flex-shrink-0 ${n.is_read ? 'bg-gray-100' : 'bg-white shadow-sm'}`}>
                                     {getIcon(n.notification_type)}
                                 </div>
@@ -115,7 +115,7 @@ export default function AllNotificationsModal({ isOpen, onClose, onViewPermit }:
                                     </div>
                                     <p className="text-sm text-gray-600 mb-2">{n.message}</p>
                                     <div className="flex items-center justify-between">
-                                        <span className={`text-xs px-2 py-1 rounded-full ${n.is_read ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-700'}`}>
+                                        <span className={`text-xs px-2 py-1 rounded-full ${n.is_read ? 'bg-gray-100 text-gray-600' : 'bg-orange-100 text-orange-700'}`}>
                                             {n.is_read ? 'Read' : 'Unread'}
                                         </span>
                                         <div className="flex gap-2">
@@ -128,7 +128,7 @@ export default function AllNotificationsModal({ isOpen, onClose, onViewPermit }:
                                                             onClose();
                                                         }
                                                     }}
-                                                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                                    className="text-xs text-orange-600 hover:text-orange-800 font-medium"
                                                 >
                                                     View Permit
                                                 </button>

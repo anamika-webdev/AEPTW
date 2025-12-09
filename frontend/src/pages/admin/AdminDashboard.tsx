@@ -33,16 +33,16 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      
+
       console.log('📡 Fetching stats from:', `${baseURL}/dashboard/stats`);
-      
+
       const response = await fetch(`${baseURL}/dashboard/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       const data = await response.json();
       console.log('📥 Stats response:', data);
-      
+
       setStats(data);
     } catch (error) {
       console.error('❌ Error loading stats:', error);
@@ -87,7 +87,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <RefreshCw className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
+          <RefreshCw className="w-12 h-12 mx-auto mb-4 text-orange-600 animate-spin" />
           <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -95,7 +95,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
+    <div className="min-h-screen p-6 bg-white">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -121,8 +121,8 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                 <p className="text-sm font-medium text-gray-600">Total Sites</p>
                 <p className="mt-2 text-4xl font-bold text-gray-900">{stats.totalSites || 0}</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Building2 className="w-8 h-8 text-blue-600" />
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <Building2 className="w-8 h-8 text-orange-600" />
               </div>
             </div>
           </div>
@@ -161,7 +161,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             {/* Manage Sites */}
             <button
               onClick={handleManageSites}
-              className="flex items-center justify-center gap-3 px-6 py-4 text-white transition-all bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-lg"
+              className="flex items-center justify-center gap-3 px-6 py-4 text-white transition-all bg-orange-600 rounded-lg hover:bg-orange-700 hover:shadow-lg"
             >
               <Building2 className="w-5 h-5" />
               <span className="font-medium">Manage Sites</span>
@@ -170,7 +170,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             {/* Manage Users */}
             <button
               onClick={handleManageUsers}
-              className="flex items-center justify-center gap-3 px-6 py-4 text-white transition-all bg-green-600 rounded-lg hover:bg-green-700 hover:shadow-lg"
+              className="flex items-center justify-center gap-3 px-6 py-4 text-white transition-all bg-amber-600 rounded-lg hover:bg-amber-700 hover:shadow-lg"
             >
               <Users className="w-5 h-5" />
               <span className="font-medium">Manage Users</span>
@@ -179,7 +179,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             {/* View All Permits */}
             <button
               onClick={handleViewPermits}
-              className="flex items-center justify-center gap-3 px-6 py-4 text-white transition-all bg-purple-600 rounded-lg hover:bg-purple-700 hover:shadow-lg"
+              className="flex items-center justify-center gap-3 px-6 py-4 text-white transition-all bg-orange-500 rounded-lg hover:bg-orange-600 hover:shadow-lg"
             >
               <FileText className="w-5 h-5" />
               <span className="font-medium">View All Permits</span>
@@ -188,7 +188,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             {/* View Reports */}
             <button
               onClick={handleViewReports}
-              className="flex items-center justify-center gap-3 px-6 py-4 text-white transition-all bg-gray-700 rounded-lg hover:bg-gray-800 hover:shadow-lg"
+              className="flex items-center justify-center gap-3 px-6 py-4 text-white transition-all bg-amber-700 rounded-lg hover:bg-amber-800 hover:shadow-lg"
             >
               <BarChart3 className="w-5 h-5" />
               <span className="font-medium">View Reports</span>
@@ -206,7 +206,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                     <p className="text-sm font-medium text-gray-600">Total Permits</p>
                     <p className="mt-2 text-3xl font-bold text-gray-900">{stats.totalPermits}</p>
                   </div>
-                  <FileText className="w-8 h-8 text-blue-500" />
+                  <FileText className="w-8 h-8 text-orange-500" />
                 </div>
               </div>
             )}

@@ -275,7 +275,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
   const getStatusBadge = (status: string) => {
     const config: Record<string, { bg: string; text: string; label: string }> = {
       'Initiated': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending Approval' },
-      'Approved': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Approved - Ready for Final Submit' },
+      'Approved': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Approved - Ready for Final Submit' },
       'Ready_To_Start': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Ready to Start' },
       'Active': { bg: 'bg-green-100', text: 'text-green-800', label: 'In Progress' },
       'Extension_Requested': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Extension Requested' },
@@ -329,19 +329,19 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     return (
       <div className="space-y-1.5">
         {permit.area_manager_name && (
-          <div className="flex items-center justify-between p-1.5 bg-gray-50 rounded">
+          <div className="flex items-center justify-between p-1.5 bg-white rounded">
             <span className="text-xs font-medium text-gray-700">Area Manager:</span>
             {getApprovalStatusBadge(permit.area_manager_status, permit.area_manager_name)}
           </div>
         )}
         {permit.safety_officer_name && (
-          <div className="flex items-center justify-between p-1.5 bg-gray-50 rounded">
+          <div className="flex items-center justify-between p-1.5 bg-white rounded">
             <span className="text-xs font-medium text-gray-700">Safety Officer:</span>
             {getApprovalStatusBadge(permit.safety_officer_status, permit.safety_officer_name)}
           </div>
         )}
         {permit.site_leader_name && (
-          <div className="flex items-center justify-between p-1.5 bg-gray-50 rounded">
+          <div className="flex items-center justify-between p-1.5 bg-white rounded">
             <span className="text-xs font-medium text-gray-700">Site Leader:</span>
             {getApprovalStatusBadge(permit.site_leader_status, permit.site_leader_name)}
           </div>
@@ -382,7 +382,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
       <div className="p-6 mb-6 bg-white rounded-lg shadow">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <span className="px-3 py-1 text-sm font-medium text-blue-600 rounded-full bg-blue-50">
+          <span className="px-3 py-1 text-sm font-medium text-orange-600 rounded-full bg-orange-50">
             {permits.length} Permits
           </span>
         </div>
@@ -396,7 +396,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-xs uppercase text-slate-600 bg-slate-50">
+                <thead className="text-xs uppercase text-slate-600 bg-white border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 text-left">Permit #</th>
                     <th className="px-4 py-3 text-left">Type</th>
@@ -410,8 +410,8 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
                 <tbody className="divide-y divide-slate-200">
                   {/* CHANGE: Map paginatedData instead of permits */}
                   {paginatedData.map((permit) => (
-                    <tr key={permit.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 font-medium text-blue-600">
+                    <tr key={permit.id} className="hover:bg-orange-50">
+                      <td className="px-4 py-3 font-medium text-orange-600">
                         <button
                           onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
                           className="hover:underline"
@@ -433,7 +433,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
                       {showActions && (
                         <td className="px-4 py-3 text-right">
                           {actionType === 'final-submit' && (
-                            <button onClick={() => handleFinalSubmit(permit.id)} className="px-3 py-1 text-xs font-medium text-white transition-colors bg-blue-600 rounded hover:bg-blue-700">
+                            <button onClick={() => handleFinalSubmit(permit.id)} className="px-3 py-1 text-xs font-medium text-white transition-colors bg-orange-600 rounded hover:bg-orange-700">
                               Final Submit
                             </button>
                           )}
@@ -446,7 +446,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
                             <div className="flex gap-2 justify-end">
                               <button
                                 onClick={() => handleExtend(permit)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-600 bg-white border border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
                               >
                                 <Calendar className="w-3.5 h-3.5" />
                                 Extend
@@ -464,7 +464,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
                             <div className="flex gap-2 justify-end">
                               <button
                                 onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-600 bg-white border border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
                               >
                                 View
                               </button>
@@ -480,7 +480,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
                           {actionType === 'view' && (
                             <button
                               onClick={() => onNavigate('permit-detail', { permitId: permit.id })}
-                              className="px-3 py-1 text-xs font-medium text-blue-600 transition-colors bg-blue-100 rounded hover:bg-blue-200"
+                              className="px-3 py-1 text-xs font-medium text-orange-600 transition-colors bg-orange-100 rounded hover:bg-orange-200"
                             >
                               View
                             </button>
@@ -512,7 +512,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <RefreshCw className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
+          <RefreshCw className="w-12 h-12 mx-auto mb-4 text-orange-600 animate-spin" />
           <p className="text-slate-600">Loading dashboard...</p>
         </div>
       </div>
@@ -524,7 +524,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     inProgressPermits.length + extendedPermits.length + closedPermits.length;
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
+    <div className="min-h-screen p-6 bg-white">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -535,14 +535,14 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
           <div className="flex gap-3">
             <button
               onClick={loadDashboardData}
-              className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg text-slate-700 border-slate-300 hover:bg-slate-50"
+              className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg text-slate-700 border-slate-300 hover:bg-orange-50"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh
             </button>
             <button
               onClick={() => onNavigate('create-permit')}
-              className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              className="flex items-center gap-2 px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
             >
               <FileText className="w-4 h-4" />
               Create PTW
@@ -596,9 +596,9 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Approved</p>
-                <p className="text-2xl font-bold text-blue-600">{approvedPermits.length}</p>
+                <p className="text-2xl font-bold text-orange-600">{approvedPermits.length}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-blue-600" />
+              <CheckCircle className="w-8 h-8 text-orange-600" />
             </div>
           </div>
         </div>
@@ -654,7 +654,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
         {/* Table 6: Extended PTWs (Extension Requested) */}
         <PermitTable
           permits={extendedPermits}
-          title="Extended PTWs (Extension Requested)"
+          title="Extended PTWs"
           emptyMessage="No extension requests"
           showActions={true}
           actionType="view-close"

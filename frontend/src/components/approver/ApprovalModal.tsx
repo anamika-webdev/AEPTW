@@ -194,7 +194,7 @@ export function ApprovalModal({ permit, onClose, onSuccess }: ApprovalModalProps
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div className="p-6 bg-white rounded-lg">
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto mb-4 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+            <div className="w-12 h-12 mx-auto mb-4 border-4 border-orange-600 rounded-full border-t-transparent animate-spin"></div>
             <p className="text-gray-600">Loading permit details...</p>
           </div>
         </div>
@@ -238,7 +238,7 @@ export function ApprovalModal({ permit, onClose, onSuccess }: ApprovalModalProps
                 <div>
                   <p className="text-sm font-medium text-gray-600">Permit Type</p>
                   <p className="mt-1">
-                    <span className="px-3 py-1 text-sm font-medium text-blue-800 bg-blue-100 rounded">
+                    <span className="px-3 py-1 text-sm font-medium text-orange-800 bg-orange-100 rounded">
                       {permitDetails.permit_type?.replace(/_/g, ' ')}
                     </span>
                   </p>
@@ -316,14 +316,14 @@ export function ApprovalModal({ permit, onClose, onSuccess }: ApprovalModalProps
 
             {/* PPE Required */}
             {permitDetails.ppe && permitDetails.ppe.length > 0 && (
-              <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+              <div className="p-4 border border-orange-200 rounded-lg bg-orange-50">
                 <h3 className="flex items-center gap-2 mb-3 text-lg font-semibold text-gray-900">
-                  <Shield className="w-5 h-5 text-blue-600" />
+                  <Shield className="w-5 h-5 text-orange-600" />
                   Required PPE
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {permitDetails.ppe.map((ppe: any, index: number) => (
-                    <span key={index} className="px-3 py-1 text-sm font-medium text-blue-800 bg-blue-200 rounded">
+                    <span key={index} className="px-3 py-1 text-sm font-medium text-orange-800 bg-orange-200 rounded">
                       {ppe.name}
                     </span>
                   ))}
@@ -489,7 +489,7 @@ export function ApprovalModal({ permit, onClose, onSuccess }: ApprovalModalProps
                 </div>
                 <button
                   onClick={clearSignature}
-                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                  className="mt-2 text-sm text-orange-600 hover:text-orange-800"
                 >
                   Clear Signature
                 </button>

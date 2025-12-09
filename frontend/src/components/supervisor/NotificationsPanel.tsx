@@ -135,7 +135,7 @@ export function NotificationsPanel({ onViewPermit }: NotificationsPanelProps) {
       case 'PTW_REJECTED':
         return <X className="w-5 h-5 text-red-600" />;
       case 'EXTENSION_REQUEST':
-        return <Clock className="w-5 h-5 text-blue-600" />;
+        return <Clock className="w-5 h-5 text-orange-600" />;
       case 'PTW_CLOSED':
         return <Check className="w-5 h-5 text-gray-600" />;
       default:
@@ -150,7 +150,7 @@ export function NotificationsPanel({ onViewPermit }: NotificationsPanelProps) {
       case 'PTW_REJECTED':
         return 'bg-red-50 border-red-200';
       case 'APPROVAL_REQUEST':
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-orange-50 border-orange-200';
       case 'EXTENSION_REQUEST':
         return 'bg-yellow-50 border-yellow-200';
       case 'PTW_CLOSED':
@@ -208,7 +208,7 @@ export function NotificationsPanel({ onViewPermit }: NotificationsPanelProps) {
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                    className="text-xs font-medium text-orange-600 hover:text-orange-800 transition-colors"
                     title="Mark all as read"
                   >
                     Clear All
@@ -221,7 +221,7 @@ export function NotificationsPanel({ onViewPermit }: NotificationsPanelProps) {
             <div className="flex-1 overflow-y-auto">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                  <div className="w-8 h-8 border-4 border-orange-600 rounded-full border-t-transparent animate-spin"></div>
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="py-12 text-center">
@@ -234,7 +234,7 @@ export function NotificationsPanel({ onViewPermit }: NotificationsPanelProps) {
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-4 transition-all ${!notification.is_read ? 'bg-blue-50' : 'hover:bg-gray-50'
+                      className={`p-4 transition-all ${!notification.is_read ? 'bg-orange-50' : 'hover:bg-gray-50'
                         }`}
                     >
                       <div className="flex gap-3">
@@ -244,7 +244,7 @@ export function NotificationsPanel({ onViewPermit }: NotificationsPanelProps) {
                             type="checkbox"
                             checked={notification.is_read}
                             onChange={() => toggleReadStatus(notification.id, notification.is_read)}
-                            className="w-5 h-5 text-blue-600 border-gray-300 rounded cursor-pointer focus:ring-2 focus:ring-blue-500 transition-all"
+                            className="w-5 h-5 text-orange-600 border-gray-300 rounded cursor-pointer focus:ring-2 focus:ring-orange-500 transition-all"
                             title={notification.is_read ? "Already read" : "Mark as read"}
                           />
                         </div>
@@ -258,7 +258,7 @@ export function NotificationsPanel({ onViewPermit }: NotificationsPanelProps) {
                         <div className="flex-1 min-w-0">
                           {notification.permit_serial && (
                             <div className="mb-1">
-                              <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                              <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
                                 {notification.permit_serial}
                               </span>
                             </div>
@@ -290,7 +290,7 @@ export function NotificationsPanel({ onViewPermit }: NotificationsPanelProps) {
                                     setShowDropdown(false);
                                   }
                                 }}
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 transition-colors rounded hover:bg-blue-100"
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 transition-colors rounded hover:bg-orange-100"
                               >
                                 <Eye className="w-3 h-3" />
                                 View Permit
@@ -324,7 +324,7 @@ export function NotificationsPanel({ onViewPermit }: NotificationsPanelProps) {
                   setShowAllModal(true);
                   setShowDropdown(false);
                 }}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                className="text-xs font-semibold text-orange-600 hover:text-orange-800"
               >
                 View All Notifications
               </button>

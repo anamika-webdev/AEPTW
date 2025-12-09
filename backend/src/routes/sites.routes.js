@@ -20,38 +20,57 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role?.toLowerCase();
-    
+
     console.log('📥 GET /api/sites - User:', userId, 'Role:', userRole);
-    
+
     let query;
     let params;
-    
-    // Admin sees all sites
+
+    // Admin sees all sites with permit counts
     if (userRole === 'admin' || userRole === 'administrator') {
-      query = 'SELECT * FROM sites WHERE is_active = TRUE ORDER BY name';
+      query = `
+        SELECT s.*, 
+               COUNT(p.id) as permit_count
+        FROM sites s
+        LEFT JOIN permits p ON s.id = p.site_id
+        WHERE s.is_active = TRUE
+        GROUP BY s.id
+        ORDER BY s.name
+      `;
       params = [];
     }
-    // Requesters/Supervisors see only their assigned sites
+    // Requesters/Supervisors see only their assigned sites with permit counts
     else if (userRole === 'requester' || userRole === 'supervisor') {
       query = `
-        SELECT s.* 
+        SELECT s.*, 
+               COUNT(p.id) as permit_count
         FROM sites s
         INNER JOIN requester_sites rs ON s.id = rs.site_id
+        LEFT JOIN permits p ON s.id = p.site_id
         WHERE s.is_active = TRUE AND rs.requester_user_id = ?
+        GROUP BY s.id
         ORDER BY s.name
       `;
       params = [userId];
     }
-    // Other roles see all sites (or you can restrict further)
+    // Other roles see all sites with permit counts
     else {
-      query = 'SELECT * FROM sites WHERE is_active = TRUE ORDER BY name';
+      query = `
+        SELECT s.*, 
+               COUNT(p.id) as permit_count
+        FROM sites s
+        LEFT JOIN permits p ON s.id = p.site_id
+        WHERE s.is_active = TRUE
+        GROUP BY s.id
+        ORDER BY s.name
+      `;
       params = [];
     }
-    
+
     const [sites] = await pool.query(query, params);
-    
+
     console.log(`✅ Fetched ${sites.length} sites for user ${userId}`);
-    
+
     res.json({
       success: true,
       count: sites.length,
@@ -73,10 +92,10 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     const userRole = req.user.role?.toLowerCase();
-    
+
     let query;
     let params;
-    
+
     // Admin can view any site
     if (userRole === 'admin' || userRole === 'administrator') {
       query = 'SELECT * FROM sites WHERE id = ?';
@@ -97,16 +116,16 @@ router.get('/:id', async (req, res) => {
       query = 'SELECT * FROM sites WHERE id = ?';
       params = [id];
     }
-    
+
     const [sites] = await pool.query(query, params);
-    
+
     if (sites.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Site not found or you do not have access to this site'
       });
     }
-    
+
     res.json({
       success: true,
       data: sites[0]
@@ -125,16 +144,16 @@ router.get('/:id', async (req, res) => {
 router.post('/', authorizeAdmin, async (req, res) => {
   try {
     const { site_code, name, location, address, city, state, country } = req.body;
-    
+
     console.log('📥 POST /api/sites - Creating new site:', { site_code, name });
-    
+
     if (!site_code || !name) {
       return res.status(400).json({
         success: false,
         message: 'Site code and name are required'
       });
     }
-    
+
     // Check if site_code already exists
     const [existing] = await pool.query(
       'SELECT id FROM sites WHERE site_code = ?',
@@ -142,9 +161,9 @@ router.post('/', authorizeAdmin, async (req, res) => {
     );
 
     if (existing.length > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Site code '${site_code}' already exists` 
+      return res.status(400).json({
+        success: false,
+        message: `Site code '${site_code}' already exists`
       });
     }
 
@@ -152,39 +171,39 @@ router.post('/', authorizeAdmin, async (req, res) => {
       `INSERT INTO sites (site_code, name, location, address, city, state, country, is_active, created_at) 
        VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
       [
-        site_code, 
-        name, 
-        location || null, 
-        address || null, 
-        city || null, 
-        state || null, 
+        site_code,
+        name,
+        location || null,
+        address || null,
+        city || null,
+        state || null,
         country || 'India'
       ]
     );
 
     const [newSite] = await pool.query('SELECT * FROM sites WHERE id = ?', [result.insertId]);
-    
+
     console.log('✅ Site created:', newSite[0]);
-    
-    res.status(201).json({ 
-      success: true, 
-      message: 'Site created successfully', 
-      data: newSite[0] 
+
+    res.status(201).json({
+      success: true,
+      message: 'Site created successfully',
+      data: newSite[0]
     });
   } catch (error) {
     console.error('❌ Create site error:', error);
-    
+
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Site code already exists' 
+      return res.status(400).json({
+        success: false,
+        message: 'Site code already exists'
       });
     }
-    
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to create site', 
-      error: error.message 
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create site',
+      error: error.message
     });
   }
 });
@@ -193,18 +212,18 @@ router.post('/', authorizeAdmin, async (req, res) => {
 router.put('/:id', authorizeAdmin, async (req, res) => {
   try {
     const { name, location, address, city, state, country, is_active } = req.body;
-    
+
     console.log('📥 Update site request:', { id: req.params.id, name, location });
-    
+
     // Check if site exists
     const [existing] = await pool.query('SELECT id FROM sites WHERE id = ?', [req.params.id]);
     if (existing.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Site not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Site not found'
       });
     }
-    
+
     await pool.query(
       `UPDATE sites 
        SET name = ?, 
@@ -217,32 +236,32 @@ router.put('/:id', authorizeAdmin, async (req, res) => {
            updated_at = NOW()
        WHERE id = ?`,
       [
-        name, 
-        location || null, 
-        address || null, 
-        city || null, 
-        state || null, 
-        country || 'India', 
-        is_active !== undefined ? is_active : true, 
+        name,
+        location || null,
+        address || null,
+        city || null,
+        state || null,
+        country || 'India',
+        is_active !== undefined ? is_active : true,
         req.params.id
       ]
     );
 
     const [updated] = await pool.query('SELECT * FROM sites WHERE id = ?', [req.params.id]);
-    
+
     console.log('✅ Site updated:', updated[0]);
-    
-    res.json({ 
-      success: true, 
-      message: 'Site updated successfully', 
-      data: updated[0] 
+
+    res.json({
+      success: true,
+      message: 'Site updated successfully',
+      data: updated[0]
     });
   } catch (error) {
     console.error('❌ Update site error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update site', 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update site',
+      error: error.message
     });
   }
 });
@@ -251,31 +270,45 @@ router.put('/:id', authorizeAdmin, async (req, res) => {
 router.delete('/:id', authorizeAdmin, async (req, res) => {
   try {
     console.log('📥 Delete site request:', req.params.id);
-    
+
     // Check if site exists
     const [existing] = await pool.query('SELECT id FROM sites WHERE id = ?', [req.params.id]);
     if (existing.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Site not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Site not found'
       });
     }
-    
+
+    // Check if site has any permits
+    const [permits] = await pool.query(
+      'SELECT COUNT(*) as count FROM permits WHERE site_id = ?',
+      [req.params.id]
+    );
+
+    if (permits[0].count > 0) {
+      console.log(`⚠️ Cannot delete site ${req.params.id} - has ${permits[0].count} permit(s)`);
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete site with ${permits[0].count} existing permit(s). Please close or cancel all permits first.`
+      });
+    }
+
     // Soft delete (set is_active = FALSE)
-    await pool.query('UPDATE sites SET is_active = FALSE WHERE id = ?', [req.params.id]);
-    
+    await pool.query('UPDATE sites SET is_active = FALSE, updated_at = NOW() WHERE id = ?', [req.params.id]);
+
     console.log('✅ Site deleted (soft delete)');
-    
-    res.json({ 
-      success: true, 
-      message: 'Site deleted successfully' 
+
+    res.json({
+      success: true,
+      message: 'Site deleted successfully'
     });
   } catch (error) {
     console.error('❌ Delete site error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to delete site', 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete site',
+      error: error.message
     });
   }
 });

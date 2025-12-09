@@ -63,7 +63,7 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
             <input
               type="text"
               placeholder="Search permits, sites, users..."
-              className="w-64 py-2 pl-4 pr-4 text-sm border border-gray-300 rounded-lg lg:w-96 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-64 py-2 pl-4 pr-4 text-sm border border-gray-300 rounded-lg lg:w-96 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
                 <p className="text-sm font-semibold text-gray-900">{currentUser.full_name}</p>
                 <p className="text-xs text-gray-500">{currentUser.role}</p>
               </div>
-              <div className="flex items-center justify-center w-10 h-10 text-white rounded-full bg-gradient-to-br from-blue-600 to-indigo-600">
+              <div className="flex items-center justify-center w-10 h-10 text-white rounded-full bg-gradient-to-br from-orange-600 to-amber-600">
                 <span className="text-sm font-bold">{getInitials(currentUser.full_name)}</span>
               </div>
             </button>
@@ -92,7 +92,7 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
             {showProfileDropdown && (
               <div className="absolute right-0 z-50 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg w-80">
                 {/* User Info */}
-                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600">
+                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-orange-600 to-amber-600">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-16 h-16 text-white rounded-full bg-white/20">
                       <span className="text-xl font-bold">{getInitials(currentUser.full_name)}</span>

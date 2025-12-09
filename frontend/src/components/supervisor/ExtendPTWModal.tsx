@@ -2,7 +2,7 @@
 // FIXED VERSION - Correct prop interface
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
-import { X, Calendar, Clock as ClockIcon, AlertCircle } from 'lucide-react';
+import { X, Calendar, Clock as ClockIcon } from 'lucide-react';
 
 interface PermitWithDetails {
   id: number;
@@ -101,18 +101,18 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Current Details */}
-          <div className="p-4 rounded-lg bg-blue-50">
-            <p className="mb-2 text-sm font-medium text-blue-900">Current Schedule</p>
+          <div className="p-4 rounded-lg bg-orange-50">
+            <p className="mb-2 text-sm font-medium text-orange-900">Current Schedule</p>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-blue-700">Start:</span>{' '}
-                <span className="font-medium text-blue-900">
+                <span className="text-orange-700">Start:</span>{' '}
+                <span className="font-medium text-orange-900">
                   {formatDate(permit.start_time)} {formatTime(permit.start_time)}
                 </span>
               </div>
               <div>
-                <span className="text-blue-700">End:</span>{' '}
-                <span className="font-medium text-blue-900">
+                <span className="text-orange-700">End:</span>{' '}
+                <span className="font-medium text-orange-900">
                   {formatDate(permit.end_time)} {formatTime(permit.end_time)}
                 </span>
               </div>
@@ -129,7 +129,7 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
                 type="date"
                 value={extensionData.new_end_date}
                 onChange={(e) => setExtensionData({ ...extensionData, new_end_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 required
               />
               <Calendar className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 pointer-events-none right-3 top-1/2" />
@@ -146,7 +146,7 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
                 type="time"
                 value={extensionData.new_end_time}
                 onChange={(e) => setExtensionData({ ...extensionData, new_end_time: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 required
               />
               <ClockIcon className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 pointer-events-none right-3 top-1/2" />
@@ -161,7 +161,7 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
             <textarea
               value={extensionData.reason}
               onChange={(e) => setExtensionData({ ...extensionData, reason: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="Explain why the work requires additional time..."
               rows={3}
               required
@@ -179,7 +179,7 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
               max="100"
               value={extensionData.current_completion}
               onChange={(e) => setExtensionData({ ...extensionData, current_completion: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="e.g., 65"
               required
             />
@@ -202,7 +202,7 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              className="flex-1 bg-orange-600 hover:bg-orange-700"
             >
               Extend PTW
             </Button>

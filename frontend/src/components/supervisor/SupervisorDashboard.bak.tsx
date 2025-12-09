@@ -64,7 +64,7 @@ export function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
       case 'Pending_Approval':
         return 'bg-yellow-100 text-yellow-800';
       case 'Active':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-orange-100 text-orange-800';
       case 'Closed':
         return 'bg-green-100 text-green-800';
       case 'Rejected':

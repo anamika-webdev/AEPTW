@@ -30,7 +30,7 @@ const statusConfig: Record<PermitStatus, { label: string; className: string }> =
   },
   Closed: {
     label: 'Closed',
-    className: 'bg-blue-100 text-blue-800 border-blue-300',
+    className: 'bg-amber-100 text-amber-800 border-amber-300',
   },
   Cancelled: {
     label: 'Cancelled',

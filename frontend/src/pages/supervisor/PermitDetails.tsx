@@ -194,7 +194,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
       'Approved': { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle },
       'Rejected': { bg: 'bg-red-100', text: 'text-red-800', icon: XCircle },
       'Ready_To_Start': { bg: 'bg-purple-100', text: 'text-purple-800', icon: AlertOctagon },
-      'Active': { bg: 'bg-blue-100', text: 'text-blue-800', icon: CheckCircle },
+      'Active': { bg: 'bg-orange-100', text: 'text-orange-800', icon: CheckCircle },
       'Closed': { bg: 'bg-gray-100', text: 'text-gray-800', icon: FileCheck },
     };
 
@@ -233,7 +233,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+          <div className="w-16 h-16 mx-auto mb-4 border-4 border-orange-600 rounded-full border-t-transparent animate-spin"></div>
           <p className="text-lg font-medium text-slate-700">Loading permit details...</p>
         </div>
       </div>
@@ -291,7 +291,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
         {/* ==================== SECTION 1: Basic Information ==================== */}
         <div className="p-6 bg-white shadow-lg rounded-xl">
           <div className="flex items-center gap-3 pb-4 mb-6 border-b-2">
-            <FileText className="text-blue-600 w-7 h-7" />
+            <FileText className="text-orange-600 w-7 h-7" />
             <h2 className="text-2xl font-bold text-slate-900">Basic Information</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -308,7 +308,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
             <h3 className="mb-3 text-lg font-semibold text-slate-900">Permit Categories</h3>
             <div className="flex flex-wrap gap-2">
               {permitTypes.map((type, index) => (
-                <span key={index} className="px-4 py-2 text-sm font-semibold text-blue-900 bg-blue-100 border border-blue-300 rounded-full">
+                <span key={index} className="px-4 py-2 text-sm font-semibold text-orange-900 bg-orange-100 border border-orange-300 rounded-full">
                   {type.replace(/_/g, ' ')}
                 </span>
               ))}
@@ -550,14 +550,14 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
         {ppe.length > 0 && (
           <div className="p-6 bg-white shadow-lg rounded-xl">
             <div className="flex items-center gap-3 pb-4 mb-6 border-b-2">
-              <Shield className="text-blue-600 w-7 h-7" />
+              <Shield className="text-orange-600 w-7 h-7" />
               <h2 className="text-2xl font-bold text-slate-900">Required PPE ({ppe.length})</h2>
             </div>
             <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
               {ppe.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
-                  <Shield className="flex-shrink-0 w-6 h-6 text-blue-600" />
-                  <p className="font-bold text-blue-900">{item.name || item.ppe_name}</p>
+                <div key={item.id} className="flex items-center gap-3 p-4 border-2 border-orange-200 rounded-lg bg-orange-50">
+                  <Shield className="flex-shrink-0 w-6 h-6 text-orange-600" />
+                  <p className="font-bold text-orange-900">{item.name || item.ppe_name}</p>
                 </div>
               ))}
             </div>

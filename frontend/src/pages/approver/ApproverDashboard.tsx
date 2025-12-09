@@ -196,7 +196,7 @@ export default function ApproverDashboard({ initialTab = 'pending', onNavigate }
                       {/* ✅ VIEW BUTTON - Same as Supervisor Dashboard */}
                       <button
                         onClick={() => handleViewDetails(permit)}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-600 transition-colors bg-blue-100 rounded hover:bg-blue-200"
+                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-orange-600 transition-colors bg-orange-100 rounded hover:bg-orange-200"
                       >
                         <Eye className="w-3 h-3" />
                         View
@@ -245,13 +245,13 @@ export default function ApproverDashboard({ initialTab = 'pending', onNavigate }
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
+        <div className="w-16 h-16 border-4 border-orange-600 rounded-full animate-spin border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
+    <div className="min-h-screen p-6 bg-white">
       <div className="mx-auto max-w-7xl">
         <h1 className="mb-6 text-3xl font-bold">Approver Dashboard</h1>
         <p className="mb-6 text-gray-600">Role: <strong>{approverRole}</strong></p>

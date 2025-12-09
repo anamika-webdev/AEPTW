@@ -199,7 +199,7 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
                   type="checkbox"
                   checked={closureData.housekeeping_done}
                   onChange={() => handleCheckboxChange('housekeeping_done')}
-                  className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-5 h-5 mt-0.5 text-orange-600 border-gray-300 rounded focus:ring-2 focus:ring-orange-500"
                 />
                 <div className="flex-1">
                   <span className="font-medium text-gray-900">Housekeeping completed</span>
@@ -212,7 +212,7 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
                   type="checkbox"
                   checked={closureData.tools_removed}
                   onChange={() => handleCheckboxChange('tools_removed')}
-                  className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-5 h-5 mt-0.5 text-orange-600 border-gray-300 rounded focus:ring-2 focus:ring-orange-500"
                 />
                 <div className="flex-1">
                   <span className="font-medium text-gray-900">All tools removed</span>
@@ -225,7 +225,7 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
                   type="checkbox"
                   checked={closureData.locks_removed}
                   onChange={() => handleCheckboxChange('locks_removed')}
-                  className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-5 h-5 mt-0.5 text-orange-600 border-gray-300 rounded focus:ring-2 focus:ring-orange-500"
                 />
                 <div className="flex-1">
                   <span className="font-medium text-gray-900">Locks/Tags removed</span>
@@ -238,7 +238,7 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
                   type="checkbox"
                   checked={closureData.area_restored}
                   onChange={() => handleCheckboxChange('area_restored')}
-                  className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-5 h-5 mt-0.5 text-orange-600 border-gray-300 rounded focus:ring-2 focus:ring-orange-500"
                 />
                 <div className="flex-1">
                   <span className="font-medium text-gray-900">Area restored to normal</span>
@@ -256,7 +256,7 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
             <textarea
               value={closureData.completion_notes}
               onChange={(e) => setClosureData({ ...closureData, completion_notes: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="Details about completed work..."
               rows={3}
             />
@@ -270,7 +270,7 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
             <textarea
               value={closureData.safety_incidents}
               onChange={(e) => setClosureData({ ...closureData, safety_incidents: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="Report any incidents..."
               rows={2}
             />

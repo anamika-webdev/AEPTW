@@ -10,8 +10,8 @@ interface ExportPermitsButtonProps {
   variant?: 'primary' | 'secondary';
 }
 
-export default function ExportPermitsButton({ 
-  permits, 
+export default function ExportPermitsButton({
+  permits,
   fileName = 'PTW_Export',
   variant = 'primary'
 }: ExportPermitsButtonProps) {
@@ -21,7 +21,7 @@ export default function ExportPermitsButton({
   const exportToExcel = () => {
     setIsExporting(true);
     setShowDropdown(false);
-    
+
     try {
       // Create CSV content
       const headers = [
@@ -59,21 +59,21 @@ export default function ExportPermitsButton({
       // Add BOM for Excel UTF-8 support
       const BOM = '\uFEFF';
       const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-      
+
       // Create download link
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', `${fileName}_${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       URL.revokeObjectURL(url);
-      
+
       alert(`✅ Successfully exported ${permits.length} permit(s) to Excel!`);
     } catch (error) {
       console.error('Error exporting to Excel:', error);
@@ -86,7 +86,7 @@ export default function ExportPermitsButton({
   const exportToPDF = () => {
     setIsExporting(true);
     setShowDropdown(false);
-    
+
     try {
       // Create HTML content for PDF
       const htmlContent = `
@@ -209,12 +209,12 @@ export default function ExportPermitsButton({
       if (printWindow) {
         printWindow.document.write(htmlContent);
         printWindow.document.close();
-        
+
         // Trigger print dialog after content loads
         setTimeout(() => {
           printWindow.print();
         }, 500);
-        
+
         alert('✅ PDF ready! Use Print > Save as PDF in the print dialog.');
       } else {
         alert('❌ Please allow popups to export to PDF.');
@@ -228,7 +228,7 @@ export default function ExportPermitsButton({
   };
 
   const buttonClasses = variant === 'primary'
-    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+    ? 'bg-orange-600 hover:bg-orange-700 text-white'
     : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300';
 
   return (
@@ -255,11 +255,11 @@ export default function ExportPermitsButton({
       {showDropdown && !isExporting && (
         <>
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-10" 
+          <div
+            className="fixed inset-0 z-10"
             onClick={() => setShowDropdown(false)}
           />
-          
+
           {/* Menu */}
           <div className="absolute right-0 z-20 w-48 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg">
             <button

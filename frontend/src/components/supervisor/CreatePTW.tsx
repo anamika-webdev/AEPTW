@@ -872,7 +872,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
   const getCategoryBadgeColor = (category: PermitType) => {
     const colors: Record<PermitType, string> = {
-      'General': 'bg-blue-100 text-blue-800 border-blue-300',
+      'General': 'bg-orange-100 text-orange-800 border-orange-300',
       'Height': 'bg-purple-100 text-purple-800 border-purple-300',
       'Hot_Work': 'bg-red-100 text-red-800 border-red-300',
       'Electrical': 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -885,7 +885,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin"></div>
+          <div className="w-12 h-12 mx-auto mb-4 border-b-2 border-orange-600 rounded-full animate-spin"></div>
           <p className="text-slate-600">Loading form data...</p>
         </div>
       </div>
@@ -958,7 +958,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                       className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.categories.includes(category)
                         ? isHighRisk
                           ? 'border-red-500 bg-red-50'
-                          : 'border-blue-500 bg-blue-50'
+                          : 'border-orange-500 bg-orange-50'
                         : 'border-slate-200 hover:border-slate-300'
                         }`}
                     >
@@ -1052,7 +1052,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 {sites.length > 0 ? (
                   <p className="flex items-center gap-1 mt-2 text-xs text-green-600">
                     <Check className="w-3 h-3" />
-                    {sites.length} site(s) loaded
+                    {sites.length} sites assigned
                   </p>
                 ) : (
                   <p className="flex items-center gap-1 mt-2 text-xs text-amber-600">
@@ -1177,9 +1177,9 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Issued To & Workers Assignment</h2>
 
-            <div className="p-6 space-y-4 border-2 border-blue-200 rounded-lg bg-blue-50">
+            <div className="p-6 space-y-4 border-2 border-orange-200 rounded-lg bg-orange-50">
               <h3 className="flex items-center gap-2 font-medium text-slate-900">
-                <FileText className="w-5 h-5 text-blue-600" />
+                <FileText className="w-5 h-5 text-orange-600" />
                 Issued To (Permit Recipient)
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
@@ -1328,7 +1328,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="flex gap-2 pt-3 mt-3 border-t border-blue-300">
+                        <div className="flex gap-2 pt-3 mt-3 border-t border-orange-300">
                           <button
                             type="button"
                             onClick={() => {
@@ -1460,8 +1460,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               />
             </div>
 
-            <div className="p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
-              <p className="mb-2 text-sm font-semibold text-blue-900">
+            <div className="p-4 border-2 border-orange-200 rounded-lg bg-orange-50">
+              <p className="mb-2 text-sm font-semibold text-orange-900">
                 Note: Describe all safety measures, procedures, and precautions to be taken
               </p>
             </div>
@@ -1492,19 +1492,19 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                       }));
                     }}
                     className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${formData.selectedPPE.includes(index + 1)
-                      ? 'border-blue-500 bg-blue-50 shadow-md scale-105'
-                      : 'border-slate-200 hover:border-blue-300 bg-white'
+                      ? 'border-orange-500 bg-orange-50 shadow-md scale-105'
+                      : 'border-slate-200 hover:border-orange-300 bg-white'
                       }`}
                   >
                     <div className="transition-transform">
                       <PPEIconComponent name={ppeName} />
                     </div>
-                    <span className={`text-sm font-semibold text-center ${formData.selectedPPE.includes(index + 1) ? 'text-blue-900' : 'text-slate-700'
+                    <span className={`text-sm font-semibold text-center ${formData.selectedPPE.includes(index + 1) ? 'text-orange-900' : 'text-slate-700'
                       }`}>
                       {ppeName}
                     </span>
                     {formData.selectedPPE.includes(index + 1) && (
-                      <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-full shadow-sm">
+                      <div className="flex items-center justify-center w-8 h-8 bg-orange-600 rounded-full shadow-sm">
                         <Check className="w-5 h-5 text-white" />
                       </div>
                     )}
@@ -1923,6 +1923,7 @@ Include:
                 </div>
               </div>
 
+
               <div className="p-4 border rounded-lg border-slate-200">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <Checkbox
@@ -2001,6 +2002,6 @@ function getCategoryBadgeColor(category: string) {
     case 'Confined_Space': return 'bg-orange-100 text-orange-700 border-orange-200';
     case 'Electrical': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     case 'Height': return 'bg-purple-100 text-purple-700 border-purple-200';
-    default: return 'bg-blue-100 text-blue-700 border-blue-200';
+    default: return 'bg-orange-100 text-orange-700 border-orange-200';
   }
 }

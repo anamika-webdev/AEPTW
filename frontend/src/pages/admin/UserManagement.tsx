@@ -284,7 +284,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     if (role === 'Admin' || role === 'Administrator') return 'bg-red-100 text-red-800 border-red-200';
     if (role === 'Requester' || role === 'Supervisor') return 'bg-purple-100 text-purple-800 border-purple-200';
     if (role === 'Worker') return 'bg-green-100 text-green-800 border-green-200';
-    if (role.includes('Approver')) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (role.includes('Approver')) return 'bg-orange-100 text-orange-800 border-orange-200';
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
@@ -375,7 +375,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                  className="mt-2 text-sm text-orange-600 hover:text-orange-800"
                 >
                   Clear search
                 </button>
@@ -390,8 +390,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       <tr key={user.id} className="hover:bg-gray-50">
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="flex items-center">
-            <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full">
-              <User className="w-5 h-5 text-blue-600" />
+            <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 bg-orange-100 rounded-full">
+              <User className="w-5 h-5 text-orange-600" />
             </div>
             <div className="ml-4">
               <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
@@ -444,7 +444,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
           <button
             onClick={() => openEditModal(user)}
-            className="mr-3 text-blue-600 hover:text-blue-900"
+            className="mr-3 text-orange-600 hover:text-orange-900"
             title="Edit user"
           >
             <Edit className="w-4 h-4" />
@@ -472,7 +472,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-orange-600 animate-spin" />
       </div>
     );
   }
@@ -500,7 +500,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
         >
           <UserPlus className="w-5 h-5" />
           Create New User
@@ -516,7 +516,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, email, or login ID..."
-            className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -527,7 +527,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           <button
             onClick={() => setActiveTab('all')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
-              ? 'border-blue-600 text-blue-600 bg-blue-50'
+              ? 'border-orange-600 text-orange-600 bg-orange-50'
               : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
           >
@@ -579,7 +579,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           <button
             onClick={() => setActiveTab('approvers')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'approvers'
-              ? 'border-blue-600 text-blue-600 bg-blue-50'
+              ? 'border-orange-600 text-orange-600 bg-orange-50'
               : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
           >
@@ -592,13 +592,13 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
         {/* Active filter indicator */}
         {activeTab !== 'all' && (
-          <div className="flex items-center gap-2 px-4 py-2 mt-2 border border-blue-200 rounded-lg bg-blue-50">
-            <span className="text-sm text-blue-700">
+          <div className="flex items-center gap-2 px-4 py-2 mt-2 border border-orange-200 rounded-lg bg-orange-50">
+            <span className="text-sm text-orange-700">
               Showing {filteredUsers.length} {activeTab === 'admins' ? 'administrator' : activeTab.slice(0, -1)}(s)
             </span>
             <button
               onClick={() => setActiveTab('all')}
-              className="ml-auto text-sm font-medium text-blue-600 hover:text-blue-800"
+              className="ml-auto text-sm font-medium text-orange-600 hover:text-orange-800"
             >
               Clear filter
             </button>
@@ -686,7 +686,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     onClick={() => setCurrentPage(pageNum)}
                     aria-current={currentPage === pageNum ? 'page' : undefined}
                     className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
-                      ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                      ? 'z-10 bg-orange-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
                       : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
                       }`}
                   >
@@ -726,7 +726,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     value={newUser.login_id}
                     onChange={(e) => setNewUser({ ...newUser, login_id: e.target.value })}
                     placeholder="username"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -739,7 +739,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     value={newUser.full_name}
                     onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
                     placeholder="Gaurav Shukla"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -753,7 +753,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   placeholder="john@example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
@@ -767,7 +767,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     value={newUser.password}
                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                     placeholder="••••••••"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -780,7 +780,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     value={newUser.confirmPassword}
                     onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
                     placeholder="••••••••"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -793,7 +793,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   <select
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="Worker">Worker</option>
                     <option value="Requester">Supervisor</option>
@@ -813,7 +813,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     value={newUser.department}
                     onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
                     placeholder="Operations, IT, etc."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -827,7 +827,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 </button>
                 <button
                   onClick={handleCreateUser}
-                  className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
                 >
                   Create User
                 </button>
@@ -853,7 +853,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     type="text"
                     value={editFormData.full_name}
                     onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -865,7 +865,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     type="email"
                     value={editFormData.email}
                     onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -879,7 +879,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   value={editFormData.password}
                   onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
@@ -891,7 +891,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   <select
                     value={editFormData.role}
                     onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="Worker">Worker</option>
                     <option value="Requester">Supervisor</option>
@@ -910,7 +910,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     type="text"
                     value={editFormData.department}
                     onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -933,7 +933,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 </button>
                 <button
                   onClick={handleEditUser}
-                  className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
                 >
                   Save Changes
                 </button>
@@ -977,8 +977,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
               {/* User Info Card */}
               <div className="p-4 rounded-lg bg-gray-50">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
-                    <User className="w-8 h-8 text-blue-600" />
+                  <div className="flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full">
+                    <User className="w-8 h-8 text-orange-600" />
                   </div>
                   <div>
                     <h4 className="text-lg font-semibold text-gray-900">{viewingUser.full_name}</h4>
@@ -1035,7 +1035,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 <div className="pt-4 border-t">
                   {userAssignments.loading ? (
                     <div className="p-4 text-center rounded-lg bg-gray-50">
-                      <Loader2 className="w-6 h-6 mx-auto mb-2 text-blue-600 animate-spin" />
+                      <Loader2 className="w-6 h-6 mx-auto mb-2 text-orange-600 animate-spin" />
                       <p className="text-sm text-gray-600">Loading assignments...</p>
                     </div>
                   ) : (userAssignments.sites.length > 0 || userAssignments.workers.length > 0) ? (
@@ -1044,14 +1044,14 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                       {userAssignments.sites.length > 0 && (
                         <div>
                           <h5 className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-900">
-                            <Building2 className="w-4 h-4 text-blue-600" />
+                            <Building2 className="w-4 h-4 text-orange-600" />
                             Assigned Sites ({userAssignments.sites.length})
                           </h5>
                           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             {userAssignments.sites.map((site: any) => (
                               <div
                                 key={site.assignment_id}
-                                className="p-3 border border-gray-200 rounded-lg bg-blue-50"
+                                className="p-3 border border-gray-200 rounded-lg bg-orange-50"
                               >
                                 <p className="text-sm font-medium text-gray-900">{site.name}</p>
                                 <p className="text-xs text-gray-600">Code: {site.site_code}</p>
@@ -1101,7 +1101,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   setShowViewModal(false);
                   openEditModal(viewingUser);
                 }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700"
               >
                 Edit User
               </button>

@@ -5,13 +5,13 @@ interface StatCardProps {
   title: string;
   value: number | string;
   icon?: React.ReactNode;
-  color?: 'blue' | 'green' | 'yellow' | 'red' | 'gray';
+  color?: 'orange' | 'green' | 'yellow' | 'red' | 'gray';
   subtitle?: string;
   onClick?: () => void;
 }
 
 const colorClasses = {
-  blue: 'bg-blue-50 border-blue-200 text-blue-700',
+  orange: 'bg-orange-50 border-orange-200 text-orange-700',
   green: 'bg-green-50 border-green-200 text-green-700',
   yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700',
   red: 'bg-red-50 border-red-200 text-red-700',
@@ -22,7 +22,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
   icon,
-  color = 'blue',
+  color = 'orange',
   subtitle,
   onClick,
 }) => {
@@ -31,9 +31,8 @@ export const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <div
-      className={`border rounded-lg p-4 ${colorClass} ${
-        isClickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
-      }`}
+      className={`border rounded-lg p-4 ${colorClass} ${isClickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
+        }`}
       onClick={onClick}
       role={isClickable ? 'button' : undefined}
       tabIndex={isClickable ? 0 : undefined}

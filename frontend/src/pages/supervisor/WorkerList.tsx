@@ -181,7 +181,7 @@ export default function WorkerList() {
   };
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 bg-white sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="flex flex-col justify-between gap-4 mb-6 sm:flex-row sm:items-center">
@@ -193,7 +193,7 @@ export default function WorkerList() {
           </div>
           <Button
             onClick={() => setShowAddModal(true)}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Worker
@@ -209,8 +209,8 @@ export default function WorkerList() {
                   <p className="text-sm font-medium text-gray-600">Total Workers</p>
                   <p className="mt-1 text-3xl font-bold text-gray-900">{workers.length}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <User className="w-6 h-6 text-blue-600" />
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <User className="w-6 h-6 text-orange-600" />
                 </div>
               </div>
             </CardContent>
@@ -276,14 +276,14 @@ export default function WorkerList() {
                   placeholder="Search by name, ID, or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
 
               <select
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               >
                 {departments.map(dept => (
                   <option key={dept} value={dept}>
@@ -295,7 +295,7 @@ export default function WorkerList() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
@@ -339,7 +339,7 @@ export default function WorkerList() {
                       <tr key={worker.id} className="transition-colors hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-10 h-10 text-white rounded-full bg-gradient-to-br from-blue-600 to-indigo-600">
+                            <div className="flex items-center justify-center w-10 h-10 text-white rounded-full bg-gradient-to-br from-orange-600 to-amber-600">
                               <span className="text-sm font-bold">
                                 {worker.name.split(' ').map(n => n[0]).join('')}
                               </span>
@@ -459,7 +459,7 @@ export default function WorkerList() {
                     value={newWorker.employeeId}
                     onChange={(e) => setNewWorker({ ...newWorker, employeeId: e.target.value })}
                     placeholder="Auto-generated if empty"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -470,7 +470,7 @@ export default function WorkerList() {
                     value={newWorker.name}
                     onChange={(e) => setNewWorker({ ...newWorker, name: e.target.value })}
                     placeholder="Gaurav Shukla"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     required
                   />
                 </div>
@@ -482,7 +482,7 @@ export default function WorkerList() {
                     value={newWorker.email}
                     onChange={(e) => setNewWorker({ ...newWorker, email: e.target.value })}
                     placeholder="john.doe@company.com"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     required
                   />
                 </div>
@@ -494,7 +494,7 @@ export default function WorkerList() {
                     value={newWorker.phone}
                     onChange={(e) => setNewWorker({ ...newWorker, phone: e.target.value })}
                     placeholder="+1 234-567-8900"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     required
                   />
                 </div>
@@ -504,7 +504,7 @@ export default function WorkerList() {
                   <select
                     value={newWorker.department}
                     onChange={(e) => setNewWorker({ ...newWorker, department: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     required
                   >
                     <option value="">Select Department</option>
@@ -523,7 +523,7 @@ export default function WorkerList() {
                     value={newWorker.position}
                     onChange={(e) => setNewWorker({ ...newWorker, position: e.target.value })}
                     placeholder="Technician"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     required
                   />
                 </div>
@@ -533,7 +533,7 @@ export default function WorkerList() {
                 <Button variant="outline" onClick={() => setShowAddModal(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddWorker} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleAddWorker} className="bg-orange-600 hover:bg-orange-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Worker
                 </Button>

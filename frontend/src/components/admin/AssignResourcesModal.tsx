@@ -203,7 +203,7 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
             onClick={() => setActiveTab('sites')}
             className={`px-6 py-3 text-sm font-medium transition-colors ${
               activeTab === 'sites'
-                ? 'border-b-2 border-blue-600 text-blue-600'
+                ? 'border-b-2 border-orange-600 text-orange-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -214,7 +214,7 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
             onClick={() => setActiveTab('workers')}
             className={`px-6 py-3 text-sm font-medium transition-colors ${
               activeTab === 'workers'
-                ? 'border-b-2 border-blue-600 text-blue-600'
+                ? 'border-b-2 border-orange-600 text-orange-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -227,7 +227,7 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
         <div className="flex-1 p-6 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+              <Loader2 className="w-8 h-8 text-orange-600 animate-spin" />
             </div>
           ) : (
             <>
