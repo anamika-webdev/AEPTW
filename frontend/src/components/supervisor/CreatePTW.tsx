@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { DigitalSignature } from '../shared/DigitalSignature';
-import NameInputField from './NameInputField';
+
 import {
   sitesAPI,
   masterDataAPI,
@@ -19,8 +19,6 @@ import {
 } from '../../services/api';
 import type {
   Site,
-  MasterHazard,
-  MasterPPE,
   User,
   MasterChecklistQuestion,
   PermitType,
@@ -113,6 +111,17 @@ const PPEIconComponent = ({ name }: { name: string }) => {
   );
 };
 
+// Helper function for category badge colors
+function getCategoryBadgeColor(category: string) {
+  switch (category) {
+    case 'Hot_Work': return 'bg-red-100 text-red-700 border-red-200';
+    case 'Confined_Space': return 'bg-orange-100 text-orange-700 border-orange-200';
+    case 'Electrical': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    case 'Height': return 'bg-purple-100 text-purple-700 border-purple-200';
+    default: return 'bg-orange-100 text-orange-700 border-orange-200';
+  }
+}
+
 export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [showSignature, setShowSignature] = useState(false);
@@ -122,8 +131,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
   // Master data
   const [sites, setSites] = useState<Site[]>([]);
-  const [hazards, setHazards] = useState<MasterHazard[]>([]);
-  const [ppeItems, setPPEItems] = useState<MasterPPE[]>([]);
   const [workers, setWorkers] = useState<User[]>([]);
   const [checklistQuestions, setChecklistQuestions] = useState<MasterChecklistQuestion[]>([]);
 
@@ -172,31 +179,20 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
     checklistResponses: {} as Record<number, ChecklistResponse>,
     checklistRemarks: {} as Record<number, string>,
-    checklistTextResponses: {} as Record<number, string>, // FIXED: Added this
+    checklistTextResponses: {} as Record<number, string>,
+
+    // Approver IDs
+    area_manager_id: 0 as number | string,
+    safety_officer_id: 0 as number | string,
+    site_leader_id: 0 as number | string,
 
     declaration: false,
   });
 
-  const [approvers, setApprovers] = useState({
-    areaManager: 0,
-    safetyOfficer: 0,
-    siteLeader: 0,
-  });
 
-  const [approverSignatures, setApproverSignatures] = useState({
-    areaManagerSignature: '',
-    safetyOfficerSignature: '',
-    siteLeaderSignature: '',
-  });
 
-  const [showApproverSignature, setShowApproverSignature] = useState<'areaManager' | 'safetyOfficer' | 'siteLeader' | null>(null);
 
-  const highRiskPermits: PermitType[] = ['Hot_Work', 'Confined_Space', 'Electrical', 'Height'];
-  const selectedHighRiskCount = formData.categories.filter(cat => highRiskPermits.includes(cat)).length;
-  // Safety Officer required for High Risk permits (any)
-  const requiresSafetyOfficer = selectedHighRiskCount > 0;
-  // Site Leader required for multiple High Risk permits
-  const requiresSiteLeaderApproval = selectedHighRiskCount >= 2;
+
 
   const totalSteps = 7;
   const progress = (currentStep / totalSteps) * 100;
@@ -267,18 +263,16 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
       if (hazardsRes.success && hazardsRes.data) {
         console.log('✅ Hazards loaded:', hazardsRes.data.length);
-        setHazards(Array.isArray(hazardsRes.data) ? hazardsRes.data : []);
+        // Hazards data loaded but not stored in state (not currently used in UI)
       } else {
         console.warn('⚠️ Hazards not loaded');
-        setHazards([]);
       }
 
       if (ppeRes.success && ppeRes.data) {
         console.log('✅ PPE loaded:', ppeRes.data.length);
-        setPPEItems(Array.isArray(ppeRes.data) ? ppeRes.data : []);
+        // PPE data loaded but not stored in state (not currently used in UI)
       } else {
         console.warn('⚠️ PPE not loaded');
-        setPPEItems([]);
       }
 
       if (workersRes.success && workersRes.data) {
@@ -418,7 +412,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     });
 
     console.log('✅ Loaded correct checklist questions:', allQuestions.length);
-    setChecklistQuestions(allQuestions);
   };
 
   const toggleCategory = (category: PermitType) => {
@@ -544,18 +537,11 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
     // Step 6: Approvers Validation
     if (currentStep === 6) {
-      if (!approvers.areaManager || approvers.areaManager === 0) {
-        alert('Please select an Area In-charge');
+      if (!formData.area_manager_id || formData.area_manager_id === 0) {
+        alert('Please select an Area Manager');
         return;
       }
-      if (requiresSafetyOfficer && (!approvers.safetyOfficer || approvers.safetyOfficer === 0)) {
-        alert('Please select a Safety In-charge');
-        return;
-      }
-      if (requiresSiteLeaderApproval && (!approvers.siteLeader || approvers.siteLeader === 0)) {
-        alert('Please select a Site Leader / Senior Ops');
-        return;
-      }
+      // Safety Officer and Site Leader are optional
     }
 
     if (currentStep < totalSteps) {
@@ -666,9 +652,9 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         checklist_responses: checklistResponses,
         swms_file_url: swmsUrl,
         swms_text: formData.swmsText,
-        area_manager_id: approvers.areaManager || null,
-        safety_officer_id: requiresSafetyOfficer ? (approvers.safetyOfficer || null) : null,
-        site_leader_id: requiresSiteLeaderApproval ? (approvers.siteLeader || null) : null,
+        area_manager_id: formData.area_manager_id || null,
+        safety_officer_id: formData.safety_officer_id || null,
+        site_leader_id: formData.site_leader_id || null,
         issuer_signature: formData.issuerSignature || null,
       };
 
@@ -695,23 +681,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     }
   };
 
-  const toggleHazard = (hazardId: number) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedHazards: prev.selectedHazards.includes(hazardId)
-        ? prev.selectedHazards.filter(id => id !== hazardId)
-        : [...prev.selectedHazards, hazardId]
-    }));
-  };
-
-  const togglePPE = (ppeId: number) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedPPE: prev.selectedPPE.includes(ppeId)
-        ? prev.selectedPPE.filter(id => id !== ppeId)
-        : [...prev.selectedPPE, ppeId]
-    }));
-  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -723,24 +692,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const handleSignatureSave = (signature: string) => {
     console.log('💾 Saving signature:', signature ? 'Signature captured' : 'No signature');
 
-    if (showApproverSignature) {
-      setApproverSignatures(prev => {
-        const updated = {
-          ...prev,
-          [`${showApproverSignature}Signature`]: signature
-        };
-        console.log('✅ Approver signatures updated:', updated);
-        return updated;
-      });
-      setShowApproverSignature(null);
-    } else {
-      setFormData(prev => {
-        const updated = { ...prev, issuerSignature: signature };
-        console.log('✅ Issuer signature saved');
-        return updated;
-      });
-      setShowSignature(false);
-    }
+    setFormData(prev => {
+      const updated = { ...prev, issuerSignature: signature };
+      console.log('✅ Issuer signature saved');
+      return updated;
+    });
+    setShowSignature(false);
   };
 
   const addNewWorker = () => {
@@ -951,15 +908,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
               <div className="grid gap-3 md:grid-cols-2">
                 {(['General', 'Height', 'Electrical', 'Hot_Work', 'Confined_Space'] as PermitType[]).map((category) => {
-                  const isHighRisk = highRiskPermits.includes(category);
                   return (
                     <label
                       key={category}
                       className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.categories.includes(category)
-                        ? isHighRisk
-                          ? 'border-red-500 bg-red-50'
-                          : 'border-orange-500 bg-orange-50'
-                        : 'border-slate-200 hover:border-slate-300'
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
                         }`}
                     >
                       <Checkbox
@@ -967,16 +921,9 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                         onCheckedChange={() => toggleCategory(category)}
                       />
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-slate-900">
-                            {category.replace('_', ' ')}
-                          </span>
-                          {isHighRisk && (
-                            <span className="px-2 py-0.5 text-xs font-semibold text-red-700 bg-red-100 rounded">
-                              High Risk
-                            </span>
-                          )}
-                        </div>
+                        <p className="font-medium text-slate-900">
+                          {category.replace('_', ' ')}
+                        </p>
                       </div>
                     </label>
                   );
@@ -998,19 +945,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                       </button>
                     </span>
                   ))}
-                </div>
-              )}
-
-              {/* High-Risk Warning */}
-              {requiresSiteLeaderApproval && (
-                <div className="flex items-start gap-3 p-4 mt-3 border-2 border-orange-200 rounded-lg bg-orange-50">
-                  <AlertTriangle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-orange-900">Site Leader Approval Required</p>
-                    <p className="text-sm text-orange-700">
-                      You've selected {selectedHighRiskCount} high-risk permit types. This requires approval from a Site Leader in addition to Area Manager and Safety Officer.
-                    </p>
-                  </div>
                 </div>
               )}
             </div>
@@ -1645,224 +1579,482 @@ Include:
           </div>
         )}
 
-        {/* STEP 5: FIXED Checklist with proper text input handling */}
+        {/* STEP 5: Work Requirements Checklist - COMPLETE VERSION */}
         {currentStep === 5 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Work Requirements Checklist</h2>
             <p className="text-sm text-slate-600">
-              Complete the following safety requirements checklist for all permit types
+              Complete the following safety requirements checklist for selected permit types
             </p>
 
-            <div className="p-6 border rounded-lg border-slate-200">
-              <div className="space-y-6">
-                {(['General', 'Hot_Work', 'Electrical', 'Height', 'Confined_Space'] as PermitType[]).map(category => {
-                  const categoryQuestions = checklistQuestions.filter(
-                    q => q.permit_type === category
-                  );
-
-                  const categoryNames: Record<PermitType, string> = {
-                    'General': 'General Work',
-                    'Hot_Work': 'Hot Work',
-                    'Electrical': 'Electrical Work',
-                    'Height': 'Height Work',
-                    'Confined_Space': 'Confined Space Work',
-                  };
-
-                  return (
-                    <div key={category} className="pb-6 border-b border-slate-200 last:border-0">
-                      <h3 className="mb-4 text-lg font-semibold text-slate-900">
-                        {categoryNames[category]} Requirements
-                      </h3>
-                      {categoryQuestions.length > 0 ? (
-                        categoryQuestions.map((question) => {
-                          const isTextInput = question.response_type === 'text';
-
-                          return (
-                            <div key={question.id}>
-                              {isTextInput ? (
-                                <NameInputField
-                                  questionId={question.id}
-                                  label={question.question_text}
-                                  initialValue={formData.checklistTextResponses[question.id]}
-                                  onSave={(val) => {
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      checklistTextResponses: {
-                                        ...prev.checklistTextResponses,
-                                        [question.id]: val
-                                      }
-                                    }));
-                                  }}
-                                />
-                              ) : (
-                                <RequirementRow
-                                  questionId={question.id}
-                                  label={question.question_text}
-                                  value={formData.checklistResponses[question.id]}
-                                  onChange={(val) => setFormData(prev => ({
-                                    ...prev,
-                                    checklistResponses: { ...prev.checklistResponses, [question.id]: val }
-                                  }))}
-                                />
-                              )}
-                              {!isTextInput && formData.checklistResponses[question.id] === 'No' && (
-                                <div className="mt-2 mb-4 ml-4">
-                                  <Input
-                                    placeholder="Please provide remarks..."
-                                    value={formData.checklistRemarks[question.id] || ''}
-                                    onChange={(e) => setFormData(prev => ({
-                                      ...prev,
-                                      checklistRemarks: { ...prev.checklistRemarks, [question.id]: e.target.value }
-                                    }))}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <p className="text-sm text-slate-500">No requirements for {categoryNames[category]}</p>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* Show selected categories badge */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm font-medium text-blue-900 mb-2">Selected Permit Categories:</p>
+              <div className="flex flex-wrap gap-2">
+                {formData.categories.map(cat => (
+                  <span
+                    key={cat}
+                    className={`px-3 py-1 text-sm font-semibold rounded-lg border ${getCategoryBadgeColor(cat)}`}
+                  >
+                    {cat.replace('_', ' ')}
+                  </span>
+                ))}
               </div>
             </div>
+
+            {/* Check if categories are selected */}
+            {formData.categories.length === 0 ? (
+              <div className="p-8 text-center border-2 border-dashed border-slate-300 rounded-lg bg-slate-50">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+                <p className="text-slate-600 font-medium">No permit categories selected</p>
+                <p className="text-sm text-slate-500 mt-1">Please go back to Step 1 and select at least one category.</p>
+              </div>
+            ) : (
+              <>
+                {/* CATEGORY-SPECIFIC QUESTIONS */}
+                <div className="p-6 border rounded-lg border-slate-200">
+                  <div className="space-y-6">
+                    {/* FILTER: Show ONLY questions for selected categories, EXCLUDING the 4 name fields */}
+                    {formData.categories.map(category => {
+                      // Define the IDs of the 4 mandatory name fields to exclude
+                      const mandatoryNameFieldIds = [398, 399, 400, 401];
+
+                      const categoryQuestions = checklistQuestions.filter(
+                        q => q.permit_type === category && !mandatoryNameFieldIds.includes(q.id)
+                      );
+
+                      const categoryNames: Record<PermitType, string> = {
+                        'General': 'General Work',
+                        'Hot_Work': 'Hot Work',
+                        'Electrical': 'Electrical Work',
+                        'Height': 'Height Work',
+                        'Confined_Space': 'Confined Space Work',
+                      };
+
+                      return (
+                        <div key={category} className="pb-6 border-b border-slate-200 last:border-0">
+                          <h3 className="mb-4 text-lg font-semibold text-slate-900">
+                            {categoryNames[category]} Requirements
+                          </h3>
+                          {categoryQuestions.length > 0 ? (
+                            categoryQuestions.map((question) => {
+                              const isTextInput = question.response_type === 'text';
+
+                              return (
+                                <div key={question.id}>
+                                  {isTextInput ? (
+                                    // TEXT INPUT for other text fields (if any)
+                                    <div className="py-4 border-b border-slate-100">
+                                      <Label
+                                        htmlFor={`text-${question.id}`}
+                                        className="block mb-2 text-sm font-medium text-slate-900"
+                                      >
+                                        {question.question_text}
+                                        <span className="ml-1 text-red-500 font-bold">*</span>
+                                        <span className="ml-2 text-xs text-slate-500 font-normal">(Required)</span>
+                                      </Label>
+                                      <Input
+                                        id={`text-${question.id}`}
+                                        type="text"
+                                        value={formData.checklistTextResponses[question.id] || ''}
+                                        onChange={(e) => {
+                                          const newValue = e.target.value;
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            checklistTextResponses: {
+                                              ...prev.checklistTextResponses,
+                                              [question.id]: newValue
+                                            }
+                                          }));
+                                        }}
+                                        placeholder="Enter your response here..."
+                                        required
+                                        className="max-w-md"
+                                        autoComplete="off"
+                                      />
+                                    </div>
+                                  ) : (
+                                    // YES/NO/NA BUTTONS
+                                    <>
+                                      <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                                        <span className="text-sm text-slate-700">
+                                          {question.question_text}
+                                          {question.is_mandatory && <span className="ml-1 text-red-500">*</span>}
+                                        </span>
+                                        <div className="flex gap-2">
+                                          {(['Yes', 'No', 'N/A'] as ChecklistResponse[]).map((option) => (
+                                            <button
+                                              key={option}
+                                              type="button"
+                                              onClick={() => {
+                                                setFormData(prev => ({
+                                                  ...prev,
+                                                  checklistResponses: {
+                                                    ...prev.checklistResponses,
+                                                    [question.id]: option
+                                                  }
+                                                }));
+                                              }}
+                                              className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${formData.checklistResponses[question.id] === option
+                                                ? option === 'Yes'
+                                                  ? 'bg-green-500 text-white'
+                                                  : option === 'No'
+                                                    ? 'bg-red-500 text-white'
+                                                    : 'bg-slate-500 text-white'
+                                                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                                                }`}
+                                            >
+                                              {option}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+
+                                      {/* Remarks field appears when "No" is selected */}
+                                      {formData.checklistResponses[question.id] === 'No' && (
+                                        <div className="mt-2 mb-4 ml-4">
+                                          <Label className="text-sm font-medium text-slate-700 mb-1 block">
+                                            Remarks (Required for "No" response)
+                                            <span className="ml-1 text-red-500">*</span>
+                                          </Label>
+                                          <Input
+                                            placeholder="Please provide detailed remarks explaining why the answer is No..."
+                                            value={formData.checklistRemarks[question.id] || ''}
+                                            onChange={(e) => {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                checklistRemarks: {
+                                                  ...prev.checklistRemarks,
+                                                  [question.id]: e.target.value
+                                                }
+                                              }));
+                                            }}
+                                            className="bg-red-50 border-red-300"
+                                          />
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className="text-sm text-slate-500 italic">
+                              No additional checklist questions for this category.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* MANDATORY NAME FIELDS - ALWAYS VISIBLE */}
+                <div className="p-6 border rounded-lg border-amber-200 bg-amber-50">
+
+                  <p className="text-sm text-amber-700 mb-4">
+                    The following personnel details are required for all permit types:
+                  </p>
+
+                  <div className="space-y-4 bg-white p-4 rounded-lg">
+                    {/* Entrant Name */}
+                    <div className="py-3 border-b border-slate-100">
+                      <Label htmlFor="entrant-name" className="block mb-2 text-sm font-medium text-slate-900">
+                        Entrant Name
+                        <span className="ml-1 text-red-500 font-bold">*</span>
+                        <span className="ml-2 text-xs text-slate-500 font-normal">(Required)</span>
+                      </Label>
+                      <Input
+                        id="entrant-name"
+                        type="text"
+                        value={formData.checklistTextResponses[398] || ''}
+                        onChange={(e) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            checklistTextResponses: {
+                              ...prev.checklistTextResponses,
+                              [398]: e.target.value
+                            }
+                          }));
+                        }}
+                        placeholder="Enter full name (minimum 2 characters)"
+                        required
+                        minLength={2}
+                        className="max-w-md"
+                        autoComplete="off"
+                      />
+                      {formData.checklistTextResponses[398] !== undefined && formData.checklistTextResponses[398] !== '' && (
+                        <>
+                          {formData.checklistTextResponses[398].trim().length === 0 ? (
+                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                              <X className="w-3 h-3" /> This field cannot contain only spaces
+                            </p>
+                          ) : formData.checklistTextResponses[398].trim().length < 2 ? (
+                            <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Please enter at least 2 characters
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                              <Check className="w-3 h-3" /> Valid entry
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Attendant Name */}
+                    <div className="py-3 border-b border-slate-100">
+                      <Label htmlFor="attendant-name" className="block mb-2 text-sm font-medium text-slate-900">
+                        Attendant Name
+                        <span className="ml-1 text-red-500 font-bold">*</span>
+                        <span className="ml-2 text-xs text-slate-500 font-normal">(Required)</span>
+                      </Label>
+                      <Input
+                        id="attendant-name"
+                        type="text"
+                        value={formData.checklistTextResponses[399] || ''}
+                        onChange={(e) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            checklistTextResponses: {
+                              ...prev.checklistTextResponses,
+                              [399]: e.target.value
+                            }
+                          }));
+                        }}
+                        placeholder="Enter full name (minimum 2 characters)"
+                        required
+                        minLength={2}
+                        className="max-w-md"
+                        autoComplete="off"
+                      />
+                      {formData.checklistTextResponses[399] !== undefined && formData.checklistTextResponses[399] !== '' && (
+                        <>
+                          {formData.checklistTextResponses[399].trim().length === 0 ? (
+                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                              <X className="w-3 h-3" /> This field cannot contain only spaces
+                            </p>
+                          ) : formData.checklistTextResponses[399].trim().length < 2 ? (
+                            <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Please enter at least 2 characters
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                              <Check className="w-3 h-3" /> Valid entry
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Supervisor Name */}
+                    <div className="py-3 border-b border-slate-100">
+                      <Label htmlFor="supervisor-name" className="block mb-2 text-sm font-medium text-slate-900">
+                        Supervisor Name
+                        <span className="ml-1 text-red-500 font-bold">*</span>
+                        <span className="ml-2 text-xs text-slate-500 font-normal">(Required)</span>
+                      </Label>
+                      <Input
+                        id="supervisor-name"
+                        type="text"
+                        value={formData.checklistTextResponses[400] || ''}
+                        onChange={(e) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            checklistTextResponses: {
+                              ...prev.checklistTextResponses,
+                              [400]: e.target.value
+                            }
+                          }));
+                        }}
+                        placeholder="Enter full name (minimum 2 characters)"
+                        required
+                        minLength={2}
+                        className="max-w-md"
+                        autoComplete="off"
+                      />
+                      {formData.checklistTextResponses[400] !== undefined && formData.checklistTextResponses[400] !== '' && (
+                        <>
+                          {formData.checklistTextResponses[400].trim().length === 0 ? (
+                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                              <X className="w-3 h-3" /> This field cannot contain only spaces
+                            </p>
+                          ) : formData.checklistTextResponses[400].trim().length < 2 ? (
+                            <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Please enter at least 2 characters
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                              <Check className="w-3 h-3" /> Valid entry
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Stand-by Person Name */}
+                    <div className="py-3">
+                      <Label htmlFor="standby-name" className="block mb-2 text-sm font-medium text-slate-900">
+                        Stand-by Person Name
+                        <span className="ml-1 text-red-500 font-bold">*</span>
+                        <span className="ml-2 text-xs text-slate-500 font-normal">(Required)</span>
+                      </Label>
+                      <Input
+                        id="standby-name"
+                        type="text"
+                        value={formData.checklistTextResponses[401] || ''}
+                        onChange={(e) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            checklistTextResponses: {
+                              ...prev.checklistTextResponses,
+                              [401]: e.target.value
+                            }
+                          }));
+                        }}
+                        placeholder="Enter full name (minimum 2 characters)"
+                        required
+                        minLength={2}
+                        className="max-w-md"
+                        autoComplete="off"
+                      />
+                      {formData.checklistTextResponses[401] !== undefined && formData.checklistTextResponses[401] !== '' && (
+                        <>
+                          {formData.checklistTextResponses[401].trim().length === 0 ? (
+                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                              <X className="w-3 h-3" /> This field cannot contain only spaces
+                            </p>
+                          ) : formData.checklistTextResponses[401].trim().length < 2 ? (
+                            <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Please enter at least 2 characters
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                              <Check className="w-3 h-3" /> Valid entry
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {/* STEP 6: Approvers - Keep existing code */}
+        {/* STEP 6: Approvers */}
         {currentStep === 6 && (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-900">Approver Selection & Signatures</h2>
+            <h2 className="text-xl font-semibold text-slate-900">Select Approvers</h2>
 
-            {requiresSiteLeaderApproval && (
-              <div className="flex items-start gap-3 p-4 border-2 border-orange-200 rounded-lg bg-orange-50">
-                <AlertTriangle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-orange-900">Site Leader / Senior Ops Required</p>
-                  <p className="text-sm text-orange-700">
-                    High-risk permit requires all three approvers
-                  </p>
-                </div>
-              </div>
-            )}
+            {/* ⭐ ADD THIS MESSAGE */}
+            <p className="text-sm text-slate-600">
+              {formData.area_manager_id || formData.safety_officer_id || formData.site_leader_id ? (
+                <span className="flex items-center gap-2 text-green-600">
+                  <Check className="w-4 h-4" />
+                  Approvers have been pre-selected based on site configuration. You can change them if needed.
+                </span>
+              ) : (
+                'Please select at least one approver for this permit'
+              )}
+            </p>
 
-            <div className="space-y-6">
-              {/* Area In-charge */}
-              <div className="p-6 border-2 rounded-lg border-slate-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-900">Area In-charge</h3>
-                  {approverSignatures.areaManagerSignature && (
-                    <span className="flex items-center gap-2 px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
-                      <Check className="w-4 h-4" />
-                      Signed
+            <div className="space-y-4">
+              {/* Area Manager - REQUIRED */}
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  Area Manager <span className="text-red-500">*</span>
+                  {/* ⭐ ADD THIS INDICATOR */}
+                  {formData.area_manager_id && (
+                    <span className="ml-2 text-xs text-green-600 font-normal">
+                      ✓ Pre-selected
                     </span>
                   )}
-                </div>
-
-                <div className="space-y-4">
-                  <Select
-                    value={approvers.areaManager.toString()}
-                    onValueChange={(value) => setApprovers({ ...approvers, areaManager: parseInt(value) })}
-                  >
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Select Area In-charge" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">-- Select --</SelectItem>
-                      {areaManagers.map((manager) => (
-                        <SelectItem key={manager.id} value={manager.id.toString()}>
-                          {manager.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-
-                </div>
+                </label>
+                <select
+                  value={formData.area_manager_id}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    area_manager_id: parseInt(e.target.value) || ''
+                  }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">-- Select Area Manager --</option>
+                  {areaManagers.map((am) => (
+                    <option key={am.id} value={am.id}>
+                      {am.full_name} ({am.email})
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Safety In-charge */}
-              {requiresSafetyOfficer && (
-                <div className="p-6 border-2 rounded-lg border-slate-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-900">Safety In-charge</h3>
-                    {approverSignatures.safetyOfficerSignature && (
-                      <span className="flex items-center gap-2 px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
-                        <Check className="w-4 h-4" />
-                        Signed
-                      </span>
-                    )}
-                  </div>
+              {/* Safety Officer - OPTIONAL */}
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  Safety Officer <span className="text-xs text-slate-500">(Optional)</span>
+                  {/* ⭐ ADD THIS INDICATOR */}
+                  {formData.safety_officer_id && (
+                    <span className="ml-2 text-xs text-green-600 font-normal">
+                      ✓ Pre-selected
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={formData.safety_officer_id}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    safety_officer_id: parseInt(e.target.value) || ''
+                  }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Select Safety Officer --</option>
+                  {safetyOfficers.map((so) => (
+                    <option key={so.id} value={so.id}>
+                      {so.full_name} ({so.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                  <div className="space-y-4">
-                    <Select
-                      value={approvers.safetyOfficer.toString()}
-                      onValueChange={(value) => setApprovers({ ...approvers, safetyOfficer: parseInt(value) })}
-                    >
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="Select Safety In-charge" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">-- Select --</SelectItem>
-                        {safetyOfficers.map((officer) => (
-                          <SelectItem key={officer.id} value={officer.id.toString()}>
-                            {officer.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
+              {/* Site Leader - OPTIONAL */}
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  Site Leader <span className="text-xs text-slate-500">(Optional)</span>
+                  {/* ⭐ ADD THIS INDICATOR */}
+                  {formData.site_leader_id && (
+                    <span className="ml-2 text-xs text-green-600 font-normal">
+                      ✓ Pre-selected
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={formData.site_leader_id}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    site_leader_id: parseInt(e.target.value) || ''
+                  }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Select Site Leader --</option>
+                  {siteLeaders.map((sl) => (
+                    <option key={sl.id} value={sl.id}>
+                      {sl.full_name} ({sl.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-              {/* Site Leader - ALWAYS VISIBLE */}
-              {requiresSiteLeaderApproval && (
-                <div className={`p-6 border-2 rounded-lg ${requiresSiteLeaderApproval ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50'
-                  }`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        Site Leader / Senior Ops
-                      </h3>
-                      <p className="text-sm text-red-600">(Required for high-risk permits)</p>
-                    </div>
-                    {approverSignatures.siteLeaderSignature && (
-                      <span className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
-                        <Check className="w-4 h-4" />
-                        Signed
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <Select
-                      value={approvers.siteLeader.toString()}
-                      onValueChange={(value) => setApprovers({ ...approvers, siteLeader: parseInt(value) })}
-                    >
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="Select Site Leader / Senior Ops" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">-- Select --</SelectItem>
-                        {siteLeaders.map((leader) => (
-                          <SelectItem key={leader.id} value={leader.id.toString()}>
-                            {leader.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-
-
+            {/* ⭐ ADD THIS INFO BOX */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-900">
+                <strong>💡 Tip:</strong> Approvers are automatically selected based on the site you chose.
+                However, you can change them if needed. At least Area Manager is required to proceed.
+              </p>
             </div>
           </div>
-
-        )
-        }
+        )}
 
         {/* STEP 7: Review - Keep existing code */}
         {
@@ -1917,7 +2109,7 @@ Include:
                   <div>
                     <p className="text-sm text-slate-500">Approvers</p>
                     <p className="text-sm font-medium text-slate-700">
-                      {requiresSiteLeaderApproval ? '3 approvers required' : '2 approvers required'}
+                      Area Manager required, others optional
                     </p>
                   </div>
                 </div>
@@ -1927,21 +2119,21 @@ Include:
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
                     {/* QR Code Placeholder */}
-                    <div className="w-24 h-24 bg-white border-2 border-blue-300 rounded-lg flex items-center justify-center">
-                      <img
-                        src="/QR.png"
-                        alt="Safety Observations QR Code"
-                        className="w-20 h-20 object-contain"
-                        onError={(e) => {
-                          // Fallback if image not found
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          if (target.parentElement) {
-                            target.parentElement.innerHTML = '<div class="text-xs text-blue-600 text-center p-2">QR Code</div>';
-                          }
-                        }}
-                      />
-                    </div>
+
+                    <img
+                      src="/QR.png"
+                      alt="Safety Observations QR Code"
+                      className="w-50 h-40 object-contain"
+                      onError={(e) => {
+                        // Fallback if image not found
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        if (target.parentElement) {
+                          target.parentElement.innerHTML = '<div class="text-xs text-blue-600 text-center p-2">QR Code</div>';
+                        }
+                      }}
+                    />
+
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-blue-900 mb-2">Safety Observations</h3>
@@ -2020,33 +2212,14 @@ Include:
 
       {/* Signature Modal */}
       {
-        (showSignature || showApproverSignature) && (
+        showSignature && (
           <DigitalSignature
-            title={
-              showApproverSignature
-                ? `${showApproverSignature === 'areaManager' ? 'Area Manager' :
-                  showApproverSignature === 'safetyOfficer' ? 'Safety Officer' :
-                    'Site Leader'} Digital Signature`
-                : 'Issuer Digital Signature'
-            }
+            title="Issuer Digital Signature"
             onSave={handleSignatureSave}
-            onCancel={() => {
-              setShowSignature(false);
-              setShowApproverSignature(null);
-            }}
+            onCancel={() => setShowSignature(false)}
           />
         )
       }
-    </div>
+    </div >
   );
-}
-
-function getCategoryBadgeColor(category: string) {
-  switch (category) {
-    case 'Hot_Work': return 'bg-red-100 text-red-700 border-red-200';
-    case 'Confined_Space': return 'bg-orange-100 text-orange-700 border-orange-200';
-    case 'Electrical': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-    case 'Height': return 'bg-purple-100 text-purple-700 border-purple-200';
-    default: return 'bg-orange-100 text-orange-700 border-orange-200';
-  }
 }
