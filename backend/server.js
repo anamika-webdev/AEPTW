@@ -1,4 +1,4 @@
-// backend/server.js - COMPLETE FIXED VERSION WITH ALL ROUTES
+// backend/server.js - FIXED VERSION WITH APPROVER SITES ROUTES ENABLED
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -39,10 +39,14 @@ const masterRoutes = require('./src/routes/master.routes');
 const dashboardRoutes = require('./src/routes/dashboard.routes');
 const requesterAssignmentsRoutes = require('./src/routes/requester-assignments.routes');
 const notificationsRoutes = require('./src/routes/notifications.routes');
-// const approverSitesRoutes = require('./src/routes/approverSites.routes');
+const approverSitesRoutes = require('./src/routes/approverSites.routes'); // ✅ UNCOMMENTED
+
 const { initScheduler } = require('./src/services/cronService');
+
 // Initialize Scheduler
 initScheduler();
+
+// ============= REGISTER ALL ROUTES =============
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sites', sitesRoutes);
@@ -54,17 +58,9 @@ app.use('/api/master', masterRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/requester-assignments', requesterAssignmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
-// app.use('/api/approvers', approverSitesRoutes);
+app.use('/api/approvers', approverSitesRoutes); // ✅ ENABLED - This was commented out!
 
-// Approver Sites routes (with try-catch for safety)
-try {
-  const approverSitesRoutes = require('./src/routes/approverSites.routes');
-  app.use('/api/approvers', approverSitesRoutes);
-  console.log('✅ Approver sites routes loaded successfully');
-} catch (err) {
-  console.error('❌ Failed to load approver sites routes:', err.message);
-  console.warn('⚠️ Approver site assignment feature will not be available');
-}
+console.log('✅ Approver sites routes loaded successfully');
 
 // Vendors route (if separate file exists)
 try {
@@ -121,10 +117,14 @@ app.listen(PORT, () => {
   console.log('   /api/admin');
   console.log('   /api/sites');
   console.log('   /api/departments');
-  console.log('   /api/users          ⭐');
+  console.log('   /api/users');
   console.log('   /api/permits');
-  console.log('   /api/master         ⭐');
+  console.log('   /api/approvals');
+  console.log('   /api/master');
   console.log('   /api/dashboard');
+  console.log('   /api/requester-assignments');
+  console.log('   /api/notifications');
+  console.log('   /api/approvers          ⭐ FIXED!');
   console.log('   /api/vendors');
   console.log('============================================================\n');
   console.log('✅ Server is ready!\n');
