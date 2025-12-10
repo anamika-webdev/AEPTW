@@ -49,6 +49,15 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
       <div className="flex items-center justify-between h-16 px-4 lg:px-6">
         {/* Left Section */}
         <div className="flex items-center gap-4">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <img
+              src="/safetogologo.png"
+              alt="Safe to Go"
+              className="h-10 w-auto object-contain"
+            />
+          </div>
+
           {/* Hamburger Menu (Mobile) */}
           <button
             onClick={onMenuClick}

@@ -186,6 +186,7 @@ const SignupPage: React.FC = () => {
 
   return (
     <div className="relative flex items-center justify-center min-h-screen px-4 py-12 overflow-hidden bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 sm:px-6 lg:px-8">
+
       {/* Animated background pattern */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
@@ -213,6 +214,15 @@ const SignupPage: React.FC = () => {
           <p className="mt-3 text-base text-gray-600">
             Join the Amazon EPTW System
           </p>
+
+          {/* Safe to Go Logo */}
+          <div className="mt-4">
+            <img
+              src="/safetogologo.png"
+              alt="Safe to Go"
+              className="h-10 w-auto object-contain mx-auto"
+            />
+          </div>
         </div>
 
         {/* Signup Form */}

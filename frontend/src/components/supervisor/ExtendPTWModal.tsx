@@ -48,6 +48,22 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
       return;
     }
 
+    // Validation: Check if new end date/time is in the future
+    const now = new Date();
+    const newEndDateTime = new Date(`${extensionData.new_end_date}T${extensionData.new_end_time}`);
+
+    if (newEndDateTime <= now) {
+      alert('New end date and time must be in the future');
+      return;
+    }
+
+    // Validation: Check if new end date/time is after current end date
+    const currentEndDateTime = new Date(permit.end_time);
+    if (newEndDateTime <= currentEndDateTime) {
+      alert('New end date and time must be after the current permit end time');
+      return;
+    }
+
     // Call onSubmit instead of onExtendPTW
     onSubmit(extensionData);
 
@@ -127,6 +143,7 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
             <div className="relative">
               <input
                 type="date"
+                min={new Date().toISOString().split('T')[0]} // Prevent past dates
                 value={extensionData.new_end_date}
                 onChange={(e) => setExtensionData({ ...extensionData, new_end_date: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -144,6 +161,10 @@ export const ExtendPTWModal: React.FC<ExtendPTWModalProps> = ({
             <div className="relative">
               <input
                 type="time"
+                // Prevent past time if selected date is today
+                min={extensionData.new_end_date === new Date().toISOString().split('T')[0]
+                  ? new Date().toTimeString().slice(0, 5)
+                  : undefined}
                 value={extensionData.new_end_time}
                 onChange={(e) => setExtensionData({ ...extensionData, new_end_time: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"

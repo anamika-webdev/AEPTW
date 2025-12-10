@@ -14,7 +14,8 @@ import {
   RefreshCw,
   Eye,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import { permitsAPI } from '../../services/api';
 
@@ -45,6 +46,8 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [selectedPermits, setSelectedPermits] = useState<number[]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
   useEffect(() => {
     fetchPermits();
   }, []);
@@ -80,6 +83,303 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
     } else {
       console.error('❌ onNavigate prop not provided!');
     }
+  };
+
+  const handleSelectPermit = (permitId: number) => {
+    setSelectedPermits(prev =>
+      prev.includes(permitId)
+        ? prev.filter(id => id !== permitId)
+        : [...prev, permitId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedPermits.length === paginatedPermits.length) {
+      setSelectedPermits([]);
+    } else {
+      setSelectedPermits(paginatedPermits.map(p => p.id));
+    }
+  };
+
+  const handleDownloadSelected = async () => {
+    if (selectedPermits.length === 0) {
+      alert('Please select at least one permit to download');
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      // Fetch complete details for selected permits
+      const permitDetailsPromises = selectedPermits.map(id => permitsAPI.getById(id));
+      const responses = await Promise.all(permitDetailsPromises);
+      const permitsWithDetails = responses
+        .filter(r => r.success && r.data)
+        .map(r => r.data);
+
+      if (permitsWithDetails.length > 0) {
+        await downloadPermitsPDF(permitsWithDetails);
+        alert(`Successfully downloaded ${permitsWithDetails.length} permit(s) with complete details`);
+      } else {
+        alert('Failed to fetch permit details. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error downloading permits:', error);
+      alert('Failed to download permits. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadSingle = async (permit: Permit) => {
+    setIsDownloading(true);
+    try {
+      // Fetch complete details for the permit
+      const response = await permitsAPI.getById(permit.id);
+      if (response.success && response.data) {
+        await downloadPermitsPDF([response.data]);
+      } else {
+        // Fallback to basic data if detailed fetch fails
+        await downloadPermitsPDF([permit]);
+      }
+    } catch (error) {
+      console.error('Error downloading permit:', error);
+      alert('Failed to download permit. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const downloadPermitsPDF = async (permitsToDownload: any[]) => {
+    // Dynamic import of jsPDF
+    const { jsPDF } = await import('jspdf');
+    await import('jspdf-autotable');
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let yPosition = 20;
+
+    // Title Page
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 102, 0); // Orange
+    doc.text('Permit to Work (PTW)', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 8;
+    doc.text('Comprehensive Report', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 15;
+
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 5;
+    doc.text(`Total Permits: ${permitsToDownload.length}`, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 15;
+
+    // Add page break after title page
+    doc.addPage();
+
+    // Process each permit
+    for (let index = 0; index < permitsToDownload.length; index++) {
+      const permit = permitsToDownload[index];
+
+      if (index > 0) {
+        doc.addPage();
+      }
+
+      // Reset position for each permit
+      yPosition = 20;
+
+      // Permit Header with Serial Number
+      doc.setFillColor(255, 102, 0);
+      doc.rect(margin, yPosition, pageWidth - 2 * margin, 12, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`PTW #${permit.permit_serial || 'N/A'}`, margin + 5, yPosition + 8);
+      yPosition += 17;
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+
+      // Helper function to add section
+      const addSection = (title: string, content: [string, any][]) => {
+        if (yPosition > pageHeight - 40) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        // Section Title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setFillColor(240, 240, 240);
+        doc.rect(margin, yPosition, pageWidth - 2 * margin, 7, 'F');
+        doc.text(title, margin + 3, yPosition + 5);
+        yPosition += 10;
+
+        // Section Content
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        content.forEach(([label, value]) => {
+          const displayValue = value !== null && value !== undefined ? String(value) : 'N/A';
+          const lines = doc.splitTextToSize(displayValue, pageWidth - margin - 60); // Wrap text
+
+          // Check if starting a new item requires a page break
+          if (yPosition > pageHeight - 20) {
+            doc.addPage();
+            yPosition = 20;
+          }
+
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${label}:`, margin + 3, yPosition);
+
+          doc.setFont('helvetica', 'normal');
+
+          // Print lines one by one to handle pagination
+          lines.forEach((line: string) => {
+            if (yPosition > pageHeight - 20) {
+              doc.addPage();
+              yPosition = 20;
+            }
+            doc.text(line, margin + 55, yPosition);
+            yPosition += 5;
+          });
+
+          // Add small spacing after each item
+          yPosition += 1;
+        });
+        yPosition += 3;
+      };
+
+      // 1. Basic Information
+      addSection('BASIC INFORMATION', [
+        ['Permit Type', permit.permit_type || 'N/A'],
+        ['Status', permit.status || 'N/A'],
+        ['Site', permit.site_name || 'N/A'],
+        ['Work Location', permit.work_location || 'N/A'],
+        ['Work Description', permit.work_description || 'N/A'],
+        ['Issue Department', permit.issue_department || 'N/A'],
+      ]);
+
+      // 2. Time Information
+      addSection('TIME DETAILS', [
+        ['Start Time', permit.start_time ? new Date(permit.start_time).toLocaleString() : 'N/A'],
+        ['End Time', permit.end_time ? new Date(permit.end_time).toLocaleString() : 'N/A'],
+        ['Created At', permit.created_at ? new Date(permit.created_at).toLocaleString() : 'N/A'],
+        ['Updated At', permit.updated_at ? new Date(permit.updated_at).toLocaleString() : 'N/A'],
+      ]);
+
+      // 3. Personnel Information
+      addSection('PERSONNEL', [
+        ['Permit Initiator', permit.permit_initiator || 'N/A'],
+        ['Initiator Contact', permit.permit_initiator_contact || 'N/A'],
+        ['Receiver Name', permit.receiver_name || 'N/A'],
+        ['Receiver Contact', permit.receiver_contact || 'N/A'],
+        ['Created By', permit.created_by_name || 'N/A'],
+      ]);
+
+      // 4. Team Members
+      if (permit.team_members && permit.team_members.length > 0) {
+        addSection('TEAM MEMBERS', [
+          ['Total Team Size', permit.team_members.length],
+          ['Team Details', permit.team_members.map((tm: any, idx: number) =>
+            `${idx + 1}. ${tm.worker_name || 'N/A'} - ${tm.worker_role || 'N/A'}${tm.badge_id ? ` (Badge: ${tm.badge_id})` : ''}`
+          ).join('\n')],
+        ]);
+      }
+
+      // 5. Hazards
+      if (permit.hazards && permit.hazards.length > 0) {
+        addSection('IDENTIFIED HAZARDS', [
+          ['Total Hazards', permit.hazards.length],
+          ['Hazard List', permit.hazards.map((h: any, idx: number) =>
+            `${idx + 1}. ${h.name || h.hazard_name || 'N/A'}${h.description ? ` - ${h.description}` : ''}`
+          ).join('\n')],
+          ['Other Hazards', permit.other_hazards || 'None'],
+        ]);
+      }
+
+      // 6. Control Measures
+      if (permit.control_measures) {
+        addSection('CONTROL MEASURES', [
+          ['Control Measures', permit.control_measures],
+        ]);
+      }
+
+      // 7. PPE Requirements
+      if (permit.ppe && permit.ppe.length > 0) {
+        addSection('PPE REQUIREMENTS', [
+          ['Total PPE Items', permit.ppe.length],
+          ['PPE List', permit.ppe.map((p: any, idx: number) =>
+            `${idx + 1}. ${p.name || p.ppe_name || 'N/A'}${p.description ? ` - ${p.description}` : ''}`
+          ).join('\n')],
+        ]);
+      }
+
+      // 8. Checklist Responses
+      if (permit.checklist_responses && permit.checklist_responses.length > 0) {
+        const responses = permit.checklist_responses.map((cr: any, idx: number) => {
+          const question = cr.question_text || cr.question || 'Question';
+          const response = cr.response || 'N/A';
+          const remarks = cr.remarks ? ` (${cr.remarks})` : '';
+          return `${idx + 1}. ${question}: ${response}${remarks}`;
+        }).join('\n');
+
+        addSection('CHECKLIST RESPONSES', [
+          ['Total Questions', permit.checklist_responses.length],
+          ['Responses', responses],
+        ]);
+      }
+
+      // 9. SWMS Information
+      if (permit.swms_file_url || permit.swms_text) {
+        addSection('SWMS (Safe Work Method Statement)', [
+          ['SWMS File', permit.swms_file_url || 'No file attached'],
+          ['SWMS Text', permit.swms_text || 'No text provided'],
+        ]);
+      }
+
+      // 10. Approvals
+      addSection('APPROVALS', [
+        ['Area Manager', permit.area_manager_name || 'Not assigned'],
+        ['AM Status', permit.area_manager_status || 'Pending'],
+        ['AM Approved At', permit.area_manager_approved_at ? new Date(permit.area_manager_approved_at).toLocaleString() : 'N/A'],
+        ['Safety Officer', permit.safety_officer_name || 'Not assigned'],
+        ['SO Status', permit.safety_officer_status || 'Pending'],
+        ['SO Approved At', permit.safety_officer_approved_at ? new Date(permit.safety_officer_approved_at).toLocaleString() : 'N/A'],
+        ['Site Leader', permit.site_leader_name || 'Not assigned'],
+        ['SL Status', permit.site_leader_status || 'Pending'],
+        ['SL Approved At', permit.site_leader_approved_at ? new Date(permit.site_leader_approved_at).toLocaleString() : 'N/A'],
+      ]);
+
+      // 11. Signatures
+      addSection('SIGNATURES', [
+        ['Issuer Signature', permit.issuer_signature ? 'Signed' : 'Not signed'],
+        ['Receiver Signature', permit.receiver_signature ? 'Signed' : 'Not signed'],
+      ]);
+
+      // 12. Additional Information
+      addSection('ADDITIONAL INFORMATION', [
+        ['Permit ID', permit.id || 'N/A'],
+        ['Permit Serial', permit.permit_serial || 'N/A'],
+        ['Comments', permit.comments || 'None'],
+        ['Rejection Reason', permit.rejection_reason || 'N/A'],
+      ]);
+    }
+
+    // Footer on last page
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Amazon EPTW System - Comprehensive PTW Report', pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.text('This document contains complete permit details for record-keeping and audit purposes.', pageWidth / 2, pageHeight - 6, { align: 'center' });
+
+    // Save the PDF
+    const filename = permitsToDownload.length === 1
+      ? `PTW_Complete_${permitsToDownload[0].permit_serial}_${new Date().toISOString().split('T')[0]}.pdf`
+      : `PTW_Complete_Report_${permitsToDownload.length}_permits_${new Date().toISOString().split('T')[0]}.pdf`;
+
+    doc.save(filename);
   };
 
   const filteredPermits = permits.filter((permit) => {
@@ -159,13 +459,25 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
               </p>
             </div>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            {selectedPermits.length > 0 && (
+              <button
+                onClick={handleDownloadSelected}
+                disabled={isDownloading}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className={`w-4 h-4 ${isDownloading ? 'animate-pulse' : ''}`} />
+                Download Selected ({selectedPermits.length})
+              </button>
+            )}
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
@@ -255,6 +567,14 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
           <table className="w-full">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
+                <th className="px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedPermits.length === paginatedPermits.length && paginatedPermits.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">PTW Number</th>
                 <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Type</th>
                 <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Location</th>
@@ -269,6 +589,14 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
               {paginatedPermits.length > 0 ? (
                 paginatedPermits.map((permit) => (
                   <tr key={permit.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedPermits.includes(permit.id)}
+                        onChange={() => handleSelectPermit(permit.id)}
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                      />
+                    </td>
                     <td className="px-6 py-4 text-sm font-medium text-orange-600">{permit.permit_serial}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{permit.permit_type}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{permit.work_location}</td>
@@ -279,20 +607,31 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
                     <td className="px-6 py-4 text-sm text-gray-600">{new Date(permit.created_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4 text-sm">{getStatusBadge(permit.status)}</td>
                     <td className="px-6 py-4 text-sm text-right">
-                      <button
-                        onClick={() => handleViewPermit(permit.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors"
-                        title="View permit details"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        View
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleDownloadSingle(permit)}
+                          disabled={isDownloading}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Download this permit"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
+                        </button>
+                        <button
+                          onClick={() => handleViewPermit(permit.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors"
+                          title="View permit details"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          View
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
+                  <td colSpan={9} className="px-6 py-12 text-center">
                     <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                     <p className="text-sm font-medium text-gray-900">No permits found</p>
                     <p className="mt-1 text-sm text-gray-500">

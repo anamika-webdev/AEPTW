@@ -130,6 +130,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   return (
     <div className="relative flex items-center justify-center min-h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100">
+
+
       {/* Animated background pattern */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
@@ -143,13 +145,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           <div className="flex items-center justify-center mb-4">
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-amber-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition duration-300"></div>
-              <div className="relative flex items-center justify-center p-4 bg-white shadow-lg rounded-xl">
+              <div className="relative flex items-center justify-center p-3 bg-white shadow-lg rounded-xl">
                 <img src="/logo.jpg" alt="Amazon Logo" className="h-16 w-auto object-contain" />
               </div>
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="mt-2 text-sm text-gray-600">Sign in to EPTW System</p>
+
+          <h2 className="mt-2 text-sm font-bold text-black-600">Sign in to EPTW System</h2>
+
+          {/* Safe to Go Logo */}
+          <div className="mt-4">
+            <img
+              src="/safetogologo.png"
+              alt="Safe to Go"
+              className="h-10 w-auto object-contain mx-auto"
+            />
+          </div>
+
         </div>
 
         {error && (

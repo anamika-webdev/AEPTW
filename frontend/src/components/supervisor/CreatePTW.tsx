@@ -121,8 +121,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   // Master data
   const [sites, setSites] = useState<Site[]>([]);
   const [workers, setWorkers] = useState<User[]>([]);
-  const [checklistQuestions] = useState<MasterChecklistQuestion[]>([]);
-
+  const [checklistQuestions, setChecklistQuestions] = useState<MasterChecklistQuestion[]>([]);
   // Approvers
   const [areaManagers, setAreaManagers] = useState<User[]>([]);
   const [safetyOfficers, setSafetyOfficers] = useState<User[]>([]);
@@ -179,9 +178,10 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   });
 
 
-
-
-
+  // High-risk permit logic - used throughout the component
+  const highRiskPermits: PermitType[] = ['Hot_Work', 'Confined_Space', 'Electrical', 'Height'];
+  const selectedHighRiskCount = formData.categories.filter(cat => highRiskPermits.includes(cat)).length;
+  const requiresSiteLeaderApproval = selectedHighRiskCount >= 2;
 
   const totalSteps = 7;
   const progress = (currentStep / totalSteps) * 100;
@@ -246,13 +246,18 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         setSites(sitesList);
 
         // ⭐ NEW: Auto-prefill if only 1 site is assigned
+
         if (sitesList.length === 1) {
           console.log('✅ Auto-selecting single site:', sitesList[0].name);
           setFormData(prev => ({
             ...prev,
             site_id: sitesList[0].id
           }));
-        } else if (sitesList.length > 1) {
+
+          // ⭐ ALSO load approvers for the auto-selected site
+          loadSiteApprovers(sitesList[0].id);
+        }
+        else if (sitesList.length > 1) {
           console.log(`📋 ${sitesList.length} sites available - user must select`);
         } else {
           console.warn('⚠️ No sites assigned to this user');
@@ -340,6 +345,54 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       console.error('❌ [APPROVERS] Error:', error);
     }
   };
+  // ⭐ NEW: Load approvers for selected site
+  const loadSiteApprovers = async (siteId: number) => {
+    if (!siteId) return;
+
+    try {
+      console.log(`🔄 Loading approvers for site ID: ${siteId}`);
+
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`/api/approvers/sites/${siteId}/approvers`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      console.log('📊 Site Approvers Response:', data);
+
+      if (data.success && data.data) {
+        const siteApprovers = data.data;
+
+        // Auto-fill approver fields
+        setFormData(prev => ({
+          ...prev,
+          area_manager_id: siteApprovers.area_manager_id || 0,
+          safety_officer_id: siteApprovers.safety_officer_id || 0,
+          site_leader_id: siteApprovers.site_leader_id || 0
+        }));
+
+        console.log('✅ Auto-selected approvers:', {
+          area_manager: siteApprovers.area_manager_name || 'None',
+          safety_officer: siteApprovers.safety_officer_name || 'None',
+          site_leader: siteApprovers.site_leader_name || 'None'
+        });
+      } else {
+        console.log('⚠️ No approvers configured for this site');
+        // Clear approver fields if no approvers found
+        setFormData(prev => ({
+          ...prev,
+          area_manager_id: 0,
+          safety_officer_id: 0,
+          site_leader_id: 0
+        }));
+      }
+    } catch (error) {
+      console.error('❌ Error loading site approvers:', error);
+    }
+  };
   const loadCorrectChecklistQuestions = () => {
     const correctQuestions: Record<PermitType, Array<{ question: string; isTextInput: boolean }>> = {
       'General': [
@@ -399,10 +452,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         { question: 'Mechanical equipment lockout', isTextInput: false },
         { question: 'Rescue plan available', isTextInput: false },
         { question: 'GFCI provided for electrical tools', isTextInput: false },
-        { question: 'Entrant name', isTextInput: true },
-        { question: 'Attendant name', isTextInput: true },
-        { question: 'Supervisor name', isTextInput: true },
-        { question: 'Stand-by person name', isTextInput: true },
       ],
     };
 
@@ -422,6 +471,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     });
 
     console.log('✅ Loaded correct checklist questions:', allQuestions.length);
+    setChecklistQuestions(allQuestions);
   };
 
   const toggleCategory = (category: PermitType) => {
@@ -480,6 +530,25 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         alert('Please select End Time');
         return;
       }
+
+      // Date and Time Validation
+      const now = new Date();
+      const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
+      const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
+
+      if (startDateTime < now) {
+        // Allow small buffer of 1 min for slow users/clock differences
+        const diff = now.getTime() - startDateTime.getTime();
+        if (diff > 60000) {
+          alert('Start date and time cannot be in the past');
+          return;
+        }
+      }
+
+      if (endDateTime <= startDateTime) {
+        alert('End date and time must be after start date and time');
+        return;
+      }
       if (!formData.issuerSignature) {
         alert('Issuer Signature is required');
         return;
@@ -498,6 +567,86 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       }
       if (formData.selectedWorkers.length === 0 && newWorkers.length === 0) {
         alert('Please assign at least one worker');
+        return;
+      }
+    }
+
+    // ⭐ VALIDATION FOR SUBSEQUENT STEPS ⭐
+
+    // Step 3: Hazards Validation
+    if (currentStep === 3) {
+      if (formData.selectedHazards.length === 0) {
+        alert('Please select at least one hazard');
+        return;
+      }
+      if (!formData.controlMeasures.trim()) {
+        alert('Please enter Control Measures');
+        return;
+      }
+    }
+
+    // Step 4: PPE & SWMS Validation
+    if (currentStep === 4) {
+      if (formData.selectedPPE.length === 0) {
+        alert('Please select at least one PPE');
+        return;
+      }
+      if (formData.swmsMode === 'file' && !formData.swmsFile) {
+        alert('Please upload a SWMS document');
+        return;
+      }
+      if (formData.swmsMode === 'text' && (!formData.swmsText.trim() || formData.swmsText.length < 20)) {
+        alert('Please enter valid SWMS text (min 20 chars)');
+        return;
+      }
+    }
+
+    // Step 5: Checklist Validation
+    if (currentStep === 5) {
+      const activeQuestions = checklistQuestions.filter(q =>
+        formData.categories.includes(q.permit_type)
+      );
+
+      // IDs for special name fields
+      const mandatoryNameFieldIds = [398, 399, 400, 401];
+
+      for (const q of activeQuestions) {
+        if (mandatoryNameFieldIds.includes(q.id)) {
+          // Validate Name Fields
+          if (!formData.checklistTextResponses[q.id] || formData.checklistTextResponses[q.id].trim().length < 2) {
+            alert(`Please enter valid ${q.question_text}`);
+            return;
+          }
+        } else if (q.response_type === 'text') {
+          // Generic text input
+          if (!formData.checklistTextResponses[q.id] || formData.checklistTextResponses[q.id].trim() === '') {
+            alert(`Please answer: ${q.question_text}`);
+            return;
+          }
+        } else {
+          // Yes/No/NA Responses
+          const response = formData.checklistResponses[q.id];
+          if (!response) {
+            alert(`Please answer: ${q.question_text}`);
+            return;
+          }
+          // Remarks validation for 'No'
+          if (response === 'No' && (!formData.checklistRemarks[q.id] || !formData.checklistRemarks[q.id].trim())) {
+            alert(`Please provide remarks for "No" answer: ${q.question_text}`);
+            return;
+          }
+        }
+      }
+    }
+
+    // Step 6: Approvers Validation
+    if (currentStep === 6) {
+      if (!formData.area_manager_id) {
+        alert('Please select Area Manager');
+        return;
+      }
+      if (requiresSiteLeaderApproval && !formData.site_leader_id) {
+        alert('Site Leader approval is required for High-Risk permits');
         return;
       }
     }
@@ -710,7 +859,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
     // Local state prevents focus loss during typing
     const [localValue, setLocalValue] = useState(textValue || '');
-
     // Sync with parent when parent value changes
     useEffect(() => {
       if (textValue !== undefined) {
@@ -866,11 +1014,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
               <div className="grid gap-3 md:grid-cols-2">
                 {(['General', 'Height', 'Electrical', 'Hot_Work', 'Confined_Space'] as PermitType[]).map((category) => {
+                  const isHighRisk = highRiskPermits.includes(category);
                   return (
                     <label
                       key={category}
                       className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.categories.includes(category)
-                        ? 'border-orange-500 bg-orange-50'
+                        ? isHighRisk
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-orange-500 bg-orange-50'
                         : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
                         }`}
                     >
@@ -879,9 +1030,16 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                         onCheckedChange={() => toggleCategory(category)}
                       />
                       <div className="flex-1">
-                        <p className="font-medium text-slate-900">
-                          {category.replace('_', ' ')}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-slate-900">
+                            {category.replace('_', ' ')}
+                          </span>
+                          {isHighRisk && (
+                            <span className="px-2 py-0.5 text-xs font-semibold text-red-700 bg-red-100 rounded">
+                              High Risk
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </label>
                   );
@@ -905,7 +1063,20 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                   ))}
                 </div>
               )}
+              {/* High-Risk Warning */}
+              {requiresSiteLeaderApproval && (
+                <div className="flex items-start gap-3 p-4 mt-3 border-2 border-red-200 rounded-lg bg-red-50">
+                  <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-red-900">⚠️ Site Leader Approval Required</p>
+                    <p className="text-sm text-red-700">
+                      You've selected {selectedHighRiskCount} high-risk permit types. This requires approval from a Site Leader in addition to Area Manager and Safety Officer.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
+
             {/* Site Selection - UPDATED WITH AUTO-PREFILL */}
             <div className="grid gap-4 md:grid-cols-2">
               <div>
@@ -969,6 +1140,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                         const selectedSite = sites.find(s => s.id === siteId);
                         console.log('📍 Selected site:', selectedSite);
                         setFormData({ ...formData, site_id: siteId });
+                        loadSiteApprovers(siteId);
                       }}
                     >
                       <SelectTrigger id="site">
@@ -1055,8 +1227,17 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <Input
                   id="startDate"
                   type="date"
+                  min={new Date().toISOString().split('T')[0]} // Prevent past dates
                   value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  onChange={(e) => {
+                    const newStartDate = e.target.value;
+                    // Reset end date if it becomes invalid
+                    if (formData.endDate && newStartDate > formData.endDate) {
+                      setFormData(prev => ({ ...prev, startDate: newStartDate, endDate: '' }));
+                    } else {
+                      setFormData({ ...formData, startDate: newStartDate });
+                    }
+                  }}
                 />
               </div>
               <div>
@@ -1064,6 +1245,10 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <Input
                   id="startTime"
                   type="time"
+                  // Prevent past time if start date is today
+                  min={formData.startDate === new Date().toISOString().split('T')[0]
+                    ? new Date().toTimeString().slice(0, 5)
+                    : undefined}
                   value={formData.startTime}
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                 />
@@ -1076,6 +1261,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <Input
                   id="endDate"
                   type="date"
+                  min={formData.startDate || new Date().toISOString().split('T')[0]} // End date cannot be before start date
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                 />
@@ -1085,6 +1271,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <Input
                   id="endTime"
                   type="time"
+                  // If dates are same, end time must be after start time
+                  min={formData.startDate === formData.endDate ? formData.startTime : undefined}
                   value={formData.endTime}
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                 />
@@ -1380,7 +1568,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             </div>
 
             <div>
-              <Label htmlFor="controlMeasures">Control Measures</Label>
+              <Label htmlFor="controlMeasures">Control Measures <span className="text-red-500">*</span></Label>
               <Textarea
                 id="controlMeasures"
                 value={formData.controlMeasures}
@@ -1484,7 +1672,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
               {formData.swmsMode === 'file' && (
                 <div>
-                  <Label htmlFor="swmsFile">Upload SWMS Document</Label>
+                  <Label htmlFor="swmsFile">Upload SWMS Document <span className="text-red-500">*</span></Label>
                   <div className="flex items-center gap-4 mt-2">
                     <label
                       htmlFor="swmsFile"
@@ -1536,7 +1724,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
               {formData.swmsMode === 'text' && (
                 <div>
-                  <Label htmlFor="swmsText">Write SWMS Details</Label>
+                  <Label htmlFor="swmsText">Write SWMS Details <span className="text-red-500">*</span></Label>
                   <Textarea
                     id="swmsText"
                     value={formData.swmsText}
@@ -1954,6 +2142,22 @@ Include:
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Select Approvers</h2>
 
+            {/* ⭐ HIGH-RISK WARNING */}
+            {requiresSiteLeaderApproval && (
+              <div className="flex items-start gap-3 p-4 border-2 border-red-200 rounded-lg bg-red-50">
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-red-900">High-Risk Permit - Site Leader Required</p>
+                  <p className="text-sm text-red-700">
+                    This permit requires approval from all three approvers due to {selectedHighRiskCount} high-risk work types.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <p className="text-sm text-slate-600"></p>
+            <h2 className="text-xl font-semibold text-slate-900">Select Approvers</h2>
+
             {/* ⭐ ADD THIS MESSAGE */}
             <p className="text-sm text-slate-600">
               {formData.area_manager_id || formData.safety_officer_id || formData.site_leader_id ? (
@@ -2024,11 +2228,14 @@ Include:
                 </select>
               </div>
 
-              {/* Site Leader - OPTIONAL */}
-              <div>
+              {/* Site Leader - CONDITIONAL REQUIRED/OPTIONAL */}
+              <div className={requiresSiteLeaderApproval ? 'p-4 border-2 border-red-200 rounded-lg bg-red-50' : ''}>
                 <label className="block text-sm font-medium text-slate-900 mb-2">
-                  Site Leader <span className="text-xs text-slate-500">(Optional)</span>
-                  {/* ⭐ ADD THIS INDICATOR */}
+                  Site Leader {requiresSiteLeaderApproval ? (
+                    <span className="text-red-500">* (Required for High-Risk)</span>
+                  ) : (
+                    <span className="text-xs text-slate-500">(Optional)</span>
+                  )}
                   {formData.site_leader_id && (
                     <span className="ml-2 text-xs text-green-600 font-normal">
                       ✓ Pre-selected
@@ -2041,7 +2248,7 @@ Include:
                     ...prev,
                     site_leader_id: parseInt(e.target.value) || ''
                   }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="">-- Select Site Leader --</option>
                   {siteLeaders.map((sl) => (
@@ -2050,6 +2257,14 @@ Include:
                     </option>
                   ))}
                 </select>
+
+                {/* ⭐ HIGH-RISK WARNING */}
+                {requiresSiteLeaderApproval && !formData.site_leader_id && (
+                  <p className="mt-2 text-xs text-red-700 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    Site Leader approval is mandatory for permits with 2 or more high-risk work types
+                  </p>
+                )}
               </div>
             </div>
 
