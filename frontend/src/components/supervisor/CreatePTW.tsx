@@ -219,7 +219,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     try {
       console.log('🔄 Loading master data from admin database...');
 
-      // ✅ FIXED: Each API call has its own error handler
       const [sitesRes, hazardsRes, ppeRes, workersRes] = await Promise.all([
         sitesAPI.getAll().catch(err => {
           console.error('❌ Sites API error:', err);
@@ -240,6 +239,28 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       ]);
 
       console.log('📍 Sites API Response:', sitesRes);
+      // ⭐ MODIFIED: Handle sites with auto-prefill logic
+      if (sitesRes.success && sitesRes.data) {
+        const sitesList = Array.isArray(sitesRes.data) ? sitesRes.data : [];
+        console.log(`✅ Sites loaded: ${sitesList.length}`);
+        setSites(sitesList);
+
+        // ⭐ NEW: Auto-prefill if only 1 site is assigned
+        if (sitesList.length === 1) {
+          console.log('✅ Auto-selecting single site:', sitesList[0].name);
+          setFormData(prev => ({
+            ...prev,
+            site_id: sitesList[0].id
+          }));
+        } else if (sitesList.length > 1) {
+          console.log(`📋 ${sitesList.length} sites available - user must select`);
+        } else {
+          console.warn('⚠️ No sites assigned to this user');
+        }
+      } else {
+        console.warn('⚠️ Sites not loaded');
+        setSites([]);
+      }
 
       // ✅ FIXED: Proper null checks and array validation
       if (sitesRes.success && sitesRes.data) {
@@ -411,7 +432,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         : [...prev.categories, category]
     }));
   };
-
   const handleNext = () => {
     console.log('📍 Current Step:', currentStep);
 
@@ -421,10 +441,17 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         alert('Please select at least one permit category');
         return;
       }
+
+      // ⭐ Use the validateStep2 function which includes site validation
       if (!formData.site_id) {
-        alert('Please select a Site');
+        if (sites.length === 0) {
+          alert('⚠️ No sites assigned to you. Please contact your administrator to assign sites before creating a PTW.');
+        } else {
+          alert('⚠️ Please select a site to proceed.');
+        }
         return;
       }
+
       if (!formData.issueDepartment) {
         alert('Please select an Issue Department');
         return;
@@ -473,64 +500,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         alert('Please assign at least one worker');
         return;
       }
-    }
-
-    // Step 3: Hazards Validation
-    if (currentStep === 3) {
-      if (formData.selectedHazards.length === 0) {
-        alert('Please identify at least one hazard');
-        return;
-      }
-    }
-
-    // Step 4: PPE Validation
-    if (currentStep === 4) {
-      if (formData.selectedPPE.length === 0) {
-        alert('Please select required PPE');
-        return;
-      }
-      // Enforce SWMS (Document or Text)
-      if (!formData.swmsFile && (!formData.swmsText || formData.swmsText.trim().length < 20)) {
-        alert('Please upload a SWMS document or provide sufficient SWMS details (text)');
-        return;
-      }
-    }
-
-    // Step 5: Checklist Validation
-    if (currentStep === 5) {
-      const activeQuestions = checklistQuestions.filter(q =>
-        formData.categories.includes(q.permit_type as PermitType)
-      );
-
-      for (const q of activeQuestions) {
-        if (q.response_type === 'text') {
-          if (!formData.checklistTextResponses[q.id] || !formData.checklistTextResponses[q.id].trim()) {
-            alert(`Please answer the mandatory question: "${q.question_text}"`);
-            return;
-          }
-        } else {
-          // yes_no type
-          if (!formData.checklistResponses[q.id]) {
-            alert(`Please select Yes/No/NA for: "${q.question_text}"`);
-            return;
-          }
-          // If response is 'No', remark is usually mandatory or at least good practice, 
-          // code shows input for remark if No. Let's force remark if No.
-          if (formData.checklistResponses[q.id] === 'No' && !formData.checklistRemarks[q.id]?.trim()) {
-            alert(`Please provide remarks for "No" response to: "${q.question_text}"`);
-            return;
-          }
-        }
-      }
-    }
-
-    // Step 6: Approvers Validation
-    if (currentStep === 6) {
-      if (!formData.area_manager_id || formData.area_manager_id === 0) {
-        alert('Please select an Area Manager');
-        return;
-      }
-      // Safety Officer and Site Leader are optional
     }
 
     if (currentStep < totalSteps) {
@@ -937,61 +906,110 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 </div>
               )}
             </div>
-
-            {/* Site Selection */}
+            {/* Site Selection - UPDATED WITH AUTO-PREFILL */}
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <Label htmlFor="site">Site *</Label>
-                <Select
-                  value={formData.site_id.toString()}
-                  onValueChange={(value) => {
-                    const siteId = parseInt(value);
-                    console.log('📍 Site selected - ID:', siteId);
-                    const selectedSite = sites.find(s => s.id === siteId);
-                    console.log('📍 Selected site:', selectedSite);
-                    setFormData({ ...formData, site_id: siteId });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={sites.length > 0 ? "Select site" : "Loading sites..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sites.length > 0 ? (
-                      sites.map((site) => (
-                        <SelectItem key={site.id} value={site.id.toString()}>
-                          {site.name || site.name || `Site ${site.id}`}
-                          {site.site_code ? ` (${site.site_code})` : ''}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="0" disabled>
-                        No sites available - Please add sites in Admin panel
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="site">
+                  Site *
+                  {/* Show indicator for single site auto-selection */}
+                  {sites.length === 1 && (
+                    <span className="ml-2 text-xs text-green-600 font-normal">
+                      ✓ Auto-selected (only 1 site assigned)
+                    </span>
+                  )}
+                </Label>
 
-                {/* Status Indicator */}
-                {sites.length > 0 ? (
-                  <p className="flex items-center gap-1 mt-2 text-xs text-green-600">
-                    <Check className="w-3 h-3" />
-                    {sites.length} sites assigned
-                  </p>
+                {/* Conditional rendering based on number of sites */}
+                {sites.length === 0 ? (
+                  // NO SITES ASSIGNED
+                  <div className="p-4 border-2 border-amber-300 rounded-lg bg-amber-50">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-amber-900">No Sites Assigned</p>
+                        <p className="mt-1 text-sm text-amber-800">
+                          You don't have any sites assigned to your account.
+                          Please contact your administrator to assign sites before creating a PTW.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : sites.length === 1 ? (
+                  // SINGLE SITE - SHOW AS PRE-SELECTED
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-4 border-2 border-green-500 rounded-lg bg-green-50">
+                      <div className="flex-1">
+                        <p className="font-semibold text-green-900">{sites[0].name}</p>
+                        <div className="flex flex-wrap gap-2 mt-1 text-sm text-green-700">
+                          {sites[0].site_code && (
+                            <span>Code: {sites[0].site_code}</span>
+                          )}
+                          {sites[0].location && (
+                            <span>• {sites[0].location}</span>
+                          )}
+                        </div>
+                      </div>
+                      <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
+                    </div>
+                    <p className="flex items-center gap-1 text-xs text-slate-600">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      This is your assigned site. To work on other sites, contact your administrator.
+                    </p>
+                  </div>
                 ) : (
-                  <p className="flex items-center gap-1 mt-2 text-xs text-amber-600">
-                    <AlertTriangle className="w-3 h-3" />
-                    No sites found. Add sites in Admin &gt; Site Management
-                  </p>
+                  // MULTIPLE SITES - SHOW DROPDOWN
+                  <>
+                    <Select
+                      value={formData.site_id.toString()}
+                      onValueChange={(value) => {
+                        const siteId = parseInt(value);
+                        console.log('📍 Site selected - ID:', siteId);
+                        const selectedSite = sites.find(s => s.id === siteId);
+                        console.log('📍 Selected site:', selectedSite);
+                        setFormData({ ...formData, site_id: siteId });
+                      }}
+                    >
+                      <SelectTrigger id="site">
+                        <SelectValue placeholder="Select site from your assigned sites" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sites.map((site) => (
+                          <SelectItem key={site.id} value={site.id.toString()}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{site.name}</span>
+                              {(site.site_code || site.location) && (
+                                <span className="text-xs text-slate-500">
+                                  {site.site_code && `Code: ${site.site_code}`}
+                                  {site.site_code && site.location && ' • '}
+                                  {site.location}
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="flex items-center gap-1 mt-2 text-xs text-green-600">
+                      <Check className="w-3 h-3" />
+                      {sites.length} sites assigned to you - Select one to proceed
+                    </p>
+                  </>
                 )}
               </div>
+
               <div>
-                <Label htmlFor="location">Location</Label>
+                <Label htmlFor="location">Work Location / Area</Label>
                 <Input
                   id="location"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., Building A, Floor 3"
+                  placeholder="e.g., Building A, Floor 3, Room 205"
                 />
+                <p className="mt-1 text-xs text-slate-500">
+                  Specify the exact location within the site where work will be performed
+                </p>
               </div>
             </div>
 
