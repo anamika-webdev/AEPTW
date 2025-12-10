@@ -111,17 +111,6 @@ const PPEIconComponent = ({ name }: { name: string }) => {
   );
 };
 
-// Helper function for category badge colors
-function getCategoryBadgeColor(category: string) {
-  switch (category) {
-    case 'Hot_Work': return 'bg-red-100 text-red-700 border-red-200';
-    case 'Confined_Space': return 'bg-orange-100 text-orange-700 border-orange-200';
-    case 'Electrical': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-    case 'Height': return 'bg-purple-100 text-purple-700 border-purple-200';
-    default: return 'bg-orange-100 text-orange-700 border-orange-200';
-  }
-}
-
 export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [showSignature, setShowSignature] = useState(false);
@@ -132,7 +121,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   // Master data
   const [sites, setSites] = useState<Site[]>([]);
   const [workers, setWorkers] = useState<User[]>([]);
-  const [checklistQuestions, setChecklistQuestions] = useState<MasterChecklistQuestion[]>([]);
+  const [checklistQuestions] = useState<MasterChecklistQuestion[]>([]);
 
   // Approvers
   const [areaManagers, setAreaManagers] = useState<User[]>([]);

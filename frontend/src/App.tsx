@@ -24,7 +24,7 @@ interface User {
   full_name: string;
   email: string;
   role: string;
-  frontendRole?: "Admin" | "Supervisor" | "Worker" | undefined;
+  frontendRole?: string;
   department?: string;
   created_at?: string;
 }

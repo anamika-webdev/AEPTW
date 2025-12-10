@@ -4,6 +4,14 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Building2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AssignResourcesModal } from '../../components/admin/AssignResourcesModal';
+
+interface Site {
+  id: number;
+  name: string;
+  site_code: string;
+  location: string;
+}
+
 interface User {
   id: number;
   login_id: string;
@@ -38,6 +46,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [showSiteAssignment, setShowSiteAssignment] = useState(false);
+  const [selectedApprover, setSelectedApprover] = useState<User | null>(null);
 
   // ✅ NEW: Assignment states
   const [userAssignments, setUserAssignments] = useState<{
@@ -437,6 +447,20 @@ export default function UserManagement({ onBack }: UserManagementProps) {
               }}
               className="mr-3 text-purple-600 hover:text-purple-900"
               title="Assign sites and workers"
+            >
+              <Building2 className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Assignment Button for Approvers */}
+          {user.role.includes('Approver') && (
+            <button
+              onClick={() => {
+                setSelectedApprover(user);
+                setShowSiteAssignment(true);
+              }}
+              className="mr-3 text-blue-600 hover:text-blue-900"
+              title="Assign sites to approver"
             >
               <Building2 className="w-4 h-4" />
             </button>
@@ -1115,6 +1139,212 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           </div>
         </div>
       )}
+
+      {/* Site Assignment Modal for Approvers */}
+      {showSiteAssignment && selectedApprover && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Assign Sites to {selectedApprover.full_name}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowSiteAssignment(false);
+                  setSelectedApprover(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="mb-4 text-sm text-gray-600">
+              Select sites where this approver will be available for permit approvals
+            </p>
+
+            <SiteAssignmentContent
+              approverId={selectedApprover.id}
+              approverRole={selectedApprover.role}
+              onClose={() => {
+                setShowSiteAssignment(false);
+                setSelectedApprover(null);
+              }}
+              onSuccess={() => {
+                fetchUsers(true);
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Site Assignment Content Component
+function SiteAssignmentContent({
+  approverId,
+  approverRole,
+  onClose,
+  onSuccess
+}: {
+  approverId: number;
+  approverRole: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [sites, setSites] = useState<Site[]>([]);
+  const [selectedSites, setSelectedSites] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, [approverId]);
+
+  const loadData = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Load all sites
+      const sitesResponse = await fetch('/api/sites', { headers });
+      const sitesData = await sitesResponse.json();
+
+      if (sitesData.success) {
+        setSites(sitesData.data || []);
+      }
+
+      // Load approver's current site assignments
+      const assignedResponse = await fetch(`/api/approvers/${approverId}/sites`, { headers });
+      const assignedData = await assignedResponse.json();
+
+      if (assignedData.success && assignedData.data) {
+        setSelectedSites(assignedData.data.map((s: any) => s.site_id));
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      alert('Failed to load sites');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleSite = (siteId: number) => {
+    setSelectedSites(prev =>
+      prev.includes(siteId)
+        ? prev.filter(id => id !== siteId)
+        : [...prev, siteId]
+    );
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+      const response = await fetch(`/api/approvers/${approverId}/assign-sites`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          site_ids: selectedSites,
+          approver_role: approverRole
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Sites assigned successfully!');
+        onSuccess();
+        onClose();
+      } else {
+        alert(data.message || 'Failed to assign sites');
+      }
+    } catch (error) {
+      console.error('Error assigning sites:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-8 h-8 text-orange-600 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {sites.length === 0 ? (
+        <p className="py-8 text-center text-gray-500">
+          No sites available. Please add sites first.
+        </p>
+      ) : (
+        <div className="space-y-2 mb-6">
+          {sites.map((site) => (
+            <label
+              key={site.id}
+              className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+            >
+              <input
+                type="checkbox"
+                checked={selectedSites.includes(site.id)}
+                onChange={() => handleToggleSite(site.id)}
+                className="mt-1 w-4 h-4 text-orange-600 rounded focus:ring-2 focus:ring-orange-500"
+              />
+              <div className="flex-1">
+                <div className="font-medium text-gray-900">{site.name}</div>
+                <div className="text-sm text-gray-600">
+                  Code: {site.site_code} • {site.location}
+                </div>
+              </div>
+            </label>
+          ))}
+        </div>
+      )}
+
+      <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
+        <p className="text-sm text-blue-900">
+          <strong>Selected sites: {selectedSites.length}</strong>
+          <br />
+          This approver will appear in the approval workflow for permits created at these sites.
+        </p>
+      </div>
+
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={onClose}
+          disabled={saving}
+          className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving || loading}
+          className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Assignment'
+          )}
+        </button>
+      </div>
     </div>
   );
 }

@@ -21,7 +21,7 @@ interface User {
   full_name: string;
   email: string;
   role: string;
-  frontendRole?: 'Admin' | 'Supervisor' | 'Worker';
+  frontendRole?: string;
   department?: string;
 }
 

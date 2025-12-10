@@ -39,6 +39,7 @@ const masterRoutes = require('./src/routes/master.routes');
 const dashboardRoutes = require('./src/routes/dashboard.routes');
 const requesterAssignmentsRoutes = require('./src/routes/requester-assignments.routes');
 const notificationsRoutes = require('./src/routes/notifications.routes');
+// const approverSitesRoutes = require('./src/routes/approverSites.routes');
 const { initScheduler } = require('./src/services/cronService');
 // Initialize Scheduler
 initScheduler();
@@ -53,6 +54,18 @@ app.use('/api/master', masterRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/requester-assignments', requesterAssignmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+// app.use('/api/approvers', approverSitesRoutes);
+
+// Approver Sites routes (with try-catch for safety)
+try {
+  const approverSitesRoutes = require('./src/routes/approverSites.routes');
+  app.use('/api/approvers', approverSitesRoutes);
+  console.log('✅ Approver sites routes loaded successfully');
+} catch (err) {
+  console.error('❌ Failed to load approver sites routes:', err.message);
+  console.warn('⚠️ Approver site assignment feature will not be available');
+}
+
 // Vendors route (if separate file exists)
 try {
   const vendorsRoutes = require('./src/routes/vendors.routes');
