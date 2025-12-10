@@ -1,10 +1,18 @@
 // frontend/src/components/approver/ApproverDashboard.tsx
-// ✅ WITH DEBUG OUTPUT TO DIAGNOSE PAGINATION
+// ENHANCED VERSION - Digital Signature + Notes for BOTH Approve and Reject
 
-import { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import Pagination from '../common/Pagination';
-import { usePagination } from '../../hooks/usePagination';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  FileText,
+  Calendar,
+  User,
+  MapPin,
+  X
+} from 'lucide-react';
 
 interface Permit {
   id: number;
@@ -12,92 +20,206 @@ interface Permit {
   permit_type: string;
   work_location: string;
   work_description: string;
+  site_name: string;
+  created_at: string;
   start_time: string;
   end_time: string;
-  status: string;
-  created_by_name?: string;
-  rejection_reason?: string;
-  site_name?: string;
-  area_manager_name?: string;
-  safety_officer_name?: string;
-  site_leader_name?: string;
-  area_manager_status?: string;
-  safety_officer_status?: string;
-  site_leader_status?: string;
+  my_approval_status: string;
+  area_manager_status: string | null;
+  safety_officer_status: string | null;
+  site_leader_status: string | null;
+  created_by_name: string;
+  created_by_email: string;
+  area_manager_name: string | null;
+  safety_officer_name: string | null;
+  site_leader_name: string | null;
+  team_member_count: number;
 }
 
-interface ApproverDashboardProps {
-  initialTab?: 'pending' | 'approved' | 'rejected';
-}
-
-export default function ApproverDashboard({ initialTab = 'pending' }: ApproverDashboardProps) {
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>(initialTab);
+export default function ApproverDashboard() {
   const [pendingPermits, setPendingPermits] = useState<Permit[]>([]);
   const [approvedPermits, setApprovedPermits] = useState<Permit[]>([]);
   const [rejectedPermits, setRejectedPermits] = useState<Permit[]>([]);
-
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null);
-  const [signature, setSignature] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
+
+  // Form states
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [rejectionNotes, setRejectionNotes] = useState('');
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  // Canvas refs
+  const approveCanvasRef = useRef<HTMLCanvasElement>(null);
+  const rejectCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     loadApprovals();
   }, []);
 
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
-
   const loadApprovals = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-      const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
-        fetch(`${baseURL}/approvals/pending`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${baseURL}/approvals/approved`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${baseURL}/approvals/rejected`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ]);
-
+      // Fetch pending approvals
+      const pendingRes = await fetch(`${baseURL}/approvals/pending`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const pendingData = await pendingRes.json();
+      if (pendingData.success) {
+        setPendingPermits(pendingData.data);
+      }
+
+      // Fetch approved approvals
+      const approvedRes = await fetch(`${baseURL}/approvals/approved`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const approvedData = await approvedRes.json();
+      if (approvedData.success) {
+        setApprovedPermits(approvedData.data);
+      }
+
+      // Fetch rejected approvals
+      const rejectedRes = await fetch(`${baseURL}/approvals/rejected`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const rejectedData = await rejectedRes.json();
+      if (rejectedData.success) {
+        setRejectedPermits(rejectedData.data);
+      }
 
-      if (pendingData.success) setPendingPermits(pendingData.data || []);
-      if (approvedData.success) setApprovedPermits(approvedData.data || []);
-      if (rejectedData.success) setRejectedPermits(rejectedData.data || []);
-
-      setLoading(false);
     } catch (error) {
       console.error('Error loading approvals:', error);
+      alert('Failed to load approvals');
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = (permit: Permit) => {
+  const handleApproveClick = (permit: Permit) => {
     setSelectedPermit(permit);
+    setApprovalNotes('');
     setShowApproveModal(true);
+    // Initialize canvas after modal opens
+    setTimeout(() => initializeCanvas(approveCanvasRef), 100);
   };
 
-  const handleReject = (permit: Permit) => {
+  const handleRejectClick = (permit: Permit) => {
     setSelectedPermit(permit);
+    setRejectionNotes('');
     setShowRejectModal(true);
+    // Initialize canvas after modal opens
+    setTimeout(() => initializeCanvas(rejectCanvasRef), 100);
+  };
+
+  const initializeCanvas = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas background to white
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Set drawing style
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  };
+
+  // Canvas drawing functions
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>, canvasRef: React.RefObject<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>, canvasRef: React.RefObject<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearSignature = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear and reset to white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Reset drawing style
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+  };
+
+  const isCanvasEmpty = (canvasRef: React.RefObject<HTMLCanvasElement>): boolean => {
+    const canvas = canvasRef.current;
+    if (!canvas) return true;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return true;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Check if all pixels are white (255, 255, 255, 255)
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] !== 255 || data[i + 1] !== 255 || data[i + 2] !== 255) {
+        return false; // Found a non-white pixel
+      }
+    }
+    return true;
   };
 
   const submitApproval = async () => {
-    if (!selectedPermit || !signature.trim()) {
-      alert('Please provide your signature');
+    if (!selectedPermit) return;
+
+    // Validate signature
+    if (isCanvasEmpty(approveCanvasRef)) {
+      alert('Please add your signature to approve');
       return;
     }
+
+    const canvas = approveCanvasRef.current;
+    if (!canvas) return;
+
+    const signatureData = canvas.toDataURL('image/png');
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -109,15 +231,18 @@ export default function ApproverDashboard({ initialTab = 'pending' }: ApproverDa
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ signature })
+        body: JSON.stringify({
+          signature: signatureData,
+          comments: approvalNotes.trim() || null
+        })
       });
 
       const data = await response.json();
       if (data.success) {
-        alert('Permit approved successfully!');
+        alert(data.message || 'Permit approved successfully');
         setShowApproveModal(false);
         setSelectedPermit(null);
-        setSignature('');
+        setApprovalNotes('');
         loadApprovals();
       } else {
         alert(data.message || 'Failed to approve permit');
@@ -129,10 +254,24 @@ export default function ApproverDashboard({ initialTab = 'pending' }: ApproverDa
   };
 
   const submitRejection = async () => {
-    if (!selectedPermit || !rejectionReason.trim()) {
-      alert('Please provide a rejection reason');
+    if (!selectedPermit) return;
+
+    // Validate rejection reason
+    if (!rejectionNotes.trim()) {
+      alert('Please provide a reason for rejection');
       return;
     }
+
+    // Validate signature
+    if (isCanvasEmpty(rejectCanvasRef)) {
+      alert('Please add your signature to confirm rejection');
+      return;
+    }
+
+    const canvas = rejectCanvasRef.current;
+    if (!canvas) return;
+
+    const signatureData = canvas.toDataURL('image/png');
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -144,7 +283,10 @@ export default function ApproverDashboard({ initialTab = 'pending' }: ApproverDa
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ reason: rejectionReason })
+        body: JSON.stringify({
+          reason: rejectionNotes.trim(),
+          signature: signatureData
+        })
       });
 
       const data = await response.json();
@@ -152,7 +294,7 @@ export default function ApproverDashboard({ initialTab = 'pending' }: ApproverDa
         alert('Permit rejected');
         setShowRejectModal(false);
         setSelectedPermit(null);
-        setRejectionReason('');
+        setRejectionNotes('');
         loadApprovals();
       } else {
         alert(data.message || 'Failed to reject permit');
@@ -163,9 +305,13 @@ export default function ApproverDashboard({ initialTab = 'pending' }: ApproverDa
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-      'Pending_Approval': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
+      'Pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
       'Approved': { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
       'Rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
     };
@@ -178,341 +324,445 @@ export default function ApproverDashboard({ initialTab = 'pending' }: ApproverDa
     );
   };
 
-  const getApprovalStatusBadge = (status?: string, name?: string) => {
-    if (!name) {
-      return <span className="text-xs text-gray-400">Not assigned</span>;
-    }
-
-    let badge;
-    if (status === 'Approved') {
-      badge = (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded">
-          <CheckCircle className="w-3 h-3" />
-          Approved
-        </span>
-      );
-    } else if (status === 'Rejected') {
-      badge = (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded">
-          <XCircle className="w-3 h-3" />
-          Rejected
-        </span>
-      );
-    } else {
-      badge = (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded">
-          <Clock className="w-3 h-3" />
-          Pending
-        </span>
+  const renderPermitTable = (permits: Permit[], showActions: boolean) => {
+    if (permits.length === 0) {
+      return (
+        <div className="text-center py-8 text-slate-500">
+          No permits found
+        </div>
       );
     }
 
     return (
-      <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-gray-900">{name}</span>
-        {badge}
-      </div>
-    );
-  };
-
-  const PermitTable = ({
-    permits,
-    showActions
-  }: {
-    permits: Permit[];
-    showActions: boolean;
-  }) => {
-    const {
-      currentPage,
-      totalPages,
-      itemsPerPage,
-      paginatedData,
-      setCurrentPage,
-      setItemsPerPage
-    } = usePagination<Permit>({
-      data: permits,
-      initialItemsPerPage: 10
-    });
-
-    // 🔍 DEBUG OUTPUT
-    console.log('🔍 PAGINATION DEBUG:', {
-      totalPermits: permits.length,
-      currentPage,
-      totalPages,
-      itemsPerPage,
-      paginatedDataLength: paginatedData.length
-    });
-
-    return (
-      <div className="overflow-hidden bg-white rounded-lg shadow-md">
-        {permits.length === 0 ? (
-          <div className="py-12 text-center">
-            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-            <p className="text-gray-500">No permits found</p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">PTW ID</th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Type</th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Location</th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Supervisor</th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Start Time</th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Area Manager</th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Safety Officer</th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Site Leader</th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-700 uppercase">Status</th>
-                    {showActions && (
-                      <th className="px-4 py-3 text-xs font-medium tracking-wider text-right text-gray-700 uppercase">Actions</th>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                PTW Details
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                Work Details
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                Schedule
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                Created By
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                Approval Status
+              </th>
+              {showActions && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-slate-200">
+            {permits.map((permit) => (
+              <tr key={permit.id} className="hover:bg-slate-50">
+                <td className="px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">{permit.permit_serial}</div>
+                      <div className="text-xs text-slate-500">{permit.permit_type}</div>
+                      <div className="text-xs text-slate-500">{permit.site_name}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-4 h-4 text-slate-400" />
+                    <div>
+                      <div className="text-sm text-slate-900">{permit.work_location}</div>
+                      <div className="text-xs text-slate-500 max-w-xs truncate">
+                        {permit.work_description}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm">
+                    <div className="flex items-center gap-1 text-slate-600">
+                      <Calendar className="w-3 h-3" />
+                      <span className="text-xs">Start:</span>
+                    </div>
+                    <div className="text-xs text-slate-700">{formatDate(permit.start_time)}</div>
+                    <div className="flex items-center gap-1 text-slate-600 mt-1">
+                      <Calendar className="w-3 h-3" />
+                      <span className="text-xs">End:</span>
+                    </div>
+                    <div className="text-xs text-slate-700">{formatDate(permit.end_time)}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <User className="w-4 h-4 text-slate-400" />
+                    <div>
+                      <div className="text-sm text-slate-900">{permit.created_by_name}</div>
+                      <div className="text-xs text-slate-500">{formatDate(permit.created_at)}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="space-y-1">
+                    {permit.area_manager_name && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600">Area Mgr:</span>
+                        {getStatusBadge(permit.area_manager_status || 'Pending')}
+                      </div>
                     )}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedData.map((permit) => (
-                    <tr key={permit.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{permit.permit_serial}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{permit.permit_type}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{permit.work_location}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{permit.created_by_name || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {new Date(permit.start_time).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {getApprovalStatusBadge(permit.area_manager_status, permit.area_manager_name)}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {getApprovalStatusBadge(permit.safety_officer_status, permit.safety_officer_name)}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {getApprovalStatusBadge(permit.site_leader_status, permit.site_leader_name)}
-                      </td>
-                      <td className="px-4 py-3 text-sm">{getStatusBadge(permit.status)}</td>
-                      {showActions && (
-                        <td className="px-4 py-3 text-sm text-right">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => handleApprove(permit)}
-                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-green-700 transition-colors bg-green-100 rounded hover:bg-green-200"
-                            >
-                              <CheckCircle className="w-3 h-3" />
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleReject(permit)}
-                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-red-700 transition-colors bg-red-100 rounded hover:bg-red-200"
-                            >
-                              <XCircle className="w-3 h-3" />
-                              Reject
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* 🔍 DEBUG BOX - TEMPORARY */}
-            <div className="p-4 bg-yellow-100 border-t-2 border-yellow-300">
-              <p className="font-bold text-yellow-900">🔍 DEBUG INFO (Remove after testing):</p>
-              <p className="text-sm text-yellow-800">Total Permits: {permits.length}</p>
-              <p className="text-sm text-yellow-800">Current Page: {currentPage}</p>
-              <p className="text-sm text-yellow-800">Total Pages: {totalPages}</p>
-              <p className="text-sm text-yellow-800">Items Per Page: {itemsPerPage}</p>
-              <p className="text-sm text-yellow-800">Showing: {paginatedData.length} items</p>
-            </div>
-
-            {/* PAGINATION */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={permits.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={setItemsPerPage}
-              />
-            </div>
-          </>
-        )}
+                    {permit.safety_officer_name && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600">Safety:</span>
+                        {getStatusBadge(permit.safety_officer_status || 'Pending')}
+                      </div>
+                    )}
+                    {permit.site_leader_name && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600">Site Leader:</span>
+                        {getStatusBadge(permit.site_leader_status || 'Pending')}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                {showActions && (
+                  <td className="px-6 py-4">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleApproveClick(permit)}
+                        className="inline-flex items-center px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700"
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectClick(permit)}
+                        className="inline-flex items-center px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700"
+                      >
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Reject
+                      </button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-orange-600 rounded-full animate-spin border-t-transparent"></div>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      <div className="mx-auto max-w-7xl">
-        <h1 className="mb-6 text-3xl font-bold text-gray-900">Approver Dashboard</h1>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
-          <div className="p-6 bg-white rounded-lg shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">{pendingPermits.length}</p>
-              </div>
-              <Clock className="w-8 h-8 text-yellow-600" />
-            </div>
-          </div>
-          <div className="p-6 bg-white rounded-lg shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Approved</p>
-                <p className="text-2xl font-bold text-green-600">{approvedPermits.length}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-          </div>
-          <div className="p-6 bg-white rounded-lg shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Rejected</p>
-                <p className="text-2xl font-bold text-red-600">{rejectedPermits.length}</p>
-              </div>
-              <XCircle className="w-8 h-8 text-red-600" />
-            </div>
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">PTW Approvals</h1>
+          <p className="text-sm text-slate-600 mt-1">Review and approve permit to work requests</p>
         </div>
-
-        {/* Tabs */}
-        <div className="mb-6 bg-white rounded-lg shadow-md">
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px">
-              <button
-                onClick={() => setActiveTab('pending')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 ${activeTab === 'pending'
-                    ? 'border-yellow-500 text-yellow-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                Pending ({pendingPermits.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('approved')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 ${activeTab === 'approved'
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                Approved ({approvedPermits.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('rejected')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 ${activeTab === 'rejected'
-                    ? 'border-red-500 text-red-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                Rejected ({rejectedPermits.length})
-              </button>
-            </nav>
-          </div>
-
-          <div className="p-6">
-            {activeTab === 'pending' && (
-              <PermitTable permits={pendingPermits} showActions={true} />
-            )}
-            {activeTab === 'approved' && (
-              <PermitTable permits={approvedPermits} showActions={false} />
-            )}
-            {activeTab === 'rejected' && (
-              <PermitTable permits={rejectedPermits} showActions={false} />
-            )}
-          </div>
-        </div>
-
-        {/* Approve Modal */}
-        {showApproveModal && selectedPermit && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="w-full max-w-md p-6 bg-white rounded-lg">
-              <h3 className="mb-4 text-xl font-bold">Approve Permit</h3>
-              <p className="mb-4 text-gray-600">
-                Approve {selectedPermit.permit_serial}?
-              </p>
-              <input
-                type="text"
-                placeholder="Your signature"
-                value={signature}
-                onChange={(e) => setSignature(e.target.value)}
-                className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={submitApproval}
-                  className="flex-1 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => {
-                    setShowApproveModal(false);
-                    setSelectedPermit(null);
-                    setSignature('');
-                  }}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Reject Modal */}
-        {showRejectModal && selectedPermit && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="w-full max-w-md p-6 bg-white rounded-lg">
-              <h3 className="mb-4 text-xl font-bold">Reject Permit</h3>
-              <p className="mb-4 text-gray-600">
-                Reject {selectedPermit.permit_serial}?
-              </p>
-              <textarea
-                placeholder="Rejection reason"
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                rows={4}
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={submitRejection}
-                  className="flex-1 px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700"
-                >
-                  Reject
-                </button>
-                <button
-                  onClick={() => {
-                    setShowRejectModal(false);
-                    setSelectedPermit(null);
-                    setRejectionReason('');
-                  }}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <button
+          onClick={loadApprovals}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Refresh
+        </button>
       </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-yellow-600">Pending Approvals</p>
+              <p className="text-2xl font-bold text-yellow-900">{pendingPermits.length}</p>
+            </div>
+            <Clock className="w-8 h-8 text-yellow-600" />
+          </div>
+        </div>
+
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-green-600">Approved</p>
+              <p className="text-2xl font-bold text-green-900">{approvedPermits.length}</p>
+            </div>
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          </div>
+        </div>
+
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-red-600">Rejected</p>
+              <p className="text-2xl font-bold text-red-900">{rejectedPermits.length}</p>
+            </div>
+            <XCircle className="w-8 h-8 text-red-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-slate-200">
+        <nav className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'pending'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+          >
+            Pending ({pendingPermits.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('approved')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'approved'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+          >
+            Approved ({approvedPermits.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('rejected')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'rejected'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+          >
+            Rejected ({rejectedPermits.length})
+          </button>
+        </nav>
+      </div>
+
+      {/* Tables */}
+      <div className="bg-white rounded-lg shadow">
+        {activeTab === 'pending' && renderPermitTable(pendingPermits, true)}
+        {activeTab === 'approved' && renderPermitTable(approvedPermits, false)}
+        {activeTab === 'rejected' && renderPermitTable(rejectedPermits, false)}
+      </div>
+
+      {/* Approve Modal */}
+      {showApproveModal && selectedPermit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-900">Approve Permit</h3>
+              <button
+                onClick={() => {
+                  setShowApproveModal(false);
+                  setSelectedPermit(null);
+                  setApprovalNotes('');
+                }}
+                className="p-1 hover:bg-slate-100 rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900">
+                  <strong>PTW Serial:</strong> {selectedPermit.permit_serial}
+                </p>
+                <p className="text-sm text-blue-900 mt-1">
+                  <strong>Work Location:</strong> {selectedPermit.work_location}
+                </p>
+                <p className="text-sm text-blue-900 mt-1">
+                  <strong>Requested By:</strong> {selectedPermit.created_by_name}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Notes / Comments (Optional)
+                </label>
+                <textarea
+                  value={approvalNotes}
+                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  rows={3}
+                  placeholder="Add any comments or conditions for this approval..."
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  e.g., "Approved subject to daily safety inspections" or "All PPE requirements verified"
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Digital Signature <span className="text-red-500">*</span>
+                </label>
+                <div className="border-2 border-slate-300 rounded-lg bg-white">
+                  <canvas
+                    ref={approveCanvasRef}
+                    width={600}
+                    height={150}
+                    onMouseDown={(e) => startDrawing(e, approveCanvasRef)}
+                    onMouseMove={(e) => draw(e, approveCanvasRef)}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    className="w-full cursor-crosshair"
+                    style={{ touchAction: 'none' }}
+                  />
+                </div>
+                <button
+                  onClick={() => clearSignature(approveCanvasRef)}
+                  className="mt-2 px-3 py-1 text-sm bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                >
+                  Clear Signature
+                </button>
+                <p className="text-xs text-slate-500 mt-1">
+                  Draw your signature above using your mouse or touchpad
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button
+                onClick={() => {
+                  setShowApproveModal(false);
+                  setSelectedPermit(null);
+                  setApprovalNotes('');
+                }}
+                className="px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitApproval}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Approve Permit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && selectedPermit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-900">Reject Permit</h3>
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setSelectedPermit(null);
+                  setRejectionNotes('');
+                }}
+                className="p-1 hover:bg-slate-100 rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-red-900">
+                      You are about to reject PTW {selectedPermit.permit_serial}
+                    </p>
+                    <p className="text-xs text-red-700 mt-1">
+                      This action cannot be undone. The supervisor will need to address your concerns and resubmit.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                <p className="text-sm text-slate-900">
+                  <strong>Work Location:</strong> {selectedPermit.work_location}
+                </p>
+                <p className="text-sm text-slate-900 mt-1">
+                  <strong>Requested By:</strong> {selectedPermit.created_by_name}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Reason for Rejection <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={rejectionNotes}
+                  onChange={(e) => setRejectionNotes(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  rows={4}
+                  placeholder="Provide a detailed reason for rejection..."
+                  required
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Be specific about what needs to be corrected or improved
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Digital Signature <span className="text-red-500">*</span>
+                </label>
+                <div className="border-2 border-slate-300 rounded-lg bg-white">
+                  <canvas
+                    ref={rejectCanvasRef}
+                    width={600}
+                    height={150}
+                    onMouseDown={(e) => startDrawing(e, rejectCanvasRef)}
+                    onMouseMove={(e) => draw(e, rejectCanvasRef)}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    className="w-full cursor-crosshair"
+                    style={{ touchAction: 'none' }}
+                  />
+                </div>
+                <button
+                  onClick={() => clearSignature(rejectCanvasRef)}
+                  className="mt-2 px-3 py-1 text-sm bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                >
+                  Clear Signature
+                </button>
+                <p className="text-xs text-slate-500 mt-1">
+                  Your signature confirms this rejection decision
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setSelectedPermit(null);
+                  setRejectionNotes('');
+                }}
+                className="px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitRejection}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-2"
+              >
+                <XCircle className="w-4 h-4" />
+                Reject Permit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 // backend/src/routes/approvals.routes.js
+// ✅ UPDATED: Added signature for reject and comments for approve
 // ✅ FIXED: Added JOINs to fetch approver names (area_manager_name, safety_officer_name, site_leader_name)
 const express = require('express');
 const router = express.Router();
@@ -261,12 +262,12 @@ router.get('/rejected', async (req, res) => {
 });
 
 // ============================================================================
-// APPROVE PTW
+// APPROVE PTW - ✅ UPDATED: Now accepts optional comments
 // ============================================================================
 router.post('/:ptwId/approve', async (req, res) => {
   try {
     const { ptwId } = req.params;
-    const { signature } = req.body;
+    const { signature, comments } = req.body;  // ✅ Added comments parameter
     const userId = req.user.id;
     const userRole = req.user.role;
 
@@ -300,7 +301,7 @@ router.post('/:ptwId/approve', async (req, res) => {
       });
     }
 
-    // Update approval status
+    // Update approval status with signature
     const updateQuery = `
       UPDATE permits 
       SET ${fields.statusField} = 'Approved',
@@ -310,6 +311,21 @@ router.post('/:ptwId/approve', async (req, res) => {
     `;
 
     await pool.query(updateQuery, [signature, ptwId]);
+
+    // ✅ NEW: Store comments if provided (optional)
+    if (comments && comments.trim()) {
+      const commentsField = fields.statusField.replace('_status', '_comments');
+      try {
+        await pool.query(
+          `UPDATE permits SET ${commentsField} = ? WHERE id = ?`,
+          [comments.trim(), ptwId]
+        );
+        console.log(`✅ Comments stored in ${commentsField}`);
+      } catch (err) {
+        console.log(`⚠️ Comments field ${commentsField} may not exist:`, err.message);
+        // Continue anyway - comments are optional and column may not exist
+      }
+    }
 
     // Check if all required approvals are done, then update overall status
     const [updatedPermit] = await pool.query(
@@ -432,21 +448,30 @@ router.post('/:ptwId/approve', async (req, res) => {
 });
 
 // ============================================================================
-// REJECT PTW
+// REJECT PTW - ✅ UPDATED: Now requires signature
 // ============================================================================
 router.post('/:ptwId/reject', async (req, res) => {
   try {
     const { ptwId } = req.params;
-    const { reason } = req.body;
+    const { reason, signature } = req.body;  // ✅ Added signature parameter
     const userId = req.user.id;
     const userRole = req.user.role;
 
     console.log(`📥 POST /api/approvals/${ptwId}/reject - User: ${userId}, Role: ${userRole}`);
 
+    // ✅ Validate rejection reason
     if (!reason || reason.trim() === '') {
       return res.status(400).json({
         success: false,
         message: 'Rejection reason is required'
+      });
+    }
+
+    // ✅ NEW: Validate signature
+    if (!signature || signature.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Digital signature is required for rejection'
       });
     }
 
@@ -478,17 +503,18 @@ router.post('/:ptwId/reject', async (req, res) => {
       });
     }
 
-    // Update approval status and overall permit status to Rejected
+    // ✅ UPDATED: Update with BOTH signature and reason
     const updateQuery = `
       UPDATE permits 
       SET ${fields.statusField} = 'Rejected',
           ${fields.approvedAtField} = NOW(),
+          ${fields.signatureField} = ?,
           status = 'Rejected',
           rejection_reason = ?
       WHERE id = ?
     `;
 
-    await pool.query(updateQuery, [reason, ptwId]);
+    await pool.query(updateQuery, [signature, reason, ptwId]);
 
     console.log(`❌ PTW ${ptwId} rejected by ${fields.roleName}`);
 

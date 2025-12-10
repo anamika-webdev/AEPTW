@@ -18,7 +18,182 @@ router.use(authenticateToken);
 // ============================================================================
 // SUPERVISOR ROUTES - Get Permits by Status (MUST BE FIRST)
 // ============================================================================
+// POST /api/permits/:id/request-extension - Request PTW extension
+router.post('/:id/request-extension', async (req, res) => {
+  let connection;
 
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const { id } = req.params;
+    const { new_end_time, reason } = req.body;
+    const userId = req.user.id;
+
+    console.log(`📥 POST /api/permits/${id}/request-extension - User: ${userId}`);
+
+    if (!new_end_time || !reason) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: new_end_time, reason'
+      });
+    }
+
+    // Get permit details including current approvers
+    const [permits] = await connection.query(
+      `SELECT 
+        id,
+        permit_serial,
+        status,
+        end_time,
+        site_leader_id,
+        safety_officer_id,
+        created_by_user_id
+      FROM permits 
+      WHERE id = ?`,
+      [id]
+    );
+
+    if (permits.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Permit not found'
+      });
+    }
+
+    const permit = permits[0];
+
+    // Only Active permits can be extended
+    if (permit.status !== 'Active' && permit.status !== 'Extension_Requested') {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Cannot extend permit with status: ${permit.status}. Only Active permits can be extended.`
+      });
+    }
+
+    // Verify that new end time is after current end time
+    const currentEndTime = new Date(permit.end_time);
+    const requestedEndTime = new Date(new_end_time);
+
+    if (requestedEndTime <= currentEndTime) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'New end time must be after current end time'
+      });
+    }
+
+    console.log(`📋 Original Permit Approvers:`, {
+      site_leader_id: permit.site_leader_id,
+      safety_officer_id: permit.safety_officer_id
+    });
+
+    // Insert extension request with approvers from the original permit
+    const [extensionResult] = await connection.query(`
+      INSERT INTO permit_extensions (
+        permit_id, 
+        requested_by_user_id, 
+        requested_at,
+        original_end_time,
+        new_end_time, 
+        reason, 
+        status,
+        site_leader_id,
+        site_leader_status,
+        safety_officer_id,
+        safety_officer_status
+      ) VALUES (?, ?, NOW(), ?, ?, ?, 'Pending', ?, ?, ?, ?)
+    `, [
+      id,
+      userId,
+      permit.end_time,
+      new_end_time,
+      reason,
+      permit.site_leader_id || null,
+      permit.site_leader_id ? 'Pending' : null,
+      permit.safety_officer_id || null,
+      permit.safety_officer_id ? 'Pending' : null
+    ]);
+
+    const extensionId = extensionResult.insertId;
+
+    console.log(`✅ Extension request created with ID: ${extensionId}`);
+    console.log(`📋 Extension Approvers assigned:`, {
+      site_leader_id: permit.site_leader_id,
+      safety_officer_id: permit.safety_officer_id
+    });
+
+    // Update permit status to Extension_Requested
+    await connection.query(
+      `UPDATE permits 
+       SET status = 'Extension_Requested', 
+           updated_at = NOW() 
+       WHERE id = ?`,
+      [id]
+    );
+
+    console.log(`✅ Permit ${permit.permit_serial} status changed to Extension_Requested`);
+
+    // Create notifications for approvers
+    const approverNotifications = [];
+
+    if (permit.site_leader_id) {
+      approverNotifications.push({
+        user_id: permit.site_leader_id,
+        role: 'Site Leader'
+      });
+    }
+
+    if (permit.safety_officer_id) {
+      approverNotifications.push({
+        user_id: permit.safety_officer_id,
+        role: 'Safety In-charge'
+      });
+    }
+
+    for (const approver of approverNotifications) {
+      await connection.query(`
+        INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
+        VALUES (?, ?, 'EXTENSION_REQUEST', ?, NOW())
+      `, [
+        approver.user_id,
+        id,
+        `Extension request for PTW ${permit.permit_serial} requires your approval as ${approver.role}. Requested by supervisor to extend until ${new Date(new_end_time).toLocaleString()}.`
+      ]);
+    }
+
+    console.log(`✅ Created ${approverNotifications.length} extension approval notifications`);
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: 'Extension requested successfully. Awaiting approval from Site Leader and Safety In-charge.',
+      data: {
+        extension_id: extensionId,
+        permit_id: id,
+        original_end_time: permit.end_time,
+        new_end_time,
+        status: 'Extension_Requested',
+        approvers_notified: approverNotifications.map(a => a.role)
+      }
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error('❌ Error requesting extension:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error requesting extension',
+      error: error.message
+    });
+  } finally {
+    if (connection) connection.release();
+  }
+});
 // GET /api/permits/my-initiated - Initiated PTWs (waiting for approval)
 router.get('/my-initiated', async (req, res) => {
   try {
