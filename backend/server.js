@@ -39,7 +39,9 @@ const masterRoutes = require('./src/routes/master.routes');
 const dashboardRoutes = require('./src/routes/dashboard.routes');
 const requesterAssignmentsRoutes = require('./src/routes/requester-assignments.routes');
 const notificationsRoutes = require('./src/routes/notifications.routes');
-const approverSitesRoutes = require('./src/routes/approverSites.routes'); // ✅ UNCOMMENTED
+const approverSitesRoutes = require('./src/routes/approverSites.routes');
+const uploadsRoutes = require('./src/routes/uploads.routes');
+const evidenceRoutes = require('./src/routes/evidence.routes');
 
 const { initScheduler } = require('./src/services/cronService');
 
@@ -58,9 +60,11 @@ app.use('/api/master', masterRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/requester-assignments', requesterAssignmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
-app.use('/api/approvers', approverSitesRoutes); // ✅ ENABLED - This was commented out!
+app.use('/api/approvers', approverSitesRoutes);
+app.use('/api/uploads', uploadsRoutes);
+app.use('/api', evidenceRoutes);
 
-console.log('✅ Approver sites routes loaded successfully');
+console.log('✅ Approver sites, Uploads, and Evidence routes loaded successfully');
 
 // Vendors route (if separate file exists)
 try {

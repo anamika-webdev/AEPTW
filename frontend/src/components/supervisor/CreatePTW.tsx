@@ -1,6 +1,6 @@
 // src/components/supervisor/CreatePTW.tsx - COMPLETE UPDATED VERSION WITH FIXES
-import { useState, useEffect, useCallback, memo } from 'react';
-import { ArrowLeft, Upload, FileText, Check, AlertTriangle, X } from 'lucide-react';
+import { useState, useEffect, useCallback, memo, useRef } from 'react';
+import { ArrowLeft, Upload, FileText, Check, AlertTriangle, X, Camera, Trash2, Clock, MapPin, ImageIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -15,8 +15,9 @@ import {
   masterDataAPI,
   usersAPI,
   permitsAPI,
-  uploadAPI
+  uploadAPI,
 } from '../../services/api';
+import evidenceAPI from '../../services/evidenceAPI';
 import type {
   Site,
   User,
@@ -30,86 +31,31 @@ interface CreatePTWProps {
   onBack: () => void;
   onSuccess?: () => void;
 }
+// Evidence interface
+interface Evidence {
+  id: string;
+  file: File;
+  preview: string;
+  timestamp: string;
+  latitude: number | null;
+  longitude: number | null;
+  category: 'ppe' | 'barricading' | 'tool_condition' | 'other';
+  description: string;
+}
 
-// FIXED: Professional PPE Icon Component with proper names
-const PPEIconComponent = ({ name }: { name: string }) => {
-  const icons: Record<string, JSX.Element> = {
-    'Safety Helmet': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="48" rx="28" ry="4" fill="#E8505B" opacity="0.2" />
-        <path d="M32 12C20 12 12 20 12 28V38C12 40 13 42 15 42H49C51 42 52 40 52 38V28C52 20 44 12 32 12Z" fill="#E8505B" />
-        <ellipse cx="32" cy="42" rx="17" ry="3" fill="#D13D47" />
-        <rect x="28" y="8" width="8" height="6" rx="2" fill="#E8505B" />
-        <circle cx="32" cy="10" r="3" fill="white" />
-      </svg>
-    ),
-    'Safety Vest': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="22" ry="3" fill="#FF6B35" opacity="0.2" />
-        <path d="M22 16L18 20V52H28V22L22 16Z" fill="#FF6B35" />
-        <path d="M42 16L46 20V52H36V22L42 16Z" fill="#FF6B35" />
-        <rect x="26" y="22" width="12" height="30" fill="#FF8C42" />
-        <circle cx="32" cy="14" r="4" fill="#FFB480" />
-        <rect x="20" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8" />
-        <rect x="36" y="28" width="8" height="3" fill="#FFE55C" opacity="0.8" />
-      </svg>
-    ),
-    'Safety Gloves': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="18" ry="3" fill="#9B59B6" opacity="0.2" />
-        <rect x="20" y="18" width="24" height="28" rx="4" fill="#9B59B6" />
-        <path d="M24 24V38M28 24V38M32 24V38M36 24V38M40 24V38" stroke="white" strokeWidth="2" opacity="0.3" />
-      </svg>
-    ),
-    'Safety Boots': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#D4A574" opacity="0.2" />
-        <path d="M18 46H46V52H18V46Z" fill="#8B6F47" />
-        <path d="M22 22C22 18 24 16 26 16H38C40 16 42 18 42 22V46H22V22Z" fill="#D4A574" />
-        <rect x="22" y="28" width="20" height="2" fill="#8B6F47" opacity="0.3" />
-      </svg>
-    ),
-    'Safety Goggles': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="52" rx="26" ry="3" fill="#4A9EFF" opacity="0.2" />
-        <circle cx="18" cy="32" r="7" fill="#87CEEB" />
-        <circle cx="46" cy="32" r="7" fill="#87CEEB" />
-        <path d="M28 32H36" stroke="#4A9EFF" strokeWidth="3" />
-      </svg>
-    ),
-    'Face Mask': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="24" ry="3" fill="#FFB74D" opacity="0.2" />
-        <path d="M12 28C12 28 14 24 18 24H46C50 24 52 28 52 28V40C52 44 48 46 44 46H20C16 46 12 44 12 40V28Z" fill="#FFB74D" />
-        <rect x="16" y="30" width="32" height="2" rx="1" fill="white" opacity="0.3" />
-        <rect x="16" y="36" width="32" height="2" rx="1" fill="white" opacity="0.3" />
-      </svg>
-    ),
-    'Ear Protection': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="28" ry="3" fill="#78909C" opacity="0.2" />
-        <rect x="6" y="28" width="12" height="16" rx="6" fill="#607D8B" />
-        <rect x="46" y="28" width="12" height="16" rx="6" fill="#607D8B" />
-        <path d="M18 28V22C18 16 22 12 28 12H36C42 12 46 16 46 22V28" stroke="#78909C" strokeWidth="4" fill="none" />
-      </svg>
-    ),
-    'Safety Harness': (
-      <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="32" cy="54" rx="20" ry="3" fill="#4FC3F7" opacity="0.2" />
-        <circle cx="32" cy="14" r="6" fill="#FFB74D" />
-        <ellipse cx="32" cy="26" rx="8" ry="4" fill="#0288D1" />
-        <circle cx="32" cy="38" r="4" fill="#FFD54F" stroke="#FFA726" strokeWidth="2" />
-      </svg>
-    ),
-  };
+interface PTWFormData {
+  evidences: Evidence[];
+  selectedHazards: number[];
+  controlMeasures: string;
+  otherHazards: string;
+  selectedPPE: number[];
+  swmsFile: File | null;
+  swmsText: string;
+  swmsMode: 'file' | 'text';
+  // Add other missing fields to this interface or rely on state initialization inference if this interface is incomplete
+  [key: string]: any;
+}
 
-  return icons[name] || (
-    <svg className="w-16 h-16" viewBox="0 0 64 64" fill="none">
-      <circle cx="32" cy="32" r="28" stroke="#94A3B8" strokeWidth="2" fill="none" />
-      <text x="32" y="38" textAnchor="middle" fill="#94A3B8" fontSize="12" fontWeight="bold">PPE</text>
-    </svg>
-  );
-};
 
 export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -135,7 +81,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     role: WorkerRole;
   }>>([]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PTWFormData>({
     categories: [] as PermitType[],
     site_id: 0,
     location: '',
@@ -147,21 +93,18 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     issueDepartment: '', // This will now hold dropdown value
     permitInitiator: '',
     permitInitiatorContact: '',
-
-    issuedToName: '',
-    issuedToContact: '',
-
-    selectedWorkers: [] as number[],
-
+    evidences: [] as Evidence[],
     selectedHazards: [] as number[],
     controlMeasures: '',
     otherHazards: '',
-
     selectedPPE: [] as number[],
-
     swmsFile: null as File | null,
     swmsText: '',
     swmsMode: 'file' as 'file' | 'text',
+
+    issuedToName: '',
+    issuedToContact: '',
+    selectedWorkers: [] as number[],
 
     issuerSignature: '',
 
@@ -177,10 +120,99 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     declaration: false,
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Geolocation function
+  const getCurrentLocation = (): Promise<{ latitude: number | null; longitude: number | null }> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.warn('Geolocation error:', error);
+          resolve({ latitude: null, longitude: null });
+        }
+      );
+    });
+  };
+
+  // Handle evidence upload
+  const handleEvidenceUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    category: Evidence['category']
+  ) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      const location = await getCurrentLocation();
+      const timestamp = new Date().toISOString();
+
+      const newEvidences: Evidence[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const preview = URL.createObjectURL(file);
+
+        const evidence: Evidence = {
+          id: `${Date.now()}-${i}`,
+          file,
+          preview,
+          timestamp,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          category,
+          description: '',
+        };
+
+        newEvidences.push(evidence);
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        evidences: [...prev.evidences, ...newEvidences],
+      }));
+    } catch (error) {
+      console.error('Error uploading evidence:', error);
+      alert('Failed to upload evidence. Please try again.');
+    }
+
+    // Reset input
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
+  // Remove evidence
+  const removeEvidence = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      evidences: prev.evidences.filter((e) => e.id !== id),
+    }));
+  };
+
+  // Update evidence description
+  const updateEvidenceDescription = (id: string, description: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      evidences: prev.evidences.map((e) =>
+        e.id === id ? { ...e, description } : e
+      ),
+    }));
+  };
   // High-risk permit logic - used throughout the component
   const highRiskPermits: PermitType[] = ['Hot_Work', 'Confined_Space', 'Electrical', 'Height'];
-  const selectedHighRiskCount = formData.categories.filter(cat => highRiskPermits.includes(cat)).length;
+  const selectedHighRiskCount = formData.categories.filter((cat: PermitType) => highRiskPermits.includes(cat)).length;
   const requiresSiteLeaderApproval = selectedHighRiskCount >= 2;
 
   const totalSteps = 7;
@@ -478,7 +510,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     setFormData(prev => ({
       ...prev,
       categories: prev.categories.includes(category)
-        ? prev.categories.filter(c => c !== category)
+        ? prev.categories.filter((c: PermitType) => c !== category)
         : [...prev.categories, category]
     }));
   };
@@ -711,8 +743,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       }
 
       const teamMembers = [
-        ...formData.selectedWorkers.map(workerId => {
-          const worker = workers.find(w => w.id === workerId);
+        ...formData.selectedWorkers.map((workerId: number) => {
+          const worker = workers.find((w: { id: number }) => w.id === workerId);
           return {
             worker_name: worker?.full_name || '',
             worker_role: 'Worker' as WorkerRole,
@@ -730,7 +762,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
       const checklistResponses = Object.entries(formData.checklistResponses).map(([questionId, response]) => ({
         question_id: parseInt(questionId),
-        response,
+        response: response as ChecklistResponse,
         remarks: formData.checklistRemarks[parseInt(questionId)] || undefined,
       }));
 
@@ -781,6 +813,25 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       console.log('📥 API Response:', response);
 
       if (response.success) {
+        // ✅ Upload Evidence if available
+        if (response.data && response.data.id && formData.evidences.length > 0) {
+          try {
+            console.log('📸 Uploading evidences for permit:', response.data.id);
+            console.log('📸 Uploading evidences for permit:', response.data.id);
+            // Map evidence to match API expectation (remove string ID)
+            const apiEvidences = formData.evidences.map(e => ({
+              ...e,
+              id: undefined // Backend expects number or undefined, not string
+            })) as any[];
+
+            await evidenceAPI.upload(response.data.id, apiEvidences);
+            console.log('✅ Evidences uploaded successfully');
+          } catch (evidenceError) {
+            console.error('❌ Failed to upload evidences:', evidenceError);
+            alert('Permit created, but failed to upload some evidence images. You can add them later.');
+          }
+        }
+
         alert('✅ PTW Created Successfully! Redirecting to dashboard...');
         if (onSuccess) {
           onSuccess();
@@ -799,12 +850,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
 
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData({ ...formData, swmsFile: file });
-    }
-  };
+
 
   const handleSignatureSave = (signature: string) => {
     console.log('💾 Saving signature:', signature ? 'Signature captured' : 'No signature');
@@ -1023,7 +1069,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               <p className="mb-3 text-sm text-slate-500">You can select multiple permit types for this work</p>
 
               <div className="grid gap-3 md:grid-cols-2">
-                {(['General', 'Height', 'Electrical', 'Hot_Work', 'Confined_Space'] as PermitType[]).map((category) => {
+                {(['General', 'Height', 'Electrical', 'Hot_Work', 'Confined_Space'] as PermitType[]).map((category: PermitType) => {
                   const isHighRisk = highRiskPermits.includes(category);
                   return (
                     <label
@@ -1060,7 +1106,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               {formData.categories.length > 0 && (
                 <div className="flex flex-wrap gap-2 p-3 mt-3 rounded-lg bg-slate-50">
                   <span className="text-sm font-medium text-slate-700">Selected:</span>
-                  {formData.categories.map(cat => (
+                  {formData.categories.map((cat: PermitType) => (
                     <span key={cat} className={`px-3 py-1 text-xs font-semibold rounded-full border ${getCategoryBadgeColor(cat)}`}>
                       {cat.replace('_', ' ')}
                       <button
@@ -1386,7 +1432,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                               } else {
                                 setFormData(prev => ({
                                   ...prev,
-                                  selectedWorkers: prev.selectedWorkers.filter(id => id !== worker.id)
+                                  selectedWorkers: prev.selectedWorkers.filter((id: number) => id !== worker.id)
                                 }));
                               }
                             }}
@@ -1509,125 +1555,184 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           </div>
         )}
 
-        {/* STEP 3: Hazards */}
+        {/* STEP 3: Hazards - Side by Side Layout */}
         {currentStep === 3 && (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-900">Hazard Identification & Control Measures</h2>
+            <h2 className="text-2xl font-semibold text-slate-900">
+              Hazard Identification & Control Measures
+            </h2>
 
-            <div>
-              <Label>Identified Hazards *</Label>
-              <p className="mb-3 text-sm text-slate-500">Select all hazards that apply to this work</p>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* LEFT: Hazard Identification */}
+              <div className="p-6 border-2 border-orange-200 rounded-xl bg-orange-50">
+                <h3 className="mb-4 text-lg font-semibold text-orange-900">
+                  Identified Hazards *
+                </h3>
+                <p className="mb-4 text-sm text-orange-700">
+                  Select all hazards that apply to this work
+                </p>
 
-              <div className="space-y-3">
-                {[
-                  'Fall from height',
-                  'Electrical shock',
-                  'Fire hazard',
-                  'Toxic gases',
-                  'Slips and trips',
-                  'Moving machinery',
-                  'Hot surfaces',
-                  'Confined space'
-                ].map((hazard, index) => (
-                  <label
-                    key={index}
-                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedHazards.includes(index + 1)
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                  >
-                    <Checkbox
-                      checked={formData.selectedHazards.includes(index + 1)}
-                      onCheckedChange={() => {
-                        const hazardId = index + 1;
-                        setFormData(prev => ({
-                          ...prev,
-                          selectedHazards: prev.selectedHazards.includes(hazardId)
-                            ? prev.selectedHazards.filter(id => id !== hazardId)
-                            : [...prev.selectedHazards, hazardId]
-                        }));
-                      }}
-                    />
-                    <span className="text-sm font-medium text-slate-700">{hazard}</span>
-                  </label>
-                ))}
+                <div className="space-y-3">
+                  {[
+                    'Fall from height',
+                    'Electrical shock',
+                    'Fire hazard',
+                    'Toxic gases',
+                    'Slips and trips',
+                    'Moving machinery',
+                    'Hot surfaces',
+                    'Confined space',
+                  ].map((hazard, index) => (
+                    <label
+                      key={index}
+                      className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedHazards.includes(index + 1)
+                        ? 'border-orange-500 bg-white shadow-md'
+                        : 'border-orange-200 hover:border-orange-300 bg-white'
+                        }`}
+                    >
+                      <Checkbox
+                        checked={formData.selectedHazards.includes(index + 1)}
+                        onCheckedChange={() => {
+                          const hazardId = index + 1;
+                          setFormData((prev) => ({
+                            ...prev,
+                            selectedHazards: prev.selectedHazards.includes(hazardId)
+                              ? prev.selectedHazards.filter((id) => id !== hazardId)
+                              : [...prev.selectedHazards, hazardId],
+                          }));
+                        }}
+                      />
+                      <span className="text-sm font-medium text-slate-800">
+                        {hazard}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Selected Hazards Summary */}
+                {formData.selectedHazards.length > 0 && (
+                  <div className="p-3 mt-4 border-2 border-orange-300 rounded-lg bg-orange-100">
+                    <p className="mb-2 text-sm font-semibold text-orange-900">
+                      Selected: {formData.selectedHazards.length} hazard(s)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.selectedHazards.map((id) => {
+                        const hazardNames = [
+                          'Fall from height',
+                          'Electrical shock',
+                          'Fire hazard',
+                          'Toxic gases',
+                          'Slips and trips',
+                          'Moving machinery',
+                          'Hot surfaces',
+                          'Confined space',
+                        ];
+                        return (
+                          <span
+                            key={id}
+                            className="px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-200 rounded-full"
+                          >
+                            {hazardNames[id - 1]}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Other Hazards */}
+                <div className="mt-4">
+                  <Label htmlFor="otherHazards" className="text-orange-900">
+                    Other Hazards
+                  </Label>
+                  <Textarea
+                    id="otherHazards"
+                    value={formData.otherHazards}
+                    onChange={(e) =>
+                      setFormData({ ...formData, otherHazards: e.target.value })
+                    }
+                    placeholder="Describe any other hazards..."
+                    rows={4}
+                    className="mt-2"
+                  />
+                </div>
               </div>
 
-              {formData.selectedHazards.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 mt-3 rounded-lg bg-orange-50">
-                  <span className="text-sm font-medium text-orange-900">Selected Hazards:</span>
-                  {formData.selectedHazards.map(id => {
-                    const hazardNames = [
-                      'Fall from height',
-                      'Electrical shock',
-                      'Fire hazard',
-                      'Toxic gases',
-                      'Slips and trips',
-                      'Moving machinery',
-                      'Hot surfaces',
-                      'Confined space'
-                    ];
-                    return (
-                      <span key={id} className="px-3 py-1 text-xs font-semibold text-orange-800 bg-orange-200 rounded-full">
-                        {hazardNames[id - 1]}
-                      </span>
-                    );
-                  })}
+              {/* RIGHT: Control Measures */}
+              <div className="p-6 border-2 border-blue-200 rounded-xl bg-blue-50">
+                <h3 className="mb-4 text-lg font-semibold text-blue-900">
+                  Control Measures *
+                </h3>
+                <p className="mb-4 text-sm text-blue-700">
+                  Describe measures to mitigate identified hazards
+                </p>
+
+                <Textarea
+                  id="controlMeasures"
+                  value={formData.controlMeasures}
+                  onChange={(e) =>
+                    setFormData({ ...formData, controlMeasures: e.target.value })
+                  }
+                  placeholder="Examples:
+• Use fall protection equipment
+• Implement lockout/tagout procedures
+• Ensure proper ventilation
+• Use appropriate PPE
+• Establish safety barriers
+• Conduct safety briefings"
+                  rows={20}
+                  className="font-mono text-sm"
+                />
+
+                <div className="p-3 mt-4 border-2 border-blue-300 rounded-lg bg-blue-100">
+                  <p className="text-sm font-semibold text-blue-900">
+                    💡 Safety Note:
+                  </p>
+                  <p className="mt-1 text-xs text-blue-800">
+                    List all safety measures, procedures, and precautions required
+                    for this work. Be specific and comprehensive.
+                  </p>
                 </div>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="controlMeasures">Control Measures <span className="text-red-500">*</span></Label>
-              <Textarea
-                id="controlMeasures"
-                value={formData.controlMeasures}
-                onChange={(e) => setFormData({ ...formData, controlMeasures: e.target.value })}
-                placeholder="Describe the control measures to mitigate identified hazards..."
-                rows={6}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="otherHazards">Other Hazards</Label>
-              <Textarea
-                id="otherHazards"
-                value={formData.otherHazards}
-                onChange={(e) => setFormData({ ...formData, otherHazards: e.target.value })}
-                placeholder="Describe any other hazards to be identified..."
-                rows={6}
-              />
-            </div>
-
-            <div className="p-4 border-2 border-orange-200 rounded-lg bg-orange-50">
-              <p className="mb-2 text-sm font-semibold text-orange-900">
-                Note: Describe all safety measures, procedures, and precautions to be taken
-              </p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* STEP 4: PPE & SWMS */}
+        {/* STEP 4: PPE & SWMS with Evidence Upload */}
         {currentStep === 4 && (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-900">PPE Requirements & SWMS Upload</h2>
+            <h2 className="text-2xl font-semibold text-slate-900">
+              PPE Requirements & SWMS Upload
+            </h2>
 
+            {/* PPE Selection */}
             <div>
               <Label>Required Personal Protective Equipment (PPE) *</Label>
-              <p className="mb-4 text-sm text-slate-500">Select all required PPE for this work</p>
+              <p className="mb-4 text-sm text-slate-500">
+                Select all required PPE for this work
+              </p>
 
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                {['Safety Helmet', 'Safety Vest', 'Safety Gloves', 'Safety Boots', 'Safety Goggles', 'Face Mask', 'Ear Protection', 'Safety Harness'].map((ppeName, index) => (
+                {[
+                  'Safety Helmet',
+                  'Safety Vest',
+                  'Safety Gloves',
+                  'Safety Boots',
+                  'Safety Goggles',
+                  'Face Mask',
+                  'Ear Protection',
+                  'Safety Harness',
+                ].map((ppeName, index) => (
                   <button
                     key={index}
                     type="button"
                     onClick={() => {
                       const mockId = index + 1;
-                      setFormData(prev => ({
+                      setFormData((prev) => ({
                         ...prev,
                         selectedPPE: prev.selectedPPE.includes(mockId)
-                          ? prev.selectedPPE.filter(id => id !== mockId)
-                          : [...prev.selectedPPE, mockId]
+                          ? prev.selectedPPE.filter((id: number) => id !== mockId)
+                          : [...prev.selectedPPE, mockId],
                       }));
                     }}
                     className={`flex flex-col items-center gap-3 p-6 border-2 rounded-xl transition-all hover:shadow-lg ${formData.selectedPPE.includes(index + 1)
@@ -1635,15 +1740,26 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                       : 'border-slate-200 hover:border-orange-300 bg-white'
                       }`}
                   >
-                    <div className="transition-transform">
-                      <PPEIconComponent name={ppeName} />
+                    <div className="text-4xl">
+                      {index === 0 && '⛑️'}
+                      {index === 1 && '🦺'}
+                      {index === 2 && '🧤'}
+                      {index === 3 && '👢'}
+                      {index === 4 && '🥽'}
+                      {index === 5 && '😷'}
+                      {index === 6 && '🎧'}
+                      {index === 7 && '🪢'}
                     </div>
-                    <span className={`text-sm font-semibold text-center ${formData.selectedPPE.includes(index + 1) ? 'text-orange-900' : 'text-slate-700'
-                      }`}>
+                    <span
+                      className={`text-sm font-semibold text-center ${formData.selectedPPE.includes(index + 1)
+                        ? 'text-orange-900'
+                        : 'text-slate-700'
+                        }`}
+                    >
                       {ppeName}
                     </span>
                     {formData.selectedPPE.includes(index + 1) && (
-                      <div className="flex items-center justify-center w-8 h-8 bg-orange-600 rounded-full shadow-sm">
+                      <div className="flex items-center justify-center w-8 h-8 bg-orange-600 rounded-full">
                         <Check className="w-5 h-5 text-white" />
                       </div>
                     )}
@@ -1652,8 +1768,152 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               </div>
             </div>
 
-            <div className="p-6 border-2 border-purple-200 rounded-lg bg-purple-50">
-              <h3 className="mb-4 text-lg font-medium text-purple-900">
+            {/* Evidence Upload Section */}
+            <div className="p-6 border-2 border-purple-200 rounded-xl bg-purple-50">
+              <h3 className="mb-4 text-lg font-semibold text-purple-900">
+                📸 Upload Evidence (PPE, Barricading, Tool Condition)
+              </h3>
+              <p className="mb-4 text-sm text-purple-700">
+                Add photos with automatic timestamp and location tracking
+              </p>
+
+              {/* Upload Buttons */}
+              <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
+                <Button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="gap-2 bg-purple-600 hover:bg-purple-700"
+                >
+                  <Camera className="w-4 h-4" />
+                  Take Photo
+                </Button>
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => handleEvidenceUpload(e, 'ppe')}
+                  className="hidden"
+                />
+
+                <Button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
+                  className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload Image
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleEvidenceUpload(e, 'ppe')}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Evidence Gallery */}
+              {formData.evidences.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-purple-900">
+                    Uploaded Evidence ({formData.evidences.length})
+                  </h4>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {formData.evidences.map((evidence) => (
+                      <div
+                        key={evidence.id}
+                        className="relative p-3 bg-white border-2 border-purple-200 rounded-lg shadow-sm group"
+                      >
+                        {/* Image Preview */}
+                        <div className="relative mb-2 overflow-hidden rounded-lg aspect-video">
+                          <img
+                            src={evidence.preview}
+                            alt="Evidence"
+                            className="object-cover w-full h-full"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeEvidence(evidence.id)}
+                            className="absolute p-1 transition-opacity bg-red-500 rounded-full opacity-0 top-2 right-2 group-hover:opacity-100"
+                          >
+                            <Trash2 className="w-4 h-4 text-white" />
+                          </button>
+                        </div>
+
+                        {/* Metadata */}
+                        <div className="space-y-2 text-xs text-slate-600">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>
+                              {new Date(evidence.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                          {evidence.latitude && evidence.longitude && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              <span>
+                                {evidence.latitude.toFixed(6)},{' '}
+                                {evidence.longitude.toFixed(6)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Category Selection */}
+                        <select
+                          value={evidence.category}
+                          onChange={(e) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              evidences: prev.evidences.map((ev) =>
+                                ev.id === evidence.id
+                                  ? {
+                                    ...ev,
+                                    category: e.target.value as Evidence['category'],
+                                  }
+                                  : ev
+                              ),
+                            }));
+                          }}
+                          className="w-full px-2 py-1 mt-2 text-xs border rounded border-slate-300"
+                        >
+                          <option value="ppe">PPE</option>
+                          <option value="barricading">Barricading</option>
+                          <option value="tool_condition">Tool Condition</option>
+                          <option value="other">Other</option>
+                        </select>
+
+                        {/* Description Input */}
+                        <Input
+                          placeholder="Add description..."
+                          value={evidence.description}
+                          onChange={(e) =>
+                            updateEvidenceDescription(evidence.id, e.target.value)
+                          }
+                          className="mt-2 text-xs"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {formData.evidences.length === 0 && (
+                <div className="p-8 text-center border-2 border-dashed rounded-lg border-purple-300 bg-purple-50">
+                  <ImageIcon className="w-12 h-12 mx-auto mb-3 text-purple-400" />
+                  <p className="text-sm text-purple-600">
+                    No evidence uploaded yet. Click the buttons above to add photos.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* SWMS Upload */}
+            <div className="p-6 border-2 border-blue-200 rounded-lg bg-blue-50">
+              <h3 className="mb-4 text-lg font-medium text-blue-900">
                 Safe Work Method Statement (SWMS)
               </h3>
 
@@ -1662,8 +1922,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                   type="button"
                   onClick={() => setFormData({ ...formData, swmsMode: 'file' })}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'file'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white text-purple-600 border border-purple-300'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-blue-600 border border-blue-300'
                     }`}
                 >
                   Upload Document
@@ -1672,117 +1932,56 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                   type="button"
                   onClick={() => setFormData({ ...formData, swmsMode: 'text' })}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${formData.swmsMode === 'text'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white text-purple-600 border border-purple-300'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-blue-600 border border-blue-300'
                     }`}
                 >
-                  Write Text
+                  Enter Text
                 </button>
               </div>
 
-              {formData.swmsMode === 'file' && (
+              {formData.swmsMode === 'file' ? (
                 <div>
-                  <Label htmlFor="swmsFile">Upload SWMS Document <span className="text-red-500">*</span></Label>
-                  <div className="flex items-center gap-4 mt-2">
-                    <label
-                      htmlFor="swmsFile"
-                      className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-300 rounded-lg cursor-pointer hover:bg-purple-50"
-                    >
-                      <Upload className="w-5 h-5 text-purple-600" />
-                      <span className="text-sm text-purple-900">Choose File</span>
-                    </label>
-                    <input
-                      id="swmsFile"
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    {formData.swmsFile && (
-                      <span className="flex items-center gap-1 text-sm text-green-600">
-                        <Check className="w-4 h-4" />
-                        {formData.swmsFile.name}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-2 text-xs text-purple-700">
-                    Accepted formats: PDF, DOC, DOCX (Max 10MB)
-                  </p> {formData.swmsFile && (
-                    <div className="flex gap-3 pt-3 mt-3 border-t border-purple-300">
-                      <button
-                        type="button"
-                        onClick={() => alert(`Document saved!`)}
-                        className="px-4 py-2 text-white bg-green-600 rounded-lg"
-                      >
-                        💾 Save Document
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm('Discard changes?')) {
-                            setFormData({ ...formData, swmsFile: null });
-                          }
-                        }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg"
-                      >
-                        ✕ Cancel
-                      </button>
-                    </div>
+                  <Label htmlFor="swmsFile">Upload SWMS Document</Label>
+                  <Input
+                    id="swmsFile"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        swmsFile: e.target.files?.[0] || null,
+                      })
+                    }
+                    className="mt-2"
+                  />
+                  {formData.swmsFile && (
+                    <p className="mt-2 text-sm text-blue-700">
+                      ✓ {formData.swmsFile.name}
+                    </p>
                   )}
                 </div>
-              )}
-
-              {formData.swmsMode === 'text' && (
+              ) : (
                 <div>
-                  <Label htmlFor="swmsText">Write SWMS Details <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="swmsText">SWMS Text</Label>
                   <Textarea
                     id="swmsText"
                     value={formData.swmsText}
-                    onChange={(e) => setFormData({ ...formData, swmsText: e.target.value })}
-                    placeholder="Enter the Safe Work Method Statement details here...
-
-Include:
-• Scope of work
-• Hazards identified
-• Risk control measures
-• Emergency procedures
-• Required qualifications/training
-• Step-by-step work process"
-                    rows={15}
-                    className="mt-2 font-mono text-sm bg-white"
+                    onChange={(e) =>
+                      setFormData({ ...formData, swmsText: e.target.value })
+                    }
+                    placeholder="Enter Safe Work Method Statement..."
+                    rows={8}
+                    className="mt-2"
                   />
-
-
-                  <div className="flex gap-3 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!formData.swmsText.trim() || formData.swmsText.length < 20) {
-                          alert('Enter at least 20 characters');
-                          return;
-                        }
-                        alert('Text saved!');
-                      }}
-                      className="px-4 py-2 text-white bg-green-600 rounded-lg"
-                    >
-                      💾 Save Text
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm('Discard changes?')) {
-                          setFormData({ ...formData, swmsText: '' });
-                        }
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-lg"
-                    >
-                      ✕ Cancel
-                    </button>
-                  </div>  </div>
+                </div>
               )}
             </div>
           </div>
         )}
+
+
+
 
         {/* STEP 5: Work Requirements Checklist - COMPLETE VERSION */}
         {currentStep === 5 && (
@@ -1796,7 +1995,7 @@ Include:
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm font-medium text-blue-900 mb-2">Selected Permit Categories:</p>
               <div className="flex flex-wrap gap-2">
-                {formData.categories.map(cat => (
+                {formData.categories.map((cat: PermitType) => (
                   <span
                     key={cat}
                     className={`px-3 py-1 text-sm font-semibold rounded-lg border ${getCategoryBadgeColor(cat)}`}
@@ -1820,7 +2019,7 @@ Include:
                 <div className="p-6 border rounded-lg border-slate-200">
                   <div className="space-y-6">
                     {/* FILTER: Show ONLY questions for selected categories, EXCLUDING the 4 name fields */}
-                    {formData.categories.map(category => {
+                    {formData.categories.map((category: PermitType) => {
                       // Define the IDs of the 4 mandatory name fields to exclude
                       const mandatoryNameFieldIds = [398, 399, 400, 401];
 
@@ -2145,7 +2344,8 @@ Include:
               </>
             )}
           </div>
-        )}
+        )
+        }
 
         {/* STEP 6: Approvers */}
         {currentStep === 6 && (
@@ -2286,146 +2486,144 @@ Include:
               </p>
             </div>
           </div>
-        )}
+        )
+        }
 
         {/* STEP 7: Review - Keep existing code */}
-        {
-          currentStep === 7 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-slate-900">Review & Submit</h2>
+        {currentStep === 7 && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-slate-900">Review & Submit</h2>
 
-              <div className="p-6 space-y-4 rounded-lg bg-slate-50">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-slate-500">Permit Initiator</p>
-                    <p className="font-medium text-slate-900">{formData.permitInitiator || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Permit Categories</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {formData.categories.map(cat => (
-                        <span key={cat} className={`px-2 py-1 text-xs font-semibold rounded border ${getCategoryBadgeColor(cat)}`}>
-                          {cat.replace('_', ' ')}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Site</p>
-                    <p className="font-medium text-slate-900">
-                      {sites.find(s => s.id === formData.site_id)?.name || 'Not set'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Issue Department</p>
-                    <p className="font-medium text-slate-900">{formData.issueDepartment || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Location</p>
-                    <p className="font-medium text-slate-900">{formData.location || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Work Period</p>
-                    <p className="font-medium text-slate-900">
-                      {formData.startDate} {formData.startTime} - {formData.endDate} {formData.endTime}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Issued To</p>
-                    <p className="font-medium text-slate-900">{formData.issuedToName || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Assigned Workers</p>
-                    <p className="font-medium text-slate-900">{formData.selectedWorkers.length + newWorkers.length} workers</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Approvers</p>
-                    <p className="text-sm font-medium text-slate-700">
-                      Area Manager required, others optional
-                    </p>
+            <div className="p-6 space-y-4 rounded-lg bg-slate-50">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-sm text-slate-500">Permit Initiator</p>
+                  <p className="font-medium text-slate-900">{formData.permitInitiator || 'Not set'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Permit Categories</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {formData.categories.map((cat: PermitType) => (
+                      <span key={cat} className={`px-2 py-1 text-xs font-semibold rounded border ${getCategoryBadgeColor(cat)}`}>
+                        {cat.replace('_', ' ')}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              </div>
-              {/* ====== NEW SECTION: Safety Observation Link & QR Code ====== */}
-              <div className="p-6 border-2 border-blue-200 rounded-lg bg-blue-50">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0">
-                    {/* QR Code Placeholder */}
-
-                    <img
-                      src="/QR.png"
-                      alt="Safety Observations QR Code"
-                      className="w-50 h-40 object-contain"
-                      onError={(e) => {
-                        // Fallback if image not found
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        if (target.parentElement) {
-                          target.parentElement.innerHTML = '<div class="text-xs text-blue-600 text-center p-2">QR Code</div>';
-                        }
-                      }}
-                    />
-
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-2">Safety Observations</h3>
-                    <p className="text-sm text-blue-700 mb-3">
-                      Report safety concerns or observations during work execution
-                    </p>
-                    <a
-                      href="https://atoz.amazon.work/safety_observations"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
-                    >
-                      <AlertTriangle className="w-4 h-4" />
-                      Submit Safety Observation
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                    <p className="text-xs text-blue-600 mt-2">
-                      Scan the QR code or click the link above to access the safety observation system
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-sm text-slate-500">Site</p>
+                  <p className="font-medium text-slate-900">
+                    {sites.find(s => s.id === formData.site_id)?.name || 'Not set'}
+                  </p>
                 </div>
-              </div>
-              {/* ====== END NEW SECTION ====== */}
-
-
-              <div className="p-4 border rounded-lg border-slate-200">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <Checkbox
-                    checked={formData.declaration}
-                    onCheckedChange={(checked) => setFormData({ ...formData, declaration: checked as boolean })}
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">Declaration</p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      I confirm that all information provided is accurate and complete. All necessary safety measures
-                      have been identified and will be implemented. All workers have been briefed on the hazards and
-                      control measures for this work.
-                    </p>
-                  </div>
-                </label>
+                <div>
+                  <p className="text-sm text-slate-500">Issue Department</p>
+                  <p className="font-medium text-slate-900">{formData.issueDepartment || 'Not set'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Location</p>
+                  <p className="font-medium text-slate-900">{formData.location || 'Not set'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Work Period</p>
+                  <p className="font-medium text-slate-900">
+                    {formData.startDate} {formData.startTime} - {formData.endDate} {formData.endTime}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Issued To</p>
+                  <p className="font-medium text-slate-900">{formData.issuedToName || 'Not set'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Assigned Workers</p>
+                  <p className="font-medium text-slate-900">{formData.selectedWorkers.length + newWorkers.length} workers</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Approvers</p>
+                  <p className="text-sm font-medium text-slate-700">
+                    Area Manager required, others optional
+                  </p>
+                </div>
               </div>
             </div>
-          )}
-      </div>
+            {/* ====== NEW SECTION: Safety Observation Link & QR Code ====== */}
+            <div className="p-6 border-2 border-blue-200 rounded-lg bg-blue-50">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  {/* QR Code Placeholder */}
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-6 border-t border-slate-200">
-        <Button
-          onClick={handleBack}
-          variant="outline"
-          disabled={currentStep === 1 || isSubmitting}
-          type="button"
-        >
-          Previous
-        </Button>
+                  <img
+                    src="/QR.png"
+                    alt="Safety Observations QR Code"
+                    className="w-50 h-40 object-contain"
+                    onError={(e) => {
+                      // Fallback if image not found
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      if (target.parentElement) {
+                        target.parentElement.innerHTML = '<div class="text-xs text-blue-600 text-center p-2">QR Code</div>';
+                      }
+                    }}
+                  />
 
-        {
-          currentStep < totalSteps ? (
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">Safety Observations</h3>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Report safety concerns or observations during work execution
+                  </p>
+                  <a
+                    href="https://atoz.amazon.work/safety_observations"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    Submit Safety Observation
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <p className="text-xs text-blue-600 mt-2">
+                    Scan the QR code or click the link above to access the safety observation system
+                  </p>
+                </div>
+              </div>
+            </div>
+            {/* ====== END NEW SECTION ====== */}
+
+
+            <div className="p-4 border rounded-lg border-slate-200">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox
+                  checked={formData.declaration}
+                  onCheckedChange={(checked) => setFormData({ ...formData, declaration: checked as boolean })}
+                />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Declaration</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    I confirm that all information provided is accurate and complete. All necessary safety measures
+                    have been identified and will be implemented. All workers have been briefed on the hazards and
+                    control measures for this work.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div className="flex justify-between pt-6 border-t border-slate-200">
+          <Button
+            onClick={handleBack}
+            variant="outline"
+            disabled={currentStep === 1 || isSubmitting}
+            type="button"
+          >
+            Previous
+          </Button>
+
+          {currentStep < totalSteps ? (
             <Button onClick={handleNext} disabled={isSubmitting} type="button">
               Next
             </Button>
@@ -2438,20 +2636,18 @@ Include:
             >
               {isSubmitting ? 'Submitting...' : 'Submit PTW'}
             </Button>
-          )
-        }
+          )}
+        </div>
       </div>
 
       {/* Signature Modal */}
-      {
-        showSignature && (
-          <DigitalSignature
-            title="Issuer Digital Signature"
-            onSave={handleSignatureSave}
-            onCancel={() => setShowSignature(false)}
-          />
-        )
-      }
-    </div >
+      {showSignature && (
+        <DigitalSignature
+          title="Issuer Digital Signature"
+          onSave={handleSignatureSave}
+          onCancel={() => setShowSignature(false)}
+        />
+      )}
+    </div>
   );
 }
