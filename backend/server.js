@@ -61,8 +61,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/requester-assignments', requesterAssignmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/approvers', approverSitesRoutes);
+app.use('/api', evidenceRoutes); // Checked before /api/uploads to handle /uploads/evidence
 app.use('/api/uploads', uploadsRoutes);
-app.use('/api', evidenceRoutes);
 
 console.log('✅ Approver sites, Uploads, and Evidence routes loaded successfully');
 

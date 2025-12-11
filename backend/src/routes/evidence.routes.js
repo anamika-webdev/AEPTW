@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const evidenceController = require('../controllers/evidence.controller');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth.middleware');
 
 // Apply authentication middleware to all routes
 router.use(authenticateToken);

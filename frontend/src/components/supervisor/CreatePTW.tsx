@@ -760,16 +760,28 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         })),
       ];
 
-      const checklistResponses = Object.entries(formData.checklistResponses).map(([questionId, response]) => ({
-        question_id: parseInt(questionId),
-        response: response as ChecklistResponse,
-        remarks: formData.checklistRemarks[parseInt(questionId)] || undefined,
-      }));
+      // ✅ FIXED: Skip the mandatory name fields (398-401) - they don't exist in DB
+      const mandatoryNameFieldIds = [398, 399, 400, 401];
+
+      const checklistResponses = Object.entries(formData.checklistResponses)
+        .filter(([questionId]) => !mandatoryNameFieldIds.includes(parseInt(questionId)))
+        .map(([questionId, response]) => ({
+          question_id: parseInt(questionId),
+          response: response as ChecklistResponse,
+          remarks: formData.checklistRemarks[parseInt(questionId)] || undefined,
+        }));
 
       Object.entries(formData.checklistTextResponses).forEach(([questionId, textValue]) => {
+        const qId = parseInt(questionId);
+
+        // Skip mandatory name fields that don't exist in database
+        if (mandatoryNameFieldIds.includes(qId)) {
+          return;
+        }
+
         if (textValue) {
           checklistResponses.push({
-            question_id: parseInt(questionId),
+            question_id: qId,
             response: 'Yes' as ChecklistResponse,
             remarks: textValue,
           });
@@ -1777,43 +1789,54 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 Add photos with automatic timestamp and location tracking
               </p>
 
-              {/* Upload Buttons */}
-              <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
+              {/* Upload Button - Camera Only */}
+              <div className="flex flex-col items-center gap-3 mb-6">
                 <Button
                   type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="gap-2 bg-purple-600 hover:bg-purple-700"
+                  onClick={() => {
+                    const input = cameraInputRef.current;
+                    if (input) {
+                      // Force click - more reliable than optional chaining
+                      input.click();
+                    }
+                  }}
+                  className="gap-2 bg-purple-600 hover:bg-purple-700 px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all"
                 >
-                  <Camera className="w-4 h-4" />
+                  <Camera className="w-5 h-5" />
                   Take Photo
                 </Button>
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => handleEvidenceUpload(e, 'ppe')}
-                  className="hidden"
-                />
-
-                <Button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  variant="outline"
-                  className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
-                >
-                  <Upload className="w-4 h-4" />
-                  Upload Image
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => handleEvidenceUpload(e, 'ppe')}
-                  className="hidden"
-                />
+                <p className="text-xs text-center text-purple-600">
+                  📱 On mobile: Opens camera directly<br />
+                  💻 On desktop: Opens file picker
+                </p>
               </div>
+
+              {/* Camera input - FIXED: Not hidden completely, just visually hidden */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => handleEvidenceUpload(e, 'ppe')}
+                style={{
+                  position: 'absolute',
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  width: '1px',
+                  height: '1px'
+                }}
+              />
+
+              {/* Hidden camera input - improved for better camera triggering */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => handleEvidenceUpload(e, 'ppe')}
+                className="hidden"
+                style={{ display: 'none' }}
+              />
 
               {/* Evidence Gallery */}
               {formData.evidences.length > 0 && (
@@ -1837,9 +1860,10 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                           <button
                             type="button"
                             onClick={() => removeEvidence(evidence.id)}
-                            className="absolute p-1 transition-opacity bg-red-500 rounded-full opacity-0 top-2 right-2 group-hover:opacity-100"
+                            className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full 
+                         opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
                           >
-                            <Trash2 className="w-4 h-4 text-white" />
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
 
@@ -1847,22 +1871,19 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                         <div className="space-y-2 text-xs text-slate-600">
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            <span>
-                              {new Date(evidence.timestamp).toLocaleString()}
-                            </span>
+                            <span>{new Date(evidence.timestamp).toLocaleString()}</span>
                           </div>
                           {evidence.latitude && evidence.longitude && (
                             <div className="flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
                               <span>
-                                {evidence.latitude.toFixed(6)},{' '}
-                                {evidence.longitude.toFixed(6)}
+                                {evidence.latitude.toFixed(6)}, {evidence.longitude.toFixed(6)}
                               </span>
                             </div>
                           )}
                         </div>
 
-                        {/* Category Selection */}
+                        {/* Category Selector */}
                         <select
                           value={evidence.category}
                           onChange={(e) => {
@@ -1905,7 +1926,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <div className="p-8 text-center border-2 border-dashed rounded-lg border-purple-300 bg-purple-50">
                   <ImageIcon className="w-12 h-12 mx-auto mb-3 text-purple-400" />
                   <p className="text-sm text-purple-600">
-                    No evidence uploaded yet. Click the buttons above to add photos.
+                    No evidence uploaded yet. Click "Take Photo" above to capture images.
                   </p>
                 </div>
               )}

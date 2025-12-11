@@ -573,6 +573,7 @@ router.post('/', async (req, res) => {
       permit_initiator,
       permit_initiator_contact,
       issue_department,
+      issuer_signature,
       team_members,
       hazard_ids,
       ppe_ids,
@@ -637,6 +638,7 @@ router.post('/', async (req, res) => {
         permit_initiator,
         permit_initiator_contact,
         issue_department,
+        issuer_signature,    
         control_measures,
         other_hazards,
         swms_file_url,
@@ -651,7 +653,7 @@ router.post('/', async (req, res) => {
         status,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `, [
       permit_serial,
       site_id,
@@ -665,6 +667,7 @@ router.post('/', async (req, res) => {
       permit_initiator || null,
       permit_initiator_contact || null,
       issue_department || null,
+      issuer_signature || null,
       control_measures || null,
       other_hazards || null,
       swms_file_url || null,
