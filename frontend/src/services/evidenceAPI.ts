@@ -1,4 +1,5 @@
 // frontend/src/services/evidenceAPI.ts
+// FIXED VERSION WITH ENHANCED ERROR HANDLING AND TIMEOUT
 
 import api from './api';
 
@@ -58,7 +59,7 @@ export const evidenceAPI = {
             // Add metadata as JSON
             const metadata = evidences.map((e) => ({
                 category: e.category,
-                description: e.description,
+                description: e.description || '',
                 timestamp: e.timestamp,
                 latitude: e.latitude,
                 longitude: e.longitude,
