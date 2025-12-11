@@ -20,13 +20,18 @@ import {
   Briefcase,
   ClipboardCheck,
   FileCheck,
-  AlertOctagon
+  AlertOctagon,
+  Camera,
+  ImageIcon
 } from 'lucide-react';
+import { evidenceAPI, Evidence } from '../../services/evidenceAPI';
 
 interface PermitDetailsProps {
   ptwId: number;
   onBack: () => void;
 }
+
+// Local Evidence interface removed to avoid conflict
 
 interface PermitData {
   id: number;
@@ -147,6 +152,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
   const [ppe, setPpe] = useState<PPE[]>([]);
   const [checklistResponses, setChecklistResponses] = useState<ChecklistResponse[]>([]);
   const [extensions, setExtensions] = useState<ExtensionRequest[]>([]);
+  const [evidences, setEvidences] = useState<Evidence[]>([]);
 
   useEffect(() => {
     loadPermitDetails();
@@ -157,6 +163,16 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
     setError(null);
 
     try {
+      // Load Evidences (Parallel or Serial)
+      try {
+        const evidenceRes = await evidenceAPI.getByPermitId(ptwId);
+        if (evidenceRes.success && evidenceRes.data) {
+          setEvidences(evidenceRes.data);
+        }
+      } catch (err) {
+        console.warn('Failed to load evidences:', err);
+      }
+
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const url = `${baseURL}/permits/${ptwId}`;
@@ -719,8 +735,8 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
 
                     <div className="flex flex-col items-end gap-2 mt-2 md:mt-0">
                       <span className={`px-3 py-1 text-xs font-bold rounded-full ${ext.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                          ext.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
+                        ext.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
                         }`}>
                         {ext.status}
                       </span>
@@ -734,8 +750,8 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                         <div className="text-xs">
                           <span className="font-semibold text-slate-600 block mb-1">Site Leader:</span>
                           <span className={`${ext.site_leader_status === 'Approved' ? 'text-green-700' :
-                              ext.site_leader_status === 'Rejected' ? 'text-red-700' :
-                                'text-yellow-700'
+                            ext.site_leader_status === 'Rejected' ? 'text-red-700' :
+                              'text-yellow-700'
                             } font-medium`}>
                             {ext.site_leader_status}
                           </span>
@@ -746,8 +762,8 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                         <div className="text-xs">
                           <span className="font-semibold text-slate-600 block mb-1">Safety Officer:</span>
                           <span className={`${ext.safety_officer_status === 'Approved' ? 'text-green-700' :
-                              ext.safety_officer_status === 'Rejected' ? 'text-red-700' :
-                                'text-yellow-700'
+                            ext.safety_officer_status === 'Rejected' ? 'text-red-700' :
+                              'text-yellow-700'
                             } font-medium`}>
                             {ext.safety_officer_status}
                           </span>
@@ -850,6 +866,57 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                 {permit.swms_text}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ==================== SECTION 8.5: Evidence & Photos ==================== */}
+        {evidences.length > 0 && (
+          <div className="p-6 bg-white shadow-lg rounded-xl">
+            <div className="flex items-center gap-3 pb-4 mb-6 border-b-2">
+              <Camera className="text-blue-600 w-7 h-7" />
+              <h2 className="text-2xl font-bold text-slate-900">Evidence & Photos ({evidences.length})</h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {evidences.map((evidence, index) => (
+                <div key={evidence.id || index} className="overflow-hidden border-2 rounded-lg border-slate-200">
+                  <div className="relative aspect-video bg-slate-100">
+                    {evidence.file_path ? (
+                      <img
+                        src={evidenceAPI.getFileUrl(evidence.file_path)}
+                        alt={evidence.category}
+                        className="object-cover w-full h-full"
+                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300?text=Image+Error'; }}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-full text-slate-400">
+                        <ImageIcon className="w-10 h-10" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2 px-2 py-1 text-xs font-bold text-white bg-black bg-opacity-60 rounded capitalize">
+                      {evidence.category.replace('_', ' ')}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-white">
+                    <div className="flex items-center gap-2 mb-1 text-xs text-slate-500">
+                      <Clock className="w-3 h-3" />
+                      {new Date(evidence.timestamp).toLocaleString()}
+                    </div>
+                    {evidence.latitude && evidence.longitude && (
+                      <div className="flex items-center gap-2 mb-1 text-xs text-slate-500">
+                        <MapPin className="w-3 h-3" />
+                        {Number(evidence.latitude).toFixed(6)}, {Number(evidence.longitude).toFixed(6)}
+                      </div>
+                    )}
+                    {evidence.description && (
+                      <p className="text-sm text-slate-700 line-clamp-2">{evidence.description}</p>
+                    )}
+                    {!evidence.description && (
+                      <p className="text-xs italic text-slate-400">No description provided</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

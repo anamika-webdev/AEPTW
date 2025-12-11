@@ -2,7 +2,7 @@
 // ✅ UPDATED WITH APPROVAL/REJECTION DETAILS DISPLAY
 
 import { useState, useEffect, useRef } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, Eye, Eraser, PenTool, Layout, Calendar } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, Eye, Eraser, Layout, Calendar } from 'lucide-react';
 import Pagination from '../../components/common/Pagination';
 import { usePagination } from '../../hooks/usePagination';
 import { approvalsAPI } from '../../services/api';
@@ -155,18 +155,6 @@ export default function ApproverDashboard({ initialTab = 'pending', onNavigate }
 
   const clearSignature = () => {
     initializeCanvas();
-  };
-
-  // Check if canvas is empty (basic check)
-  const isCanvasEmpty = (canvas: HTMLCanvasElement) => {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return true;
-
-    const pixelBuffer = new Uint32Array(
-      ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer
-    );
-
-    return !pixelBuffer.some(color => color !== 0 && color !== 0xFFFFFFFF); // Simple check for non-white/transparent pixels
   };
 
   const loadApprovals = async () => {

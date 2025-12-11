@@ -1,6 +1,6 @@
 // src/components/supervisor/CreatePTW.tsx - COMPLETE UPDATED VERSION WITH FIXES
 import { useState, useEffect, useCallback, memo, useRef } from 'react';
-import { ArrowLeft, Upload, FileText, Check, AlertTriangle, X, Camera, Trash2, Clock, MapPin, ImageIcon } from 'lucide-react';
+import { ArrowLeft, FileText, Check, AlertTriangle, X, Camera, Clock, MapPin, ImageIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -120,7 +120,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     declaration: false,
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Geolocation function
