@@ -82,7 +82,9 @@ router.get('/pending', async (req, res) => {
         p.site_leader_status,
         am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
-        sl.full_name as site_leader_name
+        sl.full_name as site_leader_name,
+        p.${fields.signatureField} as my_signature,  
+    p.rejection_reason   
       FROM permits p
       LEFT JOIN sites s ON p.site_id = s.id
       LEFT JOIN users u ON p.created_by_user_id = u.id

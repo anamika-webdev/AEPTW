@@ -423,11 +423,13 @@ export const approvalsAPI = {
     return response.data;
   },
 
-  // Approve PTW with signature
-  approve: async (permitId: number, signature: string): Promise<ApiResponse<any>> => {
-    const response = await api.post(`/approvals/${permitId}/approve`, {
-      signature: signature
-    });
+  // Approve PTW with signature and optional comments
+  approve: async (permitId: number, approvalData: string | { signature: string, comments?: string }): Promise<ApiResponse<any>> => {
+    const data = typeof approvalData === 'string'
+      ? { signature: approvalData }
+      : approvalData;
+
+    const response = await api.post(`/approvals/${permitId}/approve`, data);
     return response.data;
   },
 

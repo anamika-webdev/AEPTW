@@ -38,26 +38,32 @@ interface PermitData {
   work_description: string;
   start_time: string;
   end_time: string;
-  
+  area_manager_comments?: string;
+  safety_officer_comments?: string;
+  site_leader_comments?: string;
+  area_manager_signature?: string;
+  safety_officer_signature?: string;
+  site_leader_signature?: string;
+
   // Site info
   site_name?: string;
   site_code?: string;
   site_address?: string;
-  
+
   // Initiator info
   permit_initiator?: string;
   permit_initiator_contact?: string;
   issue_department?: string;
-  
+
   // Creator info
   created_by_name?: string;
   created_by_email?: string;
   created_by_contact?: string;
-  
+
   // Receiver/Issued To info
   receiver_name?: string;
   receiver_contact?: string;
-  
+
   // Approver info
   area_manager_name?: string;
   safety_officer_name?: string;
@@ -68,15 +74,15 @@ interface PermitData {
   area_manager_approved_at?: string;
   safety_officer_approved_at?: string;
   site_leader_approved_at?: string;
-  
+
   // Safety measures
   control_measures?: string;
   other_hazards?: string;
-  
+
   // SWMS
   swms_file_url?: string;
   swms_text?: string;
-  
+
   // Status info
   rejection_reason?: string;
   created_at: string;
@@ -118,6 +124,20 @@ interface ChecklistResponse {
   remarks?: string;
 }
 
+interface ExtensionRequest {
+  id: number;
+  requested_at: string;
+  original_end_time: string;
+  new_end_time: string;
+  reason: string;
+  status: string;
+  requested_by_name?: string;
+  site_leader_status?: string;
+  safety_officer_status?: string;
+  site_leader_remarks?: string;
+  safety_officer_remarks?: string;
+}
+
 export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +146,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
   const [hazards, setHazards] = useState<Hazard[]>([]);
   const [ppe, setPpe] = useState<PPE[]>([]);
   const [checklistResponses, setChecklistResponses] = useState<ChecklistResponse[]>([]);
+  const [extensions, setExtensions] = useState<ExtensionRequest[]>([]);
 
   useEffect(() => {
     loadPermitDetails();
@@ -134,7 +155,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
   const loadPermitDetails = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -163,13 +184,15 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
         const haz = data.data.hazards || [];
         const ppeItems = data.data.ppe || [];
         const checklist = data.data.checklist_responses || [];
+        const ext = data.data.extensions || [];
 
         console.log('✅ Parsed data:', {
           permit: permitData.permit_serial,
           teamMembers: members.length,
           hazards: haz.length,
           ppe: ppeItems.length,
-          checklist: checklist.length
+          checklist: checklist.length,
+          extensions: ext.length
         });
 
         setPermit(permitData);
@@ -177,6 +200,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
         setHazards(haz);
         setPpe(ppeItems);
         setChecklistResponses(checklist);
+        setExtensions(ext);
       } else {
         throw new Error('Invalid response format');
       }
@@ -259,11 +283,11 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
   }
 
   // Parse permit types
-  const permitTypes = permit.permit_types 
-    ? permit.permit_types.split(',') 
-    : permit.permit_type 
-    ? [permit.permit_type] 
-    : [];
+  const permitTypes = permit.permit_types
+    ? permit.permit_types.split(',')
+    : permit.permit_type
+      ? [permit.permit_type]
+      : [];
 
   return (
     <div className="min-h-screen pb-12 space-y-6 bg-slate-50">
@@ -287,7 +311,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
       </div>
 
       <div className="px-6 mx-auto space-y-6 max-w-7xl">
-        
+
         {/* ==================== SECTION 1: Basic Information ==================== */}
         <div className="p-6 bg-white shadow-lg rounded-xl">
           <div className="flex items-center gap-3 pb-4 mb-6 border-b-2">
@@ -381,7 +405,163 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
             </div>
           )}
         </div>
+        {/* ✅ ADD THIS SECTION - Approver Details with Comments & Signatures */}
+        {permit && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <CheckCircle className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-slate-900">Approval Details</h3>
+            </div>
 
+            <div className="space-y-6">
+              {/* Area Manager */}
+              {permit.area_manager_name && (
+                <div className="border-l-4 border-blue-500 pl-4 py-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">Area Manager</p>
+                      <p className="text-sm text-slate-600">{permit.area_manager_name}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${permit.area_manager_status === 'Approved'
+                      ? 'bg-green-100 text-green-800'
+                      : permit.area_manager_status === 'Rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                      {permit.area_manager_status || 'Pending'}
+                    </span>
+                  </div>
+
+                  {permit.area_manager_status === 'Approved' && (
+                    <>
+                      {permit.area_manager_approved_at && (
+                        <p className="text-xs text-slate-500 mb-2">
+                          Approved: {new Date(permit.area_manager_approved_at).toLocaleString()}
+                        </p>
+                      )}
+                      {permit.area_manager_comments && (
+                        <div className="mt-3 p-3 bg-green-50 rounded">
+                          <p className="text-xs font-medium text-green-900 mb-1">Comments:</p>
+                          <p className="text-sm text-slate-700">{permit.area_manager_comments}</p>
+                        </div>
+                      )}
+                      {permit.area_manager_signature && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-slate-700 mb-2">Digital Signature:</p>
+                          <img
+                            src={permit.area_manager_signature}
+                            alt="Area Manager Signature"
+                            className="h-16 border-2 border-slate-300 rounded bg-white p-1"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Safety Officer */}
+              {permit.safety_officer_name && (
+                <div className="border-l-4 border-orange-500 pl-4 py-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">Safety Officer</p>
+                      <p className="text-sm text-slate-600">{permit.safety_officer_name}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${permit.safety_officer_status === 'Approved'
+                      ? 'bg-green-100 text-green-800'
+                      : permit.safety_officer_status === 'Rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                      {permit.safety_officer_status || 'Pending'}
+                    </span>
+                  </div>
+
+                  {permit.safety_officer_status === 'Approved' && (
+                    <>
+                      {permit.safety_officer_approved_at && (
+                        <p className="text-xs text-slate-500 mb-2">
+                          Approved: {new Date(permit.safety_officer_approved_at).toLocaleString()}
+                        </p>
+                      )}
+                      {permit.safety_officer_comments && (
+                        <div className="mt-3 p-3 bg-green-50 rounded">
+                          <p className="text-xs font-medium text-green-900 mb-1">Comments:</p>
+                          <p className="text-sm text-slate-700">{permit.safety_officer_comments}</p>
+                        </div>
+                      )}
+                      {permit.safety_officer_signature && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-slate-700 mb-2">Digital Signature:</p>
+                          <img
+                            src={permit.safety_officer_signature}
+                            alt="Safety Officer Signature"
+                            className="h-16 border-2 border-slate-300 rounded bg-white p-1"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Site Leader */}
+              {permit.site_leader_name && (
+                <div className="border-l-4 border-purple-500 pl-4 py-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">Site Leader</p>
+                      <p className="text-sm text-slate-600">{permit.site_leader_name}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${permit.site_leader_status === 'Approved'
+                      ? 'bg-green-100 text-green-800'
+                      : permit.site_leader_status === 'Rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                      {permit.site_leader_status || 'Pending'}
+                    </span>
+                  </div>
+
+                  {permit.site_leader_status === 'Approved' && (
+                    <>
+                      {permit.site_leader_approved_at && (
+                        <p className="text-xs text-slate-500 mb-2">
+                          Approved: {new Date(permit.site_leader_approved_at).toLocaleString()}
+                        </p>
+                      )}
+                      {permit.site_leader_comments && (
+                        <div className="mt-3 p-3 bg-green-50 rounded">
+                          <p className="text-xs font-medium text-green-900 mb-1">Comments:</p>
+                          <p className="text-sm text-slate-700">{permit.site_leader_comments}</p>
+                        </div>
+                      )}
+                      {permit.site_leader_signature && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-slate-700 mb-2">Digital Signature:</p>
+                          <img
+                            src={permit.site_leader_signature}
+                            alt="Site Leader Signature"
+                            className="h-16 border-2 border-slate-300 rounded bg-white p-1"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Rejection Details if permit was rejected */}
+              {permit.status === 'Rejected' && permit.rejection_reason && (
+                <div className="border-l-4 border-red-500 pl-4 py-2 bg-red-50">
+                  <p className="font-semibold text-red-900 mb-2">Rejection Reason</p>
+                  <p className="text-sm text-slate-700">{permit.rejection_reason}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {/* ==================== SECTION 4: Team Members ==================== */}
         {teamMembers.length > 0 && (
           <div className="p-6 bg-white shadow-lg rounded-xl">
@@ -433,7 +613,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
             <CheckCircle className="text-teal-600 w-7 h-7" />
             <h2 className="text-2xl font-bold text-slate-900">Approval Status</h2>
           </div>
-          
+
           <div className="space-y-4">
             {/* Area Manager */}
             {permit.area_manager_name && (
@@ -446,11 +626,10 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                       <p className="text-xs text-slate-600">Approved: {formatDate(permit.area_manager_approved_at)}</p>
                     )}
                   </div>
-                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                    permit.area_manager_status === 'Approved' ? 'bg-green-100 text-green-800' :
+                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${permit.area_manager_status === 'Approved' ? 'bg-green-100 text-green-800' :
                     permit.area_manager_status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
                     {permit.area_manager_status || 'Pending'}
                   </span>
                 </div>
@@ -468,11 +647,10 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                       <p className="text-xs text-slate-600">Approved: {formatDate(permit.safety_officer_approved_at)}</p>
                     )}
                   </div>
-                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                    permit.safety_officer_status === 'Approved' ? 'bg-green-100 text-green-800' :
+                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${permit.safety_officer_status === 'Approved' ? 'bg-green-100 text-green-800' :
                     permit.safety_officer_status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
                     {permit.safety_officer_status || 'Pending'}
                   </span>
                 </div>
@@ -490,11 +668,10 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                       <p className="text-xs text-slate-600">Approved: {formatDate(permit.site_leader_approved_at)}</p>
                     )}
                   </div>
-                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                    permit.site_leader_status === 'Approved' ? 'bg-green-100 text-green-800' :
+                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${permit.site_leader_status === 'Approved' ? 'bg-green-100 text-green-800' :
                     permit.site_leader_status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
                     {permit.site_leader_status || 'Pending'}
                   </span>
                 </div>
@@ -502,6 +679,88 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
             )}
           </div>
         </div>
+
+        {/* ==================== SECTION 5.5: Extension Requests ==================== */}
+        {extensions.length > 0 && (
+          <div className="p-6 bg-white shadow-lg rounded-xl">
+            <div className="flex items-center gap-3 pb-4 mb-6 border-b-2">
+              <Clock className="text-purple-600 w-7 h-7" />
+              <h2 className="text-2xl font-bold text-slate-900">Extension Requests ({extensions.length})</h2>
+            </div>
+            <div className="space-y-4">
+              {extensions.map((ext) => (
+                <div key={ext.id} className="p-4 border-2 rounded-lg border-purple-100 bg-purple-50">
+                  <div className="flex flex-col gap-2 md:flex-row md:justify-between md:items-start">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold uppercase text-purple-700">Request Date:</span>
+                        <span className="text-sm font-medium text-slate-700">{formatDate(ext.requested_at)}</span>
+                      </div>
+                      <div className="mb-2 text-sm text-slate-800">
+                        <span className="font-bold">Reason: </span>
+                        {ext.reason}
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-sm">
+                        <div className="flex items-center gap-1">
+                          <span className="text-slate-500">From:</span>
+                          <span className="font-medium text-slate-900">{formatDate(ext.original_end_time)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-slate-500">To:</span>
+                          <span className="font-bold text-green-700">{formatDate(ext.new_end_time)}</span>
+                        </div>
+                      </div>
+                      {ext.requested_by_name && (
+                        <div className="mt-2 text-xs text-slate-500">
+                          Requested by: {ext.requested_by_name}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2 mt-2 md:mt-0">
+                      <span className={`px-3 py-1 text-xs font-bold rounded-full ${ext.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                          ext.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                        }`}>
+                        {ext.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Approval Details for Extension */}
+                  {(ext.site_leader_status || ext.safety_officer_status) && (
+                    <div className="mt-4 pt-3 border-t border-purple-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {ext.site_leader_status && (
+                        <div className="text-xs">
+                          <span className="font-semibold text-slate-600 block mb-1">Site Leader:</span>
+                          <span className={`${ext.site_leader_status === 'Approved' ? 'text-green-700' :
+                              ext.site_leader_status === 'Rejected' ? 'text-red-700' :
+                                'text-yellow-700'
+                            } font-medium`}>
+                            {ext.site_leader_status}
+                          </span>
+                          {ext.site_leader_remarks && <p className="mt-1 text-slate-500 italic">"{ext.site_leader_remarks}"</p>}
+                        </div>
+                      )}
+                      {ext.safety_officer_status && (
+                        <div className="text-xs">
+                          <span className="font-semibold text-slate-600 block mb-1">Safety Officer:</span>
+                          <span className={`${ext.safety_officer_status === 'Approved' ? 'text-green-700' :
+                              ext.safety_officer_status === 'Rejected' ? 'text-red-700' :
+                                'text-yellow-700'
+                            } font-medium`}>
+                            {ext.safety_officer_status}
+                          </span>
+                          {ext.safety_officer_remarks && <p className="mt-1 text-slate-500 italic">"{ext.safety_officer_remarks}"</p>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ==================== SECTION 6: Hazards ==================== */}
         {hazards.length > 0 && (
@@ -571,7 +830,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
               <FileCheck className="text-purple-600 w-7 h-7" />
               <h2 className="text-2xl font-bold text-slate-900">Safe Work Method Statement (SWMS)</h2>
             </div>
-            
+
             {permit.swms_file_url && (
               <div className="mb-4">
                 <a
@@ -585,7 +844,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                 </a>
               </div>
             )}
-            
+
             {permit.swms_text && (
               <div className="p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap rounded-lg text-slate-700 bg-slate-50">
                 {permit.swms_text}
@@ -606,11 +865,10 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                 <div key={item.id} className="p-4 border-2 rounded-lg border-slate-200">
                   <div className="flex items-start justify-between gap-4">
                     <p className="flex-1 font-medium text-slate-900">{item.question || item.question_text}</p>
-                    <span className={`px-3 py-1 text-sm font-bold rounded-full flex-shrink-0 ${
-                      item.response === 'Yes' ? 'bg-green-100 text-green-800' :
+                    <span className={`px-3 py-1 text-sm font-bold rounded-full flex-shrink-0 ${item.response === 'Yes' ? 'bg-green-100 text-green-800' :
                       item.response === 'No' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        'bg-gray-100 text-gray-800'
+                      }`}>
                       {item.response}
                     </span>
                   </div>

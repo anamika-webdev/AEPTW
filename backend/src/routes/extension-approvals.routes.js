@@ -14,7 +14,7 @@ router.use(authenticateToken);
 // ============================================================================
 const getExtensionApprovalFields = (userRole) => {
     const roleMap = {
-        'Approver_SiteLeader': {
+        'Site Leader': {
             idField: 'site_leader_id',
             statusField: 'site_leader_status',
             approvedAtField: 'site_leader_approved_at',
@@ -22,7 +22,7 @@ const getExtensionApprovalFields = (userRole) => {
             remarksField: 'site_leader_remarks',
             roleName: 'Site Leader'
         },
-        'Approver_Safety': {
+        'Safety Officer': {
             idField: 'safety_officer_id',
             statusField: 'safety_officer_status',
             approvedAtField: 'safety_officer_approved_at',
@@ -370,9 +370,9 @@ router.post('/:extensionId/approve', async (req, res) => {
                 [extensionId]
             );
 
-            // Update permit end time
+            // Update permit end time and status to Extended
             await connection.query(
-                `UPDATE permits SET end_time = ?, updated_at = NOW() WHERE id = ?`,
+                `UPDATE permits SET end_time = ?, status = 'Extended', updated_at = NOW() WHERE id = ?`,
                 [ue.new_end_time, ue.permit_id]
             );
 

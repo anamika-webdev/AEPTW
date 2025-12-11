@@ -603,21 +603,31 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
     // Step 5: Checklist Validation
     if (currentStep === 5) {
+      // Validate Mandatory Personnel Name Fields (IDs 398-401)
+      const mandatoryFields = [
+        { id: 398, label: 'Entrant Name' },
+        { id: 399, label: 'Attendant Name' },
+        { id: 400, label: 'Supervisor Name' },
+        { id: 401, label: 'Stand-by Person Name' }
+      ];
+
+      for (const field of mandatoryFields) {
+        if (!formData.checklistTextResponses[field.id] || formData.checklistTextResponses[field.id].trim().length < 2) {
+          alert(`Please enter valid ${field.label}`);
+          return;
+        }
+      }
+
+      // Validate other dynamic checklist questions
       const activeQuestions = checklistQuestions.filter(q =>
-        formData.categories.includes(q.permit_type)
+        formData.categories.includes(q.permit_type as PermitType)
       );
 
-      // IDs for special name fields
-      const mandatoryNameFieldIds = [398, 399, 400, 401];
-
       for (const q of activeQuestions) {
-        if (mandatoryNameFieldIds.includes(q.id)) {
-          // Validate Name Fields
-          if (!formData.checklistTextResponses[q.id] || formData.checklistTextResponses[q.id].trim().length < 2) {
-            alert(`Please enter valid ${q.question_text}`);
-            return;
-          }
-        } else if (q.response_type === 'text') {
+        // Skip if it's one of the mandatory name fields (just in case they were added to checklistQuestions)
+        if ([398, 399, 400, 401].includes(q.id)) continue;
+
+        if (q.response_type === 'text') {
           // Generic text input
           if (!formData.checklistTextResponses[q.id] || formData.checklistTextResponses[q.id].trim() === '') {
             alert(`Please answer: ${q.question_text}`);

@@ -334,10 +334,16 @@ router.get('/my-ready-to-start', async (req, res) => {
         p.*,
         s.name as site_name,
         s.site_code,
-        COUNT(DISTINCT ptm.id) as team_member_count
+        COUNT(DISTINCT ptm.id) as team_member_count,
+        am.full_name as area_manager_name,
+        so.full_name as safety_officer_name,
+        sl.full_name as site_leader_name
       FROM permits p
       LEFT JOIN sites s ON p.site_id = s.id
       LEFT JOIN permit_team_members ptm ON p.id = ptm.permit_id
+      LEFT JOIN users am ON p.area_manager_id = am.id
+      LEFT JOIN users so ON p.safety_officer_id = so.id
+      LEFT JOIN users sl ON p.site_leader_id = sl.id
       WHERE p.created_by_user_id = ?
       AND p.status = 'Ready_To_Start'
       GROUP BY p.id
@@ -373,10 +379,16 @@ router.get('/my-active', async (req, res) => {
         p.*,
         s.name as site_name,
         s.site_code,
-        COUNT(DISTINCT ptm.id) as team_member_count
+        COUNT(DISTINCT ptm.id) as team_member_count,
+        am.full_name as area_manager_name,
+        so.full_name as safety_officer_name,
+        sl.full_name as site_leader_name
       FROM permits p
       LEFT JOIN sites s ON p.site_id = s.id
       LEFT JOIN permit_team_members ptm ON p.id = ptm.permit_id
+      LEFT JOIN users am ON p.area_manager_id = am.id
+      LEFT JOIN users so ON p.safety_officer_id = so.id
+      LEFT JOIN users sl ON p.site_leader_id = sl.id
       WHERE p.created_by_user_id = ?
       AND p.status = 'Active'
       GROUP BY p.id
@@ -451,12 +463,18 @@ router.get('/my-extended', async (req, res) => {
         p.*,
         s.name as site_name,
         s.site_code,
-        COUNT(DISTINCT ptm.id) as team_member_count
+        COUNT(DISTINCT ptm.id) as team_member_count,
+        am.full_name as area_manager_name,
+        so.full_name as safety_officer_name,
+        sl.full_name as site_leader_name
       FROM permits p
       LEFT JOIN sites s ON p.site_id = s.id
       LEFT JOIN permit_team_members ptm ON p.id = ptm.permit_id
+      LEFT JOIN users am ON p.area_manager_id = am.id
+      LEFT JOIN users so ON p.safety_officer_id = so.id
+      LEFT JOIN users sl ON p.site_leader_id = sl.id
       WHERE p.created_by_user_id = ?
-      AND p.status = 'Extension_Requested'
+      AND p.status IN ('Extension_Requested', 'Extended')
       GROUP BY p.id
       ORDER BY p.updated_at DESC
     `, [userId]);
@@ -1286,6 +1304,25 @@ router.get('/:id', async (req, res) => {
       console.log('⚠️ Error fetching checklist (tables may not exist):', err.message);
     }
 
+    // Get extensions
+    let extensions = [];
+    try {
+      const [exts] = await pool.query(`
+        SELECT 
+          pe.*,
+          u.full_name as requested_by_name,
+          u.email as requested_by_email
+        FROM permit_extensions pe
+        LEFT JOIN users u ON pe.requested_by_user_id = u.id
+        WHERE pe.permit_id = ?
+        ORDER BY pe.requested_at DESC
+      `, [id]);
+      extensions = exts;
+      console.log(`✅ Found ${extensions.length} extensions`);
+    } catch (err) {
+      console.log('⚠️ Error fetching extensions:', err.message);
+    }
+
     // Return complete permit details
     console.log('✅ Sending complete permit data');
     res.json({
@@ -1295,7 +1332,8 @@ router.get('/:id', async (req, res) => {
         team_members: teamMembers,
         hazards,
         ppe,
-        checklist_responses: checklistResponses
+        checklist_responses: checklistResponses,
+        extensions: extensions
       }
     });
 
@@ -1338,7 +1376,7 @@ router.post('/:id/request-extension', async (req, res) => {
 
     // Check if permit exists and is in Active status
     const [permits] = await connection.query(
-      'SELECT id, status, permit_serial FROM permits WHERE id = ?',
+      'SELECT id, status, permit_serial, site_leader_id, safety_officer_id FROM permits WHERE id = ?',
       [id]
     );
 
@@ -1369,14 +1407,18 @@ router.post('/:id/request-extension', async (req, res) => {
           requested_at,
           new_end_time, 
           reason, 
-          status
-        ) VALUES (?, ?, NOW(), ?, ?, 'Pending')
-      `, [id, userId, new_end_time, reason]);
+          status,
+          site_leader_id,
+          site_leader_status,
+          safety_officer_id,
+          safety_officer_status
+        ) VALUES (?, ?, NOW(), ?, ?, 'Pending', ?, 'Pending', ?, 'Pending')
+      `, [id, userId, new_end_time, reason, permit.site_leader_id, permit.safety_officer_id]);
 
-      console.log('✅ Extension request inserted into permit_extensions');
+      console.log('✅ Extension request inserted into permit_extensions with approvers');
     } catch (err) {
-      console.log('⚠️ permit_extensions table may not exist:', err.message);
-      // Continue anyway - we'll still update the permit status
+      console.log('⚠️ permit_extensions table may not exist or missing columns:', err.message);
+      throw err;
     }
 
     // Update permit status to Extension_Requested
@@ -1477,11 +1519,11 @@ router.post('/:id/close', async (req, res) => {
 
     const permit = permits[0];
 
-    if (permit.status !== 'Active' && permit.status !== 'Extension_Requested') {
+    if (permit.status !== 'Active' && permit.status !== 'Extension_Requested' && permit.status !== 'Extended') {
       await connection.rollback();
       return res.status(400).json({
         success: false,
-        message: `Cannot close permit with status: ${permit.status}. Only Active permits can be closed.`
+        message: `Cannot close permit with status: ${permit.status}. Only Active or Extended permits can be closed.`
       });
     }
 

@@ -6,9 +6,7 @@ import {
     Clock,
     CheckCircle,
     XCircle,
-    AlertTriangle,
     FileText,
-    Calendar,
     User,
     MapPin
 } from 'lucide-react';
@@ -44,7 +42,6 @@ export default function ExtensionApprovalDashboard() {
     const [selectedExtension, setSelectedExtension] = useState<ExtensionRequest | null>(null);
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
-    const [signature, setSignature] = useState('');
     const [remarks, setRemarks] = useState('');
     const [isDrawing, setIsDrawing] = useState(false);
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -136,7 +133,6 @@ export default function ExtensionApprovalDashboard() {
                 alert(data.message || 'Extension approved successfully');
                 setShowApproveModal(false);
                 setSelectedExtension(null);
-                setSignature('');
                 setRemarks('');
                 loadExtensions();
             } else {
@@ -229,7 +225,6 @@ export default function ExtensionApprovalDashboard() {
         if (!ctx) return;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        setSignature('');
     };
 
     const formatDate = (dateString: string) => {
@@ -438,8 +433,8 @@ export default function ExtensionApprovalDashboard() {
                     <button
                         onClick={() => setActiveTab('pending')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'pending'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                             }`}
                     >
                         Pending ({pendingExtensions.length})
@@ -447,8 +442,8 @@ export default function ExtensionApprovalDashboard() {
                     <button
                         onClick={() => setActiveTab('approved')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'approved'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                             }`}
                     >
                         Approved ({approvedExtensions.length})
@@ -456,8 +451,8 @@ export default function ExtensionApprovalDashboard() {
                     <button
                         onClick={() => setActiveTab('rejected')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'rejected'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                             }`}
                     >
                         Rejected ({rejectedExtensions.length})

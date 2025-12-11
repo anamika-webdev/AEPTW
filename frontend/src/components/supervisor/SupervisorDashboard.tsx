@@ -42,9 +42,11 @@ interface Permit {
   created_at?: string;
 }
 
-interface ExtensionData {
+interface ExtensionFormData {
+  new_end_date: string;
   new_end_time: string;
   reason: string;
+  current_completion: string;
 }
 
 interface ClosureData {
@@ -205,10 +207,16 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     setExtendModalOpen(true);
   };
 
-  const handleExtendSubmit = async (permitId: number, extensionData: ExtensionData) => {
+  const handleExtendSubmit = async (permitId: number, formData: ExtensionFormData) => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      // Combine date and time into ISO string
+      const fullEndDateTime = `${formData.new_end_date}T${formData.new_end_time}:00`;
+
+      // Combine reason and completion
+      const formattedReason = `${formData.reason} (Current Completion: ${formData.current_completion}%)`;
 
       const response = await fetch(`${baseURL}/permits/${permitId}/request-extension`, {
         method: 'POST',
@@ -216,7 +224,10 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(extensionData)
+        body: JSON.stringify({
+          new_end_time: fullEndDateTime,
+          reason: formattedReason
+        })
       });
 
       const data = await response.json();
@@ -279,6 +290,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
       'Ready_To_Start': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Ready to Start' },
       'Active': { bg: 'bg-green-100', text: 'text-green-800', label: 'In Progress' },
       'Extension_Requested': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Extension Requested' },
+      'Extended': { bg: 'bg-green-100', text: 'text-green-800', label: 'Extended - Active' },
       'Closed': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Closed' },
       'Rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
     };
