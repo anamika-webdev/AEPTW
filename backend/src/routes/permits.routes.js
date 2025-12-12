@@ -1084,12 +1084,8 @@ router.get('/:id', async (req, res) => {
     });
   }
 });
-
+// PUT /api/permits/:id - Enhanced Update permit with all related data
 // ============================================================================
-// UPDATE & DELETE ROUTES
-// ============================================================================
-
-// PUT /api/permits/:id - Update permit
 router.put('/:id', async (req, res) => {
   let connection;
 
@@ -1098,46 +1094,232 @@ router.put('/:id', async (req, res) => {
     await connection.beginTransaction();
 
     const { id } = req.params;
-    const updateFields = req.body;
+    const {
+      // Permit Types
+      permit_type,
+      permit_types,
 
-    // Build dynamic update query
-    const allowedFields = [
-      'work_description', 'work_location', 'start_time', 'end_time',
-      'receiver_name', 'receiver_contact', 'control_measures',
-      'other_hazards', 'status'
-    ];
+      // Basic Details
+      site_id,
+      work_description,
+      work_location,
+      start_time,
+      end_time,
+      issue_department,
 
-    const updates = [];
-    const values = [];
+      // Permit Initiator & Receiver
+      permit_initiator,
+      permit_initiator_contact,
+      receiver_name,
+      receiver_contact,
 
-    Object.keys(updateFields).forEach(key => {
-      if (allowedFields.includes(key)) {
-        updates.push(`${key} = ?`);
-        values.push(updateFields[key]);
-      }
-    });
+      // Hazards & Controls
+      hazard_ids,
+      control_measures,
+      other_hazards,
 
-    if (updates.length === 0) {
-      await connection.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'No valid fields to update'
-      });
+      // PPE
+      ppe_ids,
+
+      // Team Members
+      team_members,
+
+      // SWMS
+      swms_file_url,
+      swms_text,
+
+      // Checklist
+      checklist_responses,
+
+      // Signatures
+      issuer_signature,
+      area_manager_signature,
+      safety_officer_signature,
+      site_leader_signature,
+    } = req.body;
+
+    console.log(`📝 Updating permit ${id} with comprehensive data`);
+
+    // 1. Update main permit fields
+    const permitUpdateFields = [];
+    const permitUpdateValues = [];
+
+    if (work_description !== undefined) {
+      permitUpdateFields.push('work_description = ?');
+      permitUpdateValues.push(work_description);
+    }
+    if (work_location !== undefined) {
+      permitUpdateFields.push('work_location = ?');
+      permitUpdateValues.push(work_location);
+    }
+    if (start_time !== undefined) {
+      permitUpdateFields.push('start_time = ?');
+      permitUpdateValues.push(start_time);
+    }
+    if (end_time !== undefined) {
+      permitUpdateFields.push('end_time = ?');
+      permitUpdateValues.push(end_time);
+    }
+    if (receiver_name !== undefined) {
+      permitUpdateFields.push('receiver_name = ?');
+      permitUpdateValues.push(receiver_name);
+    }
+    if (receiver_contact !== undefined) {
+      permitUpdateFields.push('receiver_contact = ?');
+      permitUpdateValues.push(receiver_contact);
+    }
+    if (control_measures !== undefined) {
+      permitUpdateFields.push('control_measures = ?');
+      permitUpdateValues.push(control_measures);
+    }
+    if (other_hazards !== undefined) {
+      permitUpdateFields.push('other_hazards = ?');
+      permitUpdateValues.push(other_hazards);
+    }
+    if (site_id !== undefined) {
+      permitUpdateFields.push('site_id = ?');
+      permitUpdateValues.push(site_id);
     }
 
-    updates.push('updated_at = NOW()');
-    values.push(id);
+    if (permitUpdateFields.length > 0) {
+      permitUpdateFields.push('updated_at = NOW()');
+      permitUpdateValues.push(id);
 
-    await connection.query(
-      `UPDATE permits SET ${updates.join(', ')} WHERE id = ?`,
-      values
-    );
+      await connection.query(
+        `UPDATE permits SET ${permitUpdateFields.join(', ')} WHERE id = ?`,
+        permitUpdateValues
+      );
+      console.log('✅ Main permit fields updated');
+    }
 
+    // 2. Update hazards if provided
+    if (hazard_ids !== undefined && Array.isArray(hazard_ids)) {
+      // Delete existing hazards
+      await connection.query('DELETE FROM permit_hazards WHERE permit_id = ?', [id]);
+
+      // Insert new hazards
+      if (hazard_ids.length > 0) {
+        const hazardValues = hazard_ids.map(hazardId => [id, hazardId]);
+        await connection.query(
+          'INSERT INTO permit_hazards (permit_id, hazard_id) VALUES ?',
+          [hazardValues]
+        );
+        console.log(`✅ Updated ${hazard_ids.length} hazards`);
+      }
+    }
+
+    // 3. Update PPE if provided
+    if (ppe_ids !== undefined && Array.isArray(ppe_ids)) {
+      // Delete existing PPE
+      await connection.query('DELETE FROM permit_ppe WHERE permit_id = ?', [id]);
+
+      // Insert new PPE
+      if (ppe_ids.length > 0) {
+        const ppeValues = ppe_ids.map(ppeId => [id, ppeId]);
+        await connection.query(
+          'INSERT INTO permit_ppe (permit_id, ppe_id) VALUES ?',
+          [ppeValues]
+        );
+        console.log(`✅ Updated ${ppe_ids.length} PPE items`);
+      }
+    }
+
+    // 4. Update team members if provided
+    if (team_members !== undefined && Array.isArray(team_members)) {
+      // Delete existing team members
+      await connection.query('DELETE FROM permit_team_members WHERE permit_id = ?', [id]);
+
+      // Insert new team members
+      if (team_members.length > 0) {
+        const memberValues = team_members.map(member => [
+          id,
+          member.worker_id || null,
+          member.name || '',
+          member.designation || '',
+          member.contact || ''
+        ]);
+        await connection.query(
+          `INSERT INTO permit_team_members (permit_id, worker_id, name, designation, contact) VALUES ?`,
+          [memberValues]
+        );
+        console.log(`✅ Updated ${team_members.length} team members`);
+      }
+    }
+    // 5. Update checklist responses if provided
+    if (checklist_responses !== undefined && Array.isArray(checklist_responses)) {
+      // Delete existing responses
+      await connection.query('DELETE FROM permit_checklist_responses WHERE permit_id = ?', [id]);
+
+      // Insert new responses
+      if (checklist_responses.length > 0) {
+        const responseValues = checklist_responses.map(resp => [
+          id,
+          resp.question_id,
+          resp.response,
+          resp.remarks || null
+        ]);
+        await connection.query(
+          `INSERT INTO permit_checklist_responses (permit_id, question_id, response, remarks) VALUES ?`,
+          [responseValues]
+        );
+        console.log(`✅ Updated ${checklist_responses.length} checklist responses`);
+      }
+    }
+    // After the existing if statements for work_description, work_location, etc.
+    // Add these NEW field updates:
+
+    if (permit_type !== undefined) {
+      permitUpdateFields.push('permit_type = ?');
+      permitUpdateValues.push(permit_type);
+    }
+    if (permit_types !== undefined) {
+      permitUpdateFields.push('permit_types = ?');
+      permitUpdateValues.push(JSON.stringify(permit_types));
+    }
+    if (issue_department !== undefined) {
+      permitUpdateFields.push('issue_department = ?');
+      permitUpdateValues.push(issue_department);
+    }
+    if (permit_initiator !== undefined) {
+      permitUpdateFields.push('permit_initiator = ?');
+      permitUpdateValues.push(permit_initiator);
+    }
+    if (permit_initiator_contact !== undefined) {
+      permitUpdateFields.push('permit_initiator_contact = ?');
+      permitUpdateValues.push(permit_initiator_contact);
+    }
+    if (swms_file_url !== undefined) {
+      permitUpdateFields.push('swms_file_url = ?');
+      permitUpdateValues.push(swms_file_url);
+    }
+    if (swms_text !== undefined) {
+      permitUpdateFields.push('swms_text = ?');
+      permitUpdateValues.push(swms_text);
+    }
+    if (issuer_signature !== undefined) {
+      permitUpdateFields.push('issuer_signature = ?');
+      permitUpdateValues.push(issuer_signature);
+    }
+    if (area_manager_signature !== undefined) {
+      permitUpdateFields.push('area_manager_signature = ?');
+      permitUpdateValues.push(area_manager_signature);
+    }
+    if (safety_officer_signature !== undefined) {
+      permitUpdateFields.push('safety_officer_signature = ?');
+      permitUpdateValues.push(safety_officer_signature);
+    }
+    if (site_leader_signature !== undefined) {
+      permitUpdateFields.push('site_leader_signature = ?');
+      permitUpdateValues.push(site_leader_signature);
+    }
     await connection.commit();
+
+    console.log(`✅ Permit ${id} updated successfully`);
 
     res.json({
       success: true,
-      message: 'Permit updated successfully'
+      message: 'Permit updated successfully',
+      data: { permit_id: id }
     });
 
   } catch (error) {
@@ -1152,6 +1334,12 @@ router.put('/:id', async (req, res) => {
     if (connection) connection.release();
   }
 });
+
+
+
+// ============================================================================
+// UPDATE & DELETE ROUTES
+// ============================================================================
 
 // DELETE /api/permits/:id - Delete permit
 router.delete('/:id', async (req, res) => {

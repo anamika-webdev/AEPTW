@@ -6,19 +6,21 @@ import NotificationsPanel from '../supervisor/NotificationsPanel';
 interface User {
   id: number;
   login_id: string;
-  full_name: string;
+  full_name?: string;
+  name?: string;
   email: string;
   role: string;
   department?: string;
+  frontendRole?: string;
 }
 
 interface HeaderProps {
   currentUser: User;
-  onMenuClick: () => void;
+  onMenuToggle: () => void;
   onLogout: () => void;
 }
 
-export default function Header({ currentUser, onMenuClick, onLogout }: HeaderProps) {
+export default function Header({ currentUser, onMenuToggle, onLogout }: HeaderProps) {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -54,13 +56,17 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
             <img
               src="/safetogologo.png"
               alt="Safe to Go"
-              className="h-10 w-auto object-contain"
+              className="h-12 w-auto object-contain"
+              onError={(e) => {
+                console.error('Failed to load Safe to Go logo');
+                e.currentTarget.style.display = 'none';
+              }}
             />
           </div>
 
           {/* Hamburger Menu (Mobile) */}
           <button
-            onClick={onMenuClick}
+            onClick={onMenuToggle}
             className="p-2 text-gray-600 transition-colors rounded-lg hover:bg-gray-100 lg:hidden"
             aria-label="Open menu"
           >
@@ -89,11 +95,11 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
               className="flex items-center gap-3 px-3 py-2 transition-colors rounded-lg hover:bg-gray-100"
             >
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-gray-900">{currentUser.full_name}</p>
+                <p className="text-sm font-semibold text-gray-900">{currentUser.full_name || currentUser.name || currentUser.email}</p>
                 <p className="text-xs text-gray-500">{currentUser.role}</p>
               </div>
               <div className="flex items-center justify-center w-10 h-10 text-white rounded-full bg-gradient-to-br from-orange-600 to-amber-600">
-                <span className="text-sm font-bold">{getInitials(currentUser.full_name)}</span>
+                <span className="text-sm font-bold">{getInitials(currentUser.full_name || currentUser.name || currentUser.email)}</span>
               </div>
             </button>
 
@@ -104,10 +110,10 @@ export default function Header({ currentUser, onMenuClick, onLogout }: HeaderPro
                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-orange-600 to-amber-600">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-16 h-16 text-white rounded-full bg-white/20">
-                      <span className="text-xl font-bold">{getInitials(currentUser.full_name)}</span>
+                      <span className="text-xl font-bold">{getInitials(currentUser.full_name || currentUser.name || currentUser.email)}</span>
                     </div>
                     <div className="flex-1 text-white">
-                      <h3 className="font-semibold">{currentUser.full_name}</h3>
+                      <h3 className="font-semibold">{currentUser.full_name || currentUser.name || currentUser.email}</h3>
                       <p className="text-sm opacity-90">{currentUser.role}</p>
                     </div>
                   </div>

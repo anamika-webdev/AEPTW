@@ -12,13 +12,15 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  BarChart
+  BarChart,
+  Calendar,
 } from 'lucide-react';
 
 interface User {
   id: number;
   login_id: string;
-  full_name: string;
+  full_name?: string;
+  name?: string;
   email: string;
   role: string;
   frontendRole?: string;
@@ -87,6 +89,7 @@ export default function Sidebar({
         { id: 'pending', label: 'Pending Requests', icon: Clock, isApproverTab: true },
         { id: 'approved', label: 'Approved Requests', icon: CheckCircle, isApproverTab: true },
         { id: 'rejected', label: 'Rejected Requests', icon: XCircle, isApproverTab: true },
+        { id: 'extension-approvals', label: 'Extension Approvals', icon: Calendar },
       ];
     }
 
@@ -181,11 +184,11 @@ export default function Sidebar({
         <div className="p-4 border-b bg-gradient-to-r from-orange-50 to-amber-50">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-12 h-12 text-lg font-bold text-white rounded-full bg-gradient-to-br from-orange-500 to-amber-600">
-              {getInitials(currentUser.full_name)}
+              {getInitials(currentUser.full_name || currentUser.name || currentUser.email)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {currentUser.full_name}
+                {currentUser.full_name || currentUser.name || currentUser.email}
               </p>
               <p className="text-xs text-gray-600 truncate">
                 {currentUser.email}

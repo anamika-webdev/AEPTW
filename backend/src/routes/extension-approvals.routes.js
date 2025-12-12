@@ -1,5 +1,5 @@
 // backend/src/routes/extension-approvals.routes.js
-// PTW Extension Approval Routes - Site Leader and Safety In-charge
+// COMPLETE EXTENSION APPROVAL WORKFLOW - FIXED VERSION
 
 const express = require('express');
 const router = express.Router();
@@ -13,26 +13,58 @@ router.use(authenticateToken);
 // HELPER FUNCTION - Get approval field names based on user role
 // ============================================================================
 const getExtensionApprovalFields = (userRole) => {
-    const roleMap = {
-        'Site Leader': {
+    console.log('🔍 Getting approval fields for role:', userRole);
+
+    // Normalize role string (case-insensitive, handle variations)
+    const normalizedRole = userRole.toLowerCase().trim();
+
+    let fields = null;
+
+    if (normalizedRole.includes('site') && normalizedRole.includes('leader')) {
+        fields = {
             idField: 'site_leader_id',
             statusField: 'site_leader_status',
             approvedAtField: 'site_leader_approved_at',
             signatureField: 'site_leader_signature',
             remarksField: 'site_leader_remarks',
             roleName: 'Site Leader'
-        },
-        'Safety Officer': {
+        };
+    } else if (normalizedRole.includes('safety')) {
+        fields = {
             idField: 'safety_officer_id',
             statusField: 'safety_officer_status',
             approvedAtField: 'safety_officer_approved_at',
             signatureField: 'safety_officer_signature',
             remarksField: 'safety_officer_remarks',
-            roleName: 'Safety In-charge'
-        }
-    };
+            roleName: 'Safety Officer'
+        };
+    }
 
-    return roleMap[userRole] || null;
+    // Also check for Approver_SiteLeader and Approver_Safety formats
+    if (!fields) {
+        if (normalizedRole === 'approver_siteleader') {
+            fields = {
+                idField: 'site_leader_id',
+                statusField: 'site_leader_status',
+                approvedAtField: 'site_leader_approved_at',
+                signatureField: 'site_leader_signature',
+                remarksField: 'site_leader_remarks',
+                roleName: 'Site Leader'
+            };
+        } else if (normalizedRole === 'approver_safety') {
+            fields = {
+                idField: 'safety_officer_id',
+                statusField: 'safety_officer_status',
+                approvedAtField: 'safety_officer_approved_at',
+                signatureField: 'safety_officer_signature',
+                remarksField: 'safety_officer_remarks',
+                roleName: 'Safety Officer'
+            };
+        }
+    }
+
+    console.log('📋 Approval fields:', fields);
+    return fields;
 };
 
 // ============================================================================
@@ -50,45 +82,45 @@ router.get('/pending', async (req, res) => {
         if (!fields) {
             return res.status(400).json({
                 success: false,
-                message: 'User is not authorized to approve extensions (Site Leader or Safety In-charge only)'
+                message: 'User is not authorized to approve extensions (Site Leader or Safety Officer only)'
             });
         }
 
         // Get extension requests pending this user's approval
         const [extensions] = await pool.query(`
-      SELECT 
-        pe.id,
-        pe.permit_id,
-        pe.requested_at,
-        pe.original_end_time,
-        pe.new_end_time,
-        pe.reason,
-        pe.status as extension_status,
-        pe.${fields.statusField} as my_approval_status,
-        pe.site_leader_status,
-        pe.safety_officer_status,
-        p.permit_serial,
-        p.permit_type,
-        p.work_location,
-        p.work_description,
-        p.status as permit_status,
-        s.name as site_name,
-        s.site_code,
-        supervisor.full_name as requested_by_name,
-        supervisor.email as requested_by_email,
-        sl.full_name as site_leader_name,
-        so.full_name as safety_officer_name
-      FROM permit_extensions pe
-      JOIN permits p ON pe.permit_id = p.id
-      JOIN sites s ON p.site_id = s.id
-      JOIN users supervisor ON pe.requested_by_user_id = supervisor.id
-      LEFT JOIN users sl ON pe.site_leader_id = sl.id
-      LEFT JOIN users so ON pe.safety_officer_id = so.id
-      WHERE pe.${fields.idField} = ?
-        AND pe.${fields.statusField} = 'Pending'
-        AND pe.status = 'Pending'
-      ORDER BY pe.requested_at DESC
-    `, [userId]);
+            SELECT 
+                pe.id,
+                pe.permit_id,
+                pe.requested_at,
+                pe.original_end_time,
+                pe.new_end_time,
+                pe.reason,
+                pe.status as extension_status,
+                pe.${fields.statusField} as my_approval_status,
+                pe.site_leader_status,
+                pe.safety_officer_status,
+                p.permit_serial,
+                p.permit_type,
+                p.work_location,
+                p.work_description,
+                p.status as permit_status,
+                s.name as site_name,
+                s.site_code,
+                supervisor.full_name as requested_by_name,
+                supervisor.email as requested_by_email,
+                sl.full_name as site_leader_name,
+                so.full_name as safety_officer_name
+            FROM permit_extensions pe
+            JOIN permits p ON pe.permit_id = p.id
+            JOIN sites s ON p.site_id = s.id
+            JOIN users supervisor ON pe.requested_by_user_id = supervisor.id
+            LEFT JOIN users sl ON pe.site_leader_id = sl.id
+            LEFT JOIN users so ON pe.safety_officer_id = so.id
+            WHERE pe.${fields.idField} = ?
+            AND pe.${fields.statusField} = 'Pending'
+            AND pe.status IN ('Pending', 'Extension_Requested')
+            ORDER BY pe.requested_at DESC
+        `, [userId]);
 
         console.log(`✅ Found ${extensions.length} pending extension approvals for ${fields.roleName}`);
 
@@ -129,36 +161,36 @@ router.get('/approved', async (req, res) => {
         }
 
         const [extensions] = await pool.query(`
-      SELECT 
-        pe.id,
-        pe.permit_id,
-        pe.requested_at,
-        pe.original_end_time,
-        pe.new_end_time,
-        pe.reason,
-        pe.status as extension_status,
-        pe.${fields.statusField} as my_approval_status,
-        pe.${fields.approvedAtField} as my_approved_at,
-        pe.site_leader_status,
-        pe.safety_officer_status,
-        p.permit_serial,
-        p.permit_type,
-        p.work_location,
-        p.status as permit_status,
-        s.name as site_name,
-        supervisor.full_name as requested_by_name,
-        sl.full_name as site_leader_name,
-        so.full_name as safety_officer_name
-      FROM permit_extensions pe
-      JOIN permits p ON pe.permit_id = p.id
-      JOIN sites s ON p.site_id = s.id
-      JOIN users supervisor ON pe.requested_by_user_id = supervisor.id
-      LEFT JOIN users sl ON pe.site_leader_id = sl.id
-      LEFT JOIN users so ON pe.safety_officer_id = so.id
-      WHERE pe.${fields.idField} = ?
-        AND pe.${fields.statusField} = 'Approved'
-      ORDER BY pe.${fields.approvedAtField} DESC
-    `, [userId]);
+            SELECT 
+                pe.id,
+                pe.permit_id,
+                pe.requested_at,
+                pe.original_end_time,
+                pe.new_end_time,
+                pe.reason,
+                pe.status as extension_status,
+                pe.${fields.statusField} as my_approval_status,
+                pe.${fields.approvedAtField} as my_approved_at,
+                pe.site_leader_status,
+                pe.safety_officer_status,
+                p.permit_serial,
+                p.permit_type,
+                p.work_location,
+                p.status as permit_status,
+                s.name as site_name,
+                supervisor.full_name as requested_by_name,
+                sl.full_name as site_leader_name,
+                so.full_name as safety_officer_name
+            FROM permit_extensions pe
+            JOIN permits p ON pe.permit_id = p.id
+            JOIN sites s ON p.site_id = s.id
+            JOIN users supervisor ON pe.requested_by_user_id = supervisor.id
+            LEFT JOIN users sl ON pe.site_leader_id = sl.id
+            LEFT JOIN users so ON pe.safety_officer_id = so.id
+            WHERE pe.${fields.idField} = ?
+            AND pe.${fields.statusField} = 'Approved'
+            ORDER BY pe.${fields.approvedAtField} DESC
+        `, [userId]);
 
         console.log(`✅ Found ${extensions.length} approved extensions`);
 
@@ -199,37 +231,37 @@ router.get('/rejected', async (req, res) => {
         }
 
         const [extensions] = await pool.query(`
-      SELECT 
-        pe.id,
-        pe.permit_id,
-        pe.requested_at,
-        pe.original_end_time,
-        pe.new_end_time,
-        pe.reason,
-        pe.status as extension_status,
-        pe.${fields.statusField} as my_approval_status,
-        pe.${fields.approvedAtField} as my_approved_at,
-        pe.${fields.remarksField} as my_remarks,
-        pe.site_leader_status,
-        pe.safety_officer_status,
-        p.permit_serial,
-        p.permit_type,
-        p.work_location,
-        p.status as permit_status,
-        s.name as site_name,
-        supervisor.full_name as requested_by_name,
-        sl.full_name as site_leader_name,
-        so.full_name as safety_officer_name
-      FROM permit_extensions pe
-      JOIN permits p ON pe.permit_id = p.id
-      JOIN sites s ON p.site_id = s.id
-      JOIN users supervisor ON pe.requested_by_user_id = supervisor.id
-      LEFT JOIN users sl ON pe.site_leader_id = sl.id
-      LEFT JOIN users so ON pe.safety_officer_id = so.id
-      WHERE pe.${fields.idField} = ?
-        AND pe.${fields.statusField} = 'Rejected'
-      ORDER BY pe.${fields.approvedAtField} DESC
-    `, [userId]);
+            SELECT 
+                pe.id,
+                pe.permit_id,
+                pe.requested_at,
+                pe.original_end_time,
+                pe.new_end_time,
+                pe.reason,
+                pe.status as extension_status,
+                pe.${fields.statusField} as my_approval_status,
+                pe.${fields.approvedAtField} as my_approved_at,
+                pe.${fields.remarksField} as my_remarks,
+                pe.site_leader_status,
+                pe.safety_officer_status,
+                p.permit_serial,
+                p.permit_type,
+                p.work_location,
+                p.status as permit_status,
+                s.name as site_name,
+                supervisor.full_name as requested_by_name,
+                sl.full_name as site_leader_name,
+                so.full_name as safety_officer_name
+            FROM permit_extensions pe
+            JOIN permits p ON pe.permit_id = p.id
+            JOIN sites s ON p.site_id = s.id
+            JOIN users supervisor ON pe.requested_by_user_id = supervisor.id
+            LEFT JOIN users sl ON pe.site_leader_id = sl.id
+            LEFT JOIN users so ON pe.safety_officer_id = so.id
+            WHERE pe.${fields.idField} = ?
+            AND pe.${fields.statusField} = 'Rejected'
+            ORDER BY pe.${fields.approvedAtField} DESC
+        `, [userId]);
 
         console.log(`✅ Found ${extensions.length} rejected extensions`);
 
@@ -251,7 +283,7 @@ router.get('/rejected', async (req, res) => {
 });
 
 // ============================================================================
-// APPROVE EXTENSION REQUEST
+// APPROVE EXTENSION REQUEST - COMPLETE WORKFLOW
 // ============================================================================
 router.post('/:extensionId/approve', async (req, res) => {
     let connection;
@@ -267,6 +299,14 @@ router.post('/:extensionId/approve', async (req, res) => {
 
         console.log(`📥 POST /api/extension-approvals/${extensionId}/approve - User: ${userId}, Role: ${userRole}`);
 
+        if (!signature) {
+            await connection.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Digital signature is required for approval'
+            });
+        }
+
         const fields = getExtensionApprovalFields(userRole);
         if (!fields) {
             await connection.rollback();
@@ -276,16 +316,15 @@ router.post('/:extensionId/approve', async (req, res) => {
             });
         }
 
-        // Get extension details and check if user is assigned approver
+        // Get extension details
         const [extension] = await connection.query(
             `SELECT 
-        pe.*,
-        p.permit_serial,
-        p.created_by_user_id,
-        p.site_id
-      FROM permit_extensions pe
-      JOIN permits p ON pe.permit_id = p.id
-      WHERE pe.id = ?`,
+                pe.*,
+                p.permit_serial,
+                p.created_by_user_id
+            FROM permit_extensions pe
+            JOIN permits p ON pe.permit_id = p.id
+            WHERE pe.id = ?`,
             [extensionId]
         );
 
@@ -299,6 +338,7 @@ router.post('/:extensionId/approve', async (req, res) => {
 
         const ext = extension[0];
 
+        // Verify user is assigned approver
         if (ext[fields.idField] !== userId) {
             await connection.rollback();
             return res.status(403).json({
@@ -307,15 +347,24 @@ router.post('/:extensionId/approve', async (req, res) => {
             });
         }
 
-        // Update approval status for this approver
+        // Verify status is still Pending
+        if (ext[fields.statusField] !== 'Pending') {
+            await connection.rollback();
+            return res.status(400).json({
+                success: false,
+                message: `Extension already ${ext[fields.statusField]} by you`
+            });
+        }
+
+        // Update this approver's approval status
         const updateQuery = `
-      UPDATE permit_extensions 
-      SET ${fields.statusField} = 'Approved',
-          ${fields.approvedAtField} = NOW(),
-          ${fields.signatureField} = ?,
-          ${fields.remarksField} = ?
-      WHERE id = ?
-    `;
+            UPDATE permit_extensions 
+            SET ${fields.statusField} = 'Approved',
+                ${fields.approvedAtField} = NOW(),
+                ${fields.signatureField} = ?,
+                ${fields.remarksField} = ?
+            WHERE id = ?
+        `;
 
         await connection.query(updateQuery, [signature, remarks || null, extensionId]);
 
@@ -324,13 +373,14 @@ router.post('/:extensionId/approve', async (req, res) => {
         // Check if all required approvals are done
         const [updatedExtension] = await connection.query(
             `SELECT 
-        site_leader_status, 
-        safety_officer_status,
-        site_leader_id,
-        safety_officer_id,
-        permit_id,
-        new_end_time
-      FROM permit_extensions WHERE id = ?`,
+                site_leader_status, 
+                safety_officer_status,
+                site_leader_id,
+                safety_officer_id,
+                permit_id,
+                new_end_time,
+                original_end_time
+            FROM permit_extensions WHERE id = ?`,
             [extensionId]
         );
 
@@ -347,7 +397,7 @@ router.post('/:extensionId/approve', async (req, res) => {
 
         // Check Site Leader (if assigned)
         if (ue.site_leader_id && ue.site_leader_status !== 'Approved') {
-            console.log(`❌ Site Leader not approved: ${ue.site_leader_status}`);
+            console.log(`⏳ Site Leader not approved yet: ${ue.site_leader_status}`);
             allApproved = false;
         } else if (ue.site_leader_id) {
             console.log(`✅ Site Leader approved`);
@@ -355,7 +405,7 @@ router.post('/:extensionId/approve', async (req, res) => {
 
         // Check Safety Officer (if assigned)
         if (ue.safety_officer_id && ue.safety_officer_status !== 'Approved') {
-            console.log(`❌ Safety Officer not approved: ${ue.safety_officer_status}`);
+            console.log(`⏳ Safety Officer not approved yet: ${ue.safety_officer_status}`);
             allApproved = false;
         } else if (ue.safety_officer_id) {
             console.log(`✅ Safety Officer approved`);
@@ -364,53 +414,91 @@ router.post('/:extensionId/approve', async (req, res) => {
         console.log(`🎯 Final extension approval decision: ${allApproved ? 'FULLY APPROVED' : 'PARTIALLY APPROVED'}`);
 
         if (allApproved) {
-            // All approvers have approved - update extension status and permit end time
+            // ✅ ALL APPROVERS APPROVED - EXTENSION IS GRANTED
+
+            // 1. Update extension status to 'Extended'
             await connection.query(
-                `UPDATE permit_extensions SET status = 'Approved' WHERE id = ?`,
+                `UPDATE permit_extensions SET status = 'Extended' WHERE id = ?`,
                 [extensionId]
             );
 
-            // Update permit end time and status to Extended
+            // 2. Update permit end time and status to 'Extended'
             await connection.query(
-                `UPDATE permits SET end_time = ?, status = 'Extended', updated_at = NOW() WHERE id = ?`,
+                `UPDATE permits 
+                 SET end_time = ?, 
+                     status = 'Extended', 
+                     updated_at = NOW() 
+                 WHERE id = ?`,
                 [ue.new_end_time, ue.permit_id]
             );
 
-            console.log(`✅ Extension ${extensionId} FULLY APPROVED - Permit end time updated`);
+            console.log(`✅✅ Extension ${extensionId} FULLY APPROVED`);
+            console.log(`📅 Permit ${ue.permit_id} end time extended to: ${ue.new_end_time}`);
+            console.log(`📊 Permit status changed to: Extended`);
 
-            // Notify supervisor that extension is fully approved
+            // 3. Notify supervisor - EXTENSION APPROVED
             await connection.query(`
-        INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
-        VALUES (?, ?, 'EXTENSION_APPROVED', ?, NOW())
-      `, [
+                INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
+                VALUES (?, ?, 'EXTENSION_APPROVED', ?, NOW())
+            `, [
                 ext.created_by_user_id,
                 ext.permit_id,
-                `Extension request for PTW ${ext.permit_serial} has been FULLY APPROVED. New end time: ${new Date(ue.new_end_time).toLocaleString()}`
+                `✅ Extension APPROVED for PTW ${ext.permit_serial}. New end time: ${new Date(ue.new_end_time).toLocaleString()}`
             ]);
+
+            await connection.commit();
+
+            res.json({
+                success: true,
+                message: `Extension FULLY APPROVED by all approvers. Permit extended successfully.`,
+                fully_approved: true,
+                data: {
+                    extension_id: extensionId,
+                    permit_id: ext.permit_id,
+                    original_end_time: ue.original_end_time,
+                    new_end_time: ue.new_end_time,
+                    extension_status: 'Extended',
+                    permit_status: 'Extended'
+                }
+            });
+
         } else {
-            // Partial approval - notify supervisor
+            // ⏳ PARTIAL APPROVAL - Waiting for other approvers
+
+            // Update extension status to 'Extension_Requested' (still pending)
+            await connection.query(
+                `UPDATE permit_extensions SET status = 'Extension_Requested' WHERE id = ?`,
+                [extensionId]
+            );
+
+            console.log(`⏳ Extension ${extensionId} partially approved, waiting for other approvers`);
+
+            // Notify supervisor - PARTIAL APPROVAL
             await connection.query(`
-        INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
-        VALUES (?, ?, 'EXTENSION_REQUEST', ?, NOW())
-      `, [
+                INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
+                VALUES (?, ?, 'EXTENSION_PARTIAL', ?, NOW())
+            `, [
                 ext.created_by_user_id,
                 ext.permit_id,
                 `Extension request for PTW ${ext.permit_serial} has been approved by ${fields.roleName}. Waiting for other approvers.`
             ]);
+
+            await connection.commit();
+
+            res.json({
+                success: true,
+                message: `Extension approved by ${fields.roleName}. Waiting for other approvers.`,
+                fully_approved: false,
+                data: {
+                    extension_id: extensionId,
+                    permit_id: ext.permit_id,
+                    approved_by: fields.roleName,
+                    extension_status: 'Extension_Requested',
+                    site_leader_status: ue.site_leader_status,
+                    safety_officer_status: ue.safety_officer_status
+                }
+            });
         }
-
-        await connection.commit();
-
-        res.json({
-            success: true,
-            message: `Extension ${allApproved ? 'fully approved' : 'approved by ' + fields.roleName}`,
-            fully_approved: allApproved,
-            data: {
-                extension_id: extensionId,
-                permit_id: ext.permit_id,
-                new_end_time: ue.new_end_time
-            }
-        });
 
     } catch (error) {
         if (connection) await connection.rollback();
@@ -426,7 +514,7 @@ router.post('/:extensionId/approve', async (req, res) => {
 });
 
 // ============================================================================
-// REJECT EXTENSION REQUEST
+// REJECT EXTENSION REQUEST - COMPLETE WORKFLOW
 // ============================================================================
 router.post('/:extensionId/reject', async (req, res) => {
     let connection;
@@ -462,12 +550,12 @@ router.post('/:extensionId/reject', async (req, res) => {
         // Get extension details
         const [extension] = await connection.query(
             `SELECT 
-        pe.*,
-        p.permit_serial,
-        p.created_by_user_id
-      FROM permit_extensions pe
-      JOIN permits p ON pe.permit_id = p.id
-      WHERE pe.id = ?`,
+                pe.*,
+                p.permit_serial,
+                p.created_by_user_id
+            FROM permit_extensions pe
+            JOIN permits p ON pe.permit_id = p.id
+            WHERE pe.id = ?`,
             [extensionId]
         );
 
@@ -481,6 +569,7 @@ router.post('/:extensionId/reject', async (req, res) => {
 
         const ext = extension[0];
 
+        // Verify user is assigned approver
         if (ext[fields.idField] !== userId) {
             await connection.rollback();
             return res.status(403).json({
@@ -489,35 +578,49 @@ router.post('/:extensionId/reject', async (req, res) => {
             });
         }
 
-        // Update approval status and overall extension status to Rejected
+        // Update this approver's status to Rejected
         const updateQuery = `
-      UPDATE permit_extensions 
-      SET ${fields.statusField} = 'Rejected',
-          ${fields.approvedAtField} = NOW(),
-          ${fields.remarksField} = ?,
-          status = 'Rejected'
-      WHERE id = ?
-    `;
+            UPDATE permit_extensions 
+            SET ${fields.statusField} = 'Rejected',
+                ${fields.approvedAtField} = NOW(),
+                ${fields.remarksField} = ?,
+                status = 'Extension_Rejected'
+            WHERE id = ?
+        `;
 
         await connection.query(updateQuery, [remarks, extensionId]);
 
-        console.log(`❌ Extension ${extensionId} rejected by ${fields.roleName}`);
+        // Update permit status back to Active (rejection means work continues with original time)
+        await connection.query(
+            `UPDATE permits SET status = 'Active', updated_at = NOW() WHERE id = ?`,
+            [ext.permit_id]
+        );
 
-        // Notify supervisor
+        console.log(`❌ Extension ${extensionId} REJECTED by ${fields.roleName}`);
+
+        // Notify supervisor - EXTENSION REJECTED
         await connection.query(`
-      INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
-      VALUES (?, ?, 'EXTENSION_REJECTED', ?, NOW())
-    `, [
+            INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
+            VALUES (?, ?, 'EXTENSION_REJECTED', ?, NOW())
+        `, [
             ext.created_by_user_id,
             ext.permit_id,
-            `Extension request for PTW ${ext.permit_serial} has been REJECTED by ${fields.roleName}. Reason: ${remarks}`
+            `❌ Extension REJECTED for PTW ${ext.permit_serial} by ${fields.roleName}. Reason: ${remarks}`
         ]);
 
         await connection.commit();
 
         res.json({
             success: true,
-            message: 'Extension request rejected successfully'
+            message: `Extension request rejected by ${fields.roleName}`,
+            data: {
+                extension_id: extensionId,
+                permit_id: ext.permit_id,
+                rejected_by: fields.roleName,
+                rejection_reason: remarks,
+                extension_status: 'Extension_Rejected',
+                permit_status: 'Active'
+            }
         });
 
     } catch (error) {
@@ -545,29 +648,29 @@ router.get('/:extensionId', async (req, res) => {
         console.log(`📥 GET /api/extension-approvals/${extensionId} - User: ${userId}`);
 
         const [extensions] = await pool.query(`
-      SELECT 
-        pe.*,
-        p.permit_serial,
-        p.permit_type,
-        p.work_location,
-        p.work_description,
-        p.status as permit_status,
-        s.name as site_name,
-        s.site_code,
-        supervisor.full_name as requested_by_name,
-        supervisor.email as requested_by_email,
-        sl.full_name as site_leader_name,
-        sl.email as site_leader_email,
-        so.full_name as safety_officer_name,
-        so.email as safety_officer_email
-      FROM permit_extensions pe
-      JOIN permits p ON pe.permit_id = p.id
-      JOIN sites s ON p.site_id = s.id
-      JOIN users supervisor ON pe.requested_by_user_id = supervisor.id
-      LEFT JOIN users sl ON pe.site_leader_id = sl.id
-      LEFT JOIN users so ON pe.safety_officer_id = so.id
-      WHERE pe.id = ?
-    `, [extensionId]);
+            SELECT 
+                pe.*,
+                p.permit_serial,
+                p.permit_type,
+                p.work_location,
+                p.work_description,
+                p.status as permit_status,
+                s.name as site_name,
+                s.site_code,
+                supervisor.full_name as requested_by_name,
+                supervisor.email as requested_by_email,
+                sl.full_name as site_leader_name,
+                sl.email as site_leader_email,
+                so.full_name as safety_officer_name,
+                so.email as safety_officer_email
+            FROM permit_extensions pe
+            JOIN permits p ON pe.permit_id = p.id
+            JOIN sites s ON p.site_id = s.id
+            JOIN users supervisor ON pe.requested_by_user_id = supervisor.id
+            LEFT JOIN users sl ON pe.site_leader_id = sl.id
+            LEFT JOIN users so ON pe.safety_officer_id = so.id
+            WHERE pe.id = ?
+        `, [extensionId]);
 
         if (extensions.length === 0) {
             return res.status(404).json({

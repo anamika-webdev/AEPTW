@@ -1,78 +1,95 @@
 // frontend/src/App.tsx
-// FIXED App.tsx with Proper Approver Tab Navigation
+// Updated with EditPTW and Extension Approval Dashboard
 
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Sidebar from './components/common/Sidebar';
+import Header from './components/common/Header';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
+
+// Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SiteManagement from './pages/admin/SiteManagement';
 import UserManagement from './pages/admin/UserManagement';
 import AllPermits from './pages/admin/AllPermits';
-import SupervisorDashboard from './components/supervisor/SupervisorDashboard';
-import ApproverDashboard from './pages/approver/ApproverDashboard';
-import { CreatePTW } from './components/supervisor/CreatePTW';
-import PermitDetails from './pages/supervisor/PermitDetails';
-import { WorkerList } from './components/supervisor/WorkerList';
-import Sidebar from './components/common/Sidebar';
-import Header from './components/common/Header';
 import Reports from './pages/admin/Reports';
+
+// Supervisor Pages
+import SupervisorDashboard from './components/supervisor/SupervisorDashboard';
+import { CreatePTW } from './components/supervisor/CreatePTW';
+import { WorkerList } from './components/supervisor/WorkerList';
+
+// Approver Pages
+import ApproverDashboard from './pages/approver/ApproverDashboard';
+import EditPTW from './pages/approver/EditPTW';
+import ExtensionApprovalDashboard from './components/approver/ExtensionApprovalDashboard';
+
+// Common Pages
+import PermitDetails from './pages/supervisor/PermitDetails';
 
 interface User {
   id: number;
   login_id: string;
-  full_name: string;
+  name?: string;
   email: string;
   role: string;
   frontendRole?: string;
+  full_name?: string;
   department?: string;
-  created_at?: string;
 }
 
-type PageType = 'dashboard' | 'site-management' | 'user-management' | 'all-permits' | 'create-permit' | 'worker-list' | 'permit-detail' | 'reports';
+type PageType =
+  | 'dashboard'
+  | 'site-management'
+  | 'user-management'
+  | 'all-permits'
+  | 'reports'
+  | 'create-permit'
+  | 'worker-list'
+  | 'permit-detail'
+  | 'permit-edit'
+  | 'extension-approvals';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
-  const [selectedPermitId, setSelectedPermitId] = useState<number | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [selectedPermitId, setSelectedPermitId] = useState<number | null>(null);
   const [approverTab, setApproverTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
   useEffect(() => {
-    if (isInitialized) return;
+    const initializeAuth = () => {
+      const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        console.log('🔄 Restored user session:', user);
-        console.log('👤 Frontend Role:', user.frontendRole);
-        setCurrentUser(user);
-      } catch (error) {
-        console.error('Error parsing user:', error);
-        localStorage.clear();
-        sessionStorage.clear();
+      if (userStr && token) {
+        try {
+          const user = JSON.parse(userStr);
+          setCurrentUser(user);
+        } catch (error) {
+          console.error('Failed to parse user data:', error);
+          handleLogout();
+        }
       }
-    }
+      setIsInitialized(true);
+    };
 
-    setIsInitialized(true);
-  }, [isInitialized]);
+    initializeAuth();
+  }, []);
 
   const handleLogin = (user: User) => {
-    console.log('✅ Login handler called with user:', user);
-    console.log('🎭 Frontend Role:', user.frontendRole);
     setCurrentUser(user);
     setCurrentPage('dashboard');
   };
 
   const handleLogout = () => {
-    console.log('👋 Logging out...');
-    localStorage.clear();
-    sessionStorage.clear();
     setCurrentUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
     setCurrentPage('dashboard');
   };
 
@@ -84,6 +101,15 @@ function App() {
       console.log('📄 Setting permit ID:', data.permitId);
       setSelectedPermitId(data.permitId);
       setCurrentPage('permit-detail');
+      setIsMobileMenuOpen(false);
+      return;
+    }
+
+    // Handle permit edit navigation
+    if (page === 'permit-edit' && data?.permitId) {
+      console.log('✏️ Setting permit ID for edit:', data.permitId);
+      setSelectedPermitId(data.permitId);
+      setCurrentPage('permit-edit');
       setIsMobileMenuOpen(false);
       return;
     }
@@ -133,18 +159,10 @@ function App() {
     userRole === 'approver_areamanager' ||
     userRole === 'approver_safety' ||
     userRole === 'approver_siteleader' ||
-    userRole?.includes('approver');
-
-  console.log('📊 Role checks:', { isAdmin, isSupervisor, isApprover });
+    userRole.includes('approver');
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 relative">
-      {/* Decorative background pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-yellow-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
-      </div>
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       <Sidebar
         currentUser={currentUser}
         currentPage={currentPage}
@@ -153,13 +171,15 @@ function App() {
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuClose={() => setIsMobileMenuOpen(false)}
       />
-      <div className="flex flex-col flex-1 lg:ml-64 relative z-10">
+
+      <div className="flex flex-col flex-1 overflow-hidden lg:ml-64">
         <Header
           currentUser={currentUser}
-          onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           onLogout={handleLogout}
+          onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
+
+        <main className="flex-1 overflow-y-auto">
           {/* Admin Pages */}
           {isAdmin && (
             <>
@@ -198,7 +218,7 @@ function App() {
             </>
           )}
 
-          {/* Approver Pages - Pass the active tab */}
+          {/* Approver Pages - with Edit and Extension Approvals */}
           {isApprover && (
             <>
               {currentPage === 'dashboard' && (
@@ -212,6 +232,19 @@ function App() {
                   ptwId={selectedPermitId}
                   onBack={() => handleNavigate('dashboard')}
                 />
+              )}
+              {currentPage === 'permit-edit' && selectedPermitId && (
+                <EditPTW
+                  permitId={selectedPermitId}
+                  onBack={() => handleNavigate('dashboard')}
+                  onSave={() => {
+                    handleNavigate('dashboard');
+                    // Optionally refresh the dashboard
+                  }}
+                />
+              )}
+              {currentPage === 'extension-approvals' && (
+                <ExtensionApprovalDashboard />
               )}
             </>
           )}
