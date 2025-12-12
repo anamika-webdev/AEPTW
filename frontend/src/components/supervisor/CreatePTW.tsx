@@ -524,67 +524,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         : [...prev.categories, category]
     }));
   };
-  // ⭐ UPDATED: Camera Capture Handler (replaces upload handler)
-  const handleCameraCapture = async (workerIndex: number) => {
-    try {
-      // Request camera access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' } // Use back camera on mobile
-      });
-
-      // Create video element
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.setAttribute('playsinline', 'true'); // Important for iOS
-      await video.play();
-
-      // Create canvas for capture
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      // Show camera preview in modal (you'll need to implement the modal UI)
-      // For now, auto-capture after 2 seconds
-      setTimeout(() => {
-        const context = canvas.getContext('2d');
-        if (context) {
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          // Convert to blob
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const file = new File([blob], `training-evidence-${Date.now()}.jpg`, {
-                type: 'image/jpeg'
-              });
-
-              const evidence: TrainingEvidence = {
-                id: `evidence-${Date.now()}-${Math.random()}`,
-                file,
-                preview: URL.createObjectURL(blob),
-                caption: '',
-              };
-
-              // Add to worker's evidence
-              setNewWorkers((prev) =>
-                prev.map((worker, idx) =>
-                  idx === workerIndex
-                    ? { ...worker, trainingEvidences: [...worker.trainingEvidences, evidence] }
-                    : worker
-                )
-              );
-            }
-
-            // Stop camera
-            stream.getTracks().forEach(track => track.stop());
-          }, 'image/jpeg', 0.9);
-        }
-      }, 2000);
-
-    } catch (error) {
-      console.error('Camera access error:', error);
-      alert('Unable to access camera. Please check permissions.');
-    }
-  };
 
   // ⭐ NEW FUNCTION 2: Remove Training Evidence
   const handleRemoveTrainingEvidence = (workerIndex: number, evidenceId: string) => {

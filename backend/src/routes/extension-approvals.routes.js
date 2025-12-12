@@ -1,5 +1,5 @@
 // backend/src/routes/extension-approvals.routes.js
-// COMPLETE EXTENSION APPROVAL WORKFLOW - FIXED VERSION
+// ✅ FIXED: Complete approve/reject functionality with proper error handling
 
 const express = require('express');
 const router = express.Router();
@@ -82,11 +82,10 @@ router.get('/pending', async (req, res) => {
         if (!fields) {
             return res.status(400).json({
                 success: false,
-                message: 'User is not authorized to approve extensions (Site Leader or Safety Officer only)'
+                message: 'User is not an extension approver'
             });
         }
 
-        // Get extension requests pending this user's approval
         const [extensions] = await pool.query(`
             SELECT 
                 pe.id,
@@ -105,9 +104,7 @@ router.get('/pending', async (req, res) => {
                 p.work_description,
                 p.status as permit_status,
                 s.name as site_name,
-                s.site_code,
                 supervisor.full_name as requested_by_name,
-                supervisor.email as requested_by_email,
                 sl.full_name as site_leader_name,
                 so.full_name as safety_officer_name
             FROM permit_extensions pe
@@ -171,11 +168,13 @@ router.get('/approved', async (req, res) => {
                 pe.status as extension_status,
                 pe.${fields.statusField} as my_approval_status,
                 pe.${fields.approvedAtField} as my_approved_at,
+                pe.${fields.remarksField} as my_remarks,
                 pe.site_leader_status,
                 pe.safety_officer_status,
                 p.permit_serial,
                 p.permit_type,
                 p.work_location,
+                p.work_description,
                 p.status as permit_status,
                 s.name as site_name,
                 supervisor.full_name as requested_by_name,
@@ -247,6 +246,7 @@ router.get('/rejected', async (req, res) => {
                 p.permit_serial,
                 p.permit_type,
                 p.work_location,
+                p.work_description,
                 p.status as permit_status,
                 s.name as site_name,
                 supervisor.full_name as requested_by_name,
@@ -297,8 +297,11 @@ router.post('/:extensionId/approve', async (req, res) => {
         const userId = req.user.id;
         const userRole = req.user.role;
 
-        console.log(`📥 POST /api/extension-approvals/${extensionId}/approve - User: ${userId}, Role: ${userRole}`);
+        console.log(`📥 POST /api/extension-approvals/${extensionId}/approve`);
+        console.log(`   User ID: ${userId}, Role: ${userRole}`);
+        console.log(`   Has signature: ${!!signature}, Has remarks: ${!!remarks}`);
 
+        // Validate signature
         if (!signature) {
             await connection.rollback();
             return res.status(400).json({
@@ -307,14 +310,17 @@ router.post('/:extensionId/approve', async (req, res) => {
             });
         }
 
+        // Get field mappings for user role
         const fields = getExtensionApprovalFields(userRole);
         if (!fields) {
             await connection.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'User is not authorized to approve extensions'
+                message: `User role '${userRole}' is not authorized to approve extensions`
             });
         }
+
+        console.log(`   Approving as: ${fields.roleName}`);
 
         // Get extension details
         const [extension] = await connection.query(
@@ -337,13 +343,14 @@ router.post('/:extensionId/approve', async (req, res) => {
         }
 
         const ext = extension[0];
+        console.log(`   Extension found: PTW ${ext.permit_serial}, Status: ${ext.status}`);
 
-        // Verify user is assigned approver
+        // Verify user is the assigned approver
         if (ext[fields.idField] !== userId) {
             await connection.rollback();
             return res.status(403).json({
                 success: false,
-                message: 'You are not assigned as the approver for this extension request'
+                message: `You are not assigned as ${fields.roleName} for this extension request`
             });
         }
 
@@ -367,76 +374,42 @@ router.post('/:extensionId/approve', async (req, res) => {
         `;
 
         await connection.query(updateQuery, [signature, remarks || null, extensionId]);
+        console.log(`   ✅ Updated ${fields.roleName} approval status to Approved`);
 
-        console.log(`✅ Extension ${extensionId} approved by ${fields.roleName}`);
-
-        // Check if all required approvals are done
-        const [updatedExtension] = await connection.query(
-            `SELECT 
-                site_leader_status, 
-                safety_officer_status,
-                site_leader_id,
-                safety_officer_id,
-                permit_id,
-                new_end_time,
-                original_end_time
-            FROM permit_extensions WHERE id = ?`,
+        // Get updated extension to check if all approvers have approved
+        const [updatedExt] = await connection.query(
+            'SELECT * FROM permit_extensions WHERE id = ?',
             [extensionId]
         );
+        const ue = updatedExt[0];
 
-        const ue = updatedExtension[0];
+        // Check if both approvers have approved
+        const siteLeaderApproved = ue.site_leader_status === 'Approved';
+        const safetyOfficerApproved = ue.safety_officer_status === 'Approved';
 
-        console.log(`🔍 Checking extension approval status:`, {
-            site_leader_id: ue.site_leader_id,
-            site_leader_status: ue.site_leader_status,
-            safety_officer_id: ue.safety_officer_id,
-            safety_officer_status: ue.safety_officer_status
-        });
+        console.log(`   Site Leader: ${ue.site_leader_status}, Safety Officer: ${ue.safety_officer_status}`);
 
-        let allApproved = true;
+        if (siteLeaderApproved && safetyOfficerApproved) {
+            // Both approved - grant extension
+            console.log('   🎉 Both approvers approved! Granting extension...');
 
-        // Check Site Leader (if assigned)
-        if (ue.site_leader_id && ue.site_leader_status !== 'Approved') {
-            console.log(`⏳ Site Leader not approved yet: ${ue.site_leader_status}`);
-            allApproved = false;
-        } else if (ue.site_leader_id) {
-            console.log(`✅ Site Leader approved`);
-        }
-
-        // Check Safety Officer (if assigned)
-        if (ue.safety_officer_id && ue.safety_officer_status !== 'Approved') {
-            console.log(`⏳ Safety Officer not approved yet: ${ue.safety_officer_status}`);
-            allApproved = false;
-        } else if (ue.safety_officer_id) {
-            console.log(`✅ Safety Officer approved`);
-        }
-
-        console.log(`🎯 Final extension approval decision: ${allApproved ? 'FULLY APPROVED' : 'PARTIALLY APPROVED'}`);
-
-        if (allApproved) {
-            // ✅ ALL APPROVERS APPROVED - EXTENSION IS GRANTED
-
-            // 1. Update extension status to 'Extended'
             await connection.query(
-                `UPDATE permit_extensions SET status = 'Extended' WHERE id = ?`,
+                `UPDATE permit_extensions 
+                 SET status = 'Approved' 
+                 WHERE id = ?`,
                 [extensionId]
             );
 
-            // 2. Update permit end time and status to 'Extended'
             await connection.query(
                 `UPDATE permits 
                  SET end_time = ?, 
-                     status = 'Extended', 
+                     status = 'Active',
                      updated_at = NOW() 
                  WHERE id = ?`,
-                [ue.new_end_time, ue.permit_id]
+                [ue.new_end_time, ext.permit_id]
             );
 
-            console.log(`✅✅ Extension ${extensionId} FULLY APPROVED`);
-            console.log(`📅 Permit ${ue.permit_id} end time extended to: ${ue.new_end_time}`);
-            console.log(`📊 Permit status changed to: Extended`);
-
-            // 3. Notify supervisor - EXTENSION APPROVED
+            // Notify supervisor - EXTENSION APPROVED
             await connection.query(`
                 INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
                 VALUES (?, ?, 'EXTENSION_APPROVED', ?, NOW())
@@ -450,44 +423,34 @@ router.post('/:extensionId/approve', async (req, res) => {
 
             res.json({
                 success: true,
-                message: `Extension FULLY APPROVED by all approvers. Permit extended successfully.`,
+                message: '✅ Extension fully approved! PTW end time has been extended.',
                 fully_approved: true,
                 data: {
                     extension_id: extensionId,
                     permit_id: ext.permit_id,
-                    original_end_time: ue.original_end_time,
                     new_end_time: ue.new_end_time,
-                    extension_status: 'Extended',
-                    permit_status: 'Extended'
+                    approved_by: fields.roleName
                 }
             });
-
         } else {
-            // ⏳ PARTIAL APPROVAL - Waiting for other approvers
-
-            // Update extension status to 'Extension_Requested' (still pending)
-            await connection.query(
-                `UPDATE permit_extensions SET status = 'Extension_Requested' WHERE id = ?`,
-                [extensionId]
-            );
-
-            console.log(`⏳ Extension ${extensionId} partially approved, waiting for other approvers`);
+            // Partial approval - waiting for other approver
+            console.log('   ⏳ Waiting for other approver...');
 
             // Notify supervisor - PARTIAL APPROVAL
             await connection.query(`
                 INSERT INTO notifications (user_id, permit_id, notification_type, message, created_at)
-                VALUES (?, ?, 'EXTENSION_PARTIAL', ?, NOW())
+                VALUES (?, ?, 'EXTENSION_PARTIAL_APPROVAL', ?, NOW())
             `, [
                 ext.created_by_user_id,
                 ext.permit_id,
-                `Extension request for PTW ${ext.permit_serial} has been approved by ${fields.roleName}. Waiting for other approvers.`
+                `⏳ Extension approved by ${fields.roleName} for PTW ${ext.permit_serial}. Waiting for other approvers.`
             ]);
 
             await connection.commit();
 
             res.json({
                 success: true,
-                message: `Extension approved by ${fields.roleName}. Waiting for other approvers.`,
+                message: `✅ Extension approved by ${fields.roleName}. Waiting for other approvers.`,
                 fully_approved: false,
                 data: {
                     extension_id: extensionId,
@@ -503,6 +466,7 @@ router.post('/:extensionId/approve', async (req, res) => {
     } catch (error) {
         if (connection) await connection.rollback();
         console.error('❌ Error approving extension:', error);
+        console.error('   Stack:', error.stack);
         res.status(500).json({
             success: false,
             message: 'Error approving extension',
@@ -528,8 +492,11 @@ router.post('/:extensionId/reject', async (req, res) => {
         const userId = req.user.id;
         const userRole = req.user.role;
 
-        console.log(`📥 POST /api/extension-approvals/${extensionId}/reject - User: ${userId}, Role: ${userRole}`);
+        console.log(`📥 POST /api/extension-approvals/${extensionId}/reject`);
+        console.log(`   User ID: ${userId}, Role: ${userRole}`);
+        console.log(`   Remarks: ${remarks}`);
 
+        // Validate remarks
         if (!remarks || remarks.trim() === '') {
             await connection.rollback();
             return res.status(400).json({
@@ -538,14 +505,17 @@ router.post('/:extensionId/reject', async (req, res) => {
             });
         }
 
+        // Get field mappings for user role
         const fields = getExtensionApprovalFields(userRole);
         if (!fields) {
             await connection.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'User is not authorized to reject extensions'
+                message: `User role '${userRole}' is not authorized to reject extensions`
             });
         }
+
+        console.log(`   Rejecting as: ${fields.roleName}`);
 
         // Get extension details
         const [extension] = await connection.query(
@@ -568,13 +538,14 @@ router.post('/:extensionId/reject', async (req, res) => {
         }
 
         const ext = extension[0];
+        console.log(`   Extension found: PTW ${ext.permit_serial}, Status: ${ext.status}`);
 
-        // Verify user is assigned approver
+        // Verify user is the assigned approver
         if (ext[fields.idField] !== userId) {
             await connection.rollback();
             return res.status(403).json({
                 success: false,
-                message: 'You are not assigned as the approver for this extension request'
+                message: `You are not assigned as ${fields.roleName} for this extension request`
             });
         }
 
@@ -589,14 +560,18 @@ router.post('/:extensionId/reject', async (req, res) => {
         `;
 
         await connection.query(updateQuery, [remarks, extensionId]);
+        console.log(`   ❌ Updated ${fields.roleName} status to Rejected`);
 
         // Update permit status back to Active (rejection means work continues with original time)
         await connection.query(
-            `UPDATE permits SET status = 'Active', updated_at = NOW() WHERE id = ?`,
+            `UPDATE permits 
+             SET status = 'Active', 
+                 updated_at = NOW() 
+             WHERE id = ?`,
             [ext.permit_id]
         );
 
-        console.log(`❌ Extension ${extensionId} REJECTED by ${fields.roleName}`);
+        console.log(`   ✅ Permit ${ext.permit_serial} status reset to Active`);
 
         // Notify supervisor - EXTENSION REJECTED
         await connection.query(`
@@ -612,20 +587,19 @@ router.post('/:extensionId/reject', async (req, res) => {
 
         res.json({
             success: true,
-            message: `Extension request rejected by ${fields.roleName}`,
+            message: `❌ Extension rejected by ${fields.roleName}`,
             data: {
                 extension_id: extensionId,
                 permit_id: ext.permit_id,
                 rejected_by: fields.roleName,
-                rejection_reason: remarks,
-                extension_status: 'Extension_Rejected',
-                permit_status: 'Active'
+                rejection_reason: remarks
             }
         });
 
     } catch (error) {
         if (connection) await connection.rollback();
         console.error('❌ Error rejecting extension:', error);
+        console.error('   Stack:', error.stack);
         res.status(500).json({
             success: false,
             message: 'Error rejecting extension',
@@ -633,80 +607,6 @@ router.post('/:extensionId/reject', async (req, res) => {
         });
     } finally {
         if (connection) connection.release();
-    }
-});
-
-// ============================================================================
-// GET EXTENSION DETAILS BY ID
-// ============================================================================
-router.get('/:extensionId', async (req, res) => {
-    try {
-        const { extensionId } = req.params;
-        const userId = req.user.id;
-        const userRole = req.user.role;
-
-        console.log(`📥 GET /api/extension-approvals/${extensionId} - User: ${userId}`);
-
-        const [extensions] = await pool.query(`
-            SELECT 
-                pe.*,
-                p.permit_serial,
-                p.permit_type,
-                p.work_location,
-                p.work_description,
-                p.status as permit_status,
-                s.name as site_name,
-                s.site_code,
-                supervisor.full_name as requested_by_name,
-                supervisor.email as requested_by_email,
-                sl.full_name as site_leader_name,
-                sl.email as site_leader_email,
-                so.full_name as safety_officer_name,
-                so.email as safety_officer_email
-            FROM permit_extensions pe
-            JOIN permits p ON pe.permit_id = p.id
-            JOIN sites s ON p.site_id = s.id
-            JOIN users supervisor ON pe.requested_by_user_id = supervisor.id
-            LEFT JOIN users sl ON pe.site_leader_id = sl.id
-            LEFT JOIN users so ON pe.safety_officer_id = so.id
-            WHERE pe.id = ?
-        `, [extensionId]);
-
-        if (extensions.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Extension request not found'
-            });
-        }
-
-        const extension = extensions[0];
-
-        // Check if user has permission to view this extension
-        const isApprover = extension.site_leader_id === userId || extension.safety_officer_id === userId;
-        const isCreator = extension.requested_by_user_id === userId;
-        const isAdmin = userRole === 'Admin';
-
-        if (!isApprover && !isCreator && !isAdmin) {
-            return res.status(403).json({
-                success: false,
-                message: 'You do not have permission to view this extension request'
-            });
-        }
-
-        console.log(`✅ Extension details retrieved`);
-
-        res.json({
-            success: true,
-            data: extension
-        });
-
-    } catch (error) {
-        console.error('❌ Error fetching extension details:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching extension details',
-            error: error.message
-        });
     }
 });
 

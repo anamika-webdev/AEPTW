@@ -1,15 +1,10 @@
 // frontend/src/components/approver/ExtensionApprovalDashboard.tsx
-// Extension Approval Dashboard for Site Leader and Safety In-charge
+// ✅ FIXED: Approve/Reject functionality + Complete PTW Details View
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-    Clock,
-    CheckCircle,
-    XCircle,
-    FileText,
-    User,
-    MapPin,
-    Eye
+    Clock, CheckCircle, XCircle, AlertCircle, Eye, Eraser,
+    FileText, Users, Shield, User, AlertTriangle
 } from 'lucide-react';
 
 interface ExtensionRequest {
@@ -18,38 +13,77 @@ interface ExtensionRequest {
     permit_serial: string;
     permit_type: string;
     work_location: string;
-    work_description: string;
+    work_description?: string;
     site_name: string;
     requested_at: string;
     original_end_time: string;
     new_end_time: string;
     reason: string;
-    extension_status: string;
-    my_approval_status: string;
-    site_leader_status: string | null;
-    safety_officer_status: string | null;
+    status: string;
     requested_by_name: string;
-    requested_by_email: string;
-    site_leader_name: string | null;
-    safety_officer_name: string | null;
+    site_leader_name?: string;
+    safety_officer_name?: string;
+    site_leader_status?: string;
+    safety_officer_status?: string;
+    my_approval_status?: string;
+    my_approved_at?: string;
+    my_remarks?: string;
+
+    // Complete PTW Details
+    start_time?: string;
+    end_time?: string;
+    created_by_name?: string;
+    area_manager_name?: string;
+    area_manager_status?: string;
+    safety_officer_status_ptw?: string;
+    site_leader_status_ptw?: string;
+    permit_status?: string;
+}
+
+interface PTWDetails {
+    permit: any;
+    team_members: any[];
+    hazards: any[];
+    ppe: any[];
+    checklist_responses: any[];
+    extensions: any[];
 }
 
 export default function ExtensionApprovalDashboard() {
+    const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
     const [pendingExtensions, setPendingExtensions] = useState<ExtensionRequest[]>([]);
     const [approvedExtensions, setApprovedExtensions] = useState<ExtensionRequest[]>([]);
     const [rejectedExtensions, setRejectedExtensions] = useState<ExtensionRequest[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
-    const [selectedExtension, setSelectedExtension] = useState<ExtensionRequest | null>(null);
+
+    // Modals
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [selectedExtension, setSelectedExtension] = useState<ExtensionRequest | null>(null);
+    const [ptwDetails, setPtwDetails] = useState<PTWDetails | null>(null);
+    const [loadingDetails, setLoadingDetails] = useState(false);
+
     const [remarks, setRemarks] = useState('');
     const [isDrawing, setIsDrawing] = useState(false);
-    const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         loadExtensions();
     }, []);
+
+    useEffect(() => {
+        // Initialize canvas for signature
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+            }
+        }
+    }, [showApproveModal]);
 
     const loadExtensions = async () => {
         try {
@@ -57,70 +91,98 @@ export default function ExtensionApprovalDashboard() {
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-            console.log('🔍 Loading extension requests...');
-            console.log('📍 Base URL:', baseURL);
-            console.log('🔑 Token exists:', !!token);
+            console.log('🔄 Loading extension requests...');
 
             // Fetch pending extensions
-            console.log('📥 Fetching pending extensions from:', `${baseURL}/extension-approvals/pending`);
             const pendingRes = await fetch(`${baseURL}/extension-approvals/pending`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            console.log('📊 Pending response status:', pendingRes.status);
             const pendingData = await pendingRes.json();
-            console.log('📦 Pending data:', pendingData);
             if (pendingData.success) {
-                console.log(`✅ Found ${pendingData.data.length} pending extensions`);
+                console.log(`✅ Loaded ${pendingData.data.length} pending extensions`);
                 setPendingExtensions(pendingData.data);
-            } else {
-                console.error('❌ Pending request failed:', pendingData.message);
             }
 
             // Fetch approved extensions
-            console.log('📥 Fetching approved extensions from:', `${baseURL}/extension-approvals/approved`);
             const approvedRes = await fetch(`${baseURL}/extension-approvals/approved`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            console.log('📊 Approved response status:', approvedRes.status);
             const approvedData = await approvedRes.json();
-            console.log('📦 Approved data:', approvedData);
             if (approvedData.success) {
-                console.log(`✅ Found ${approvedData.data.length} approved extensions`);
+                console.log(`✅ Loaded ${approvedData.data.length} approved extensions`);
                 setApprovedExtensions(approvedData.data);
-            } else {
-                console.error('❌ Approved request failed:', approvedData.message);
             }
 
             // Fetch rejected extensions
-            console.log('📥 Fetching rejected extensions from:', `${baseURL}/extension-approvals/rejected`);
             const rejectedRes = await fetch(`${baseURL}/extension-approvals/rejected`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            console.log('📊 Rejected response status:', rejectedRes.status);
             const rejectedData = await rejectedRes.json();
-            console.log('📦 Rejected data:', rejectedData);
             if (rejectedData.success) {
-                console.log(`✅ Found ${rejectedData.data.length} rejected extensions`);
+                console.log(`✅ Loaded ${rejectedData.data.length} rejected extensions`);
                 setRejectedExtensions(rejectedData.data);
-            } else {
-                console.error('❌ Rejected request failed:', rejectedData.message);
             }
 
         } catch (error) {
             console.error('❌ Error loading extensions:', error);
-            alert('Failed to load extension requests. Check console for details.');
+            alert('Failed to load extension requests. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
+    const loadPTWDetails = async (permitId: number) => {
+        try {
+            setLoadingDetails(true);
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+            console.log(`📥 Loading PTW details for permit ID: ${permitId}`);
+
+            const response = await fetch(`${baseURL}/permits/${permitId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+            if (data.success && data.data) {
+                console.log('✅ PTW details loaded:', data.data);
+                setPtwDetails(data.data);
+            } else {
+                throw new Error(data.message || 'Failed to load PTW details');
+            }
+        } catch (error) {
+            console.error('❌ Error loading PTW details:', error);
+            alert('Failed to load PTW details');
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
+
+    const handleView = async (extension: ExtensionRequest) => {
+        setSelectedExtension(extension);
+        await loadPTWDetails(extension.permit_id);
+        setShowViewModal(true);
+    };
+
     const handleApprove = (extension: ExtensionRequest) => {
         setSelectedExtension(extension);
+        setRemarks('');
         setShowApproveModal(true);
+        // Clear signature canvas
+        setTimeout(() => {
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+        }, 100);
     };
 
     const handleReject = (extension: ExtensionRequest) => {
         setSelectedExtension(extension);
+        setRemarks('');
         setShowRejectModal(true);
     };
 
@@ -133,11 +195,28 @@ export default function ExtensionApprovalDashboard() {
             return;
         }
 
+        // Check if canvas has any drawing
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            alert('Canvas error');
+            return;
+        }
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const hasDrawing = imageData.data.some((channel) => channel !== 0);
+
+        if (!hasDrawing) {
+            alert('Please add your signature before approving');
+            return;
+        }
+
         const signatureData = canvas.toDataURL();
 
         try {
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+            console.log(`📤 Approving extension ${selectedExtension.id}...`);
 
             const response = await fetch(`${baseURL}/extension-approvals/${selectedExtension.id}/approve`, {
                 method: 'POST',
@@ -147,29 +226,36 @@ export default function ExtensionApprovalDashboard() {
                 },
                 body: JSON.stringify({
                     signature: signatureData,
-                    remarks: remarks
+                    remarks: remarks.trim() || null
                 })
             });
 
             const data = await response.json();
+
             if (data.success) {
-                alert(data.message || 'Extension approved successfully');
+                alert(data.message || '✅ Extension approved successfully');
                 setShowApproveModal(false);
                 setSelectedExtension(null);
                 setRemarks('');
-                loadExtensions();
+                loadExtensions(); // Reload all tabs
             } else {
                 alert(data.message || 'Failed to approve extension');
             }
         } catch (error) {
-            console.error('Error approving extension:', error);
-            alert('Error approving extension');
+            console.error('❌ Error approving extension:', error);
+            alert('Error approving extension. Please try again.');
         }
     };
 
     const submitRejection = async () => {
-        if (!selectedExtension || !remarks.trim()) {
-            alert('Please provide a rejection reason');
+        if (!selectedExtension) return;
+
+        if (!remarks.trim()) {
+            alert('Please provide a reason for rejection');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to reject this extension request?')) {
             return;
         }
 
@@ -177,28 +263,31 @@ export default function ExtensionApprovalDashboard() {
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+            console.log(`📤 Rejecting extension ${selectedExtension.id}...`);
+
             const response = await fetch(`${baseURL}/extension-approvals/${selectedExtension.id}/reject`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ remarks })
+                body: JSON.stringify({ remarks: remarks.trim() })
             });
 
             const data = await response.json();
+
             if (data.success) {
-                alert('Extension rejected');
+                alert(data.message || '❌ Extension rejected');
                 setShowRejectModal(false);
                 setSelectedExtension(null);
                 setRemarks('');
-                loadExtensions();
+                loadExtensions(); // Reload all tabs
             } else {
                 alert(data.message || 'Failed to reject extension');
             }
         } catch (error) {
-            console.error('Error rejecting extension:', error);
-            alert('Error rejecting extension');
+            console.error('❌ Error rejecting extension:', error);
+            alert('Error rejecting extension. Please try again.');
         }
     };
 
@@ -251,19 +340,26 @@ export default function ExtensionApprovalDashboard() {
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleString();
+        return new Date(dateString).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     const getStatusBadge = (status: string) => {
         const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
             'Pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
             'Approved': { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
-            'Rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
+            'Rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' }
         };
 
-        const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
+        const config = statusConfig[status] || statusConfig['Pending'];
+
         return (
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+            <span className={`px-2 py-1 text-xs font-medium rounded ${config.bg} ${config.text}`}>
                 {config.label}
             </span>
         );
@@ -272,127 +368,72 @@ export default function ExtensionApprovalDashboard() {
     const renderExtensionTable = (extensions: ExtensionRequest[], showActions: boolean) => {
         if (extensions.length === 0) {
             return (
-                <div className="text-center py-8 text-slate-500">
-                    No extension requests found
+                <div className="p-12 text-center">
+                    <AlertCircle className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                    <p className="text-slate-600">No extension requests found</p>
                 </div>
             );
         }
 
         return (
             <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
+                <table className="w-full">
                     <thead className="bg-slate-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                PTW Details
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                Time Extension
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                Reason
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                Requested By
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                Approval Status
-                            </th>
-                            {showActions && (
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            )}
+                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">PTW Serial</th>
+                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Site</th>
+                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Location</th>
+                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Original End</th>
+                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">New End</th>
+                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Reason</th>
+                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Requested By</th>
+                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Status</th>
+                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
                         {extensions.map((ext) => (
                             <tr key={ext.id} className="hover:bg-slate-50">
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center space-x-2">
-                                        <FileText className="w-4 h-4 text-slate-400" />
-                                        <div>
-                                            <div className="text-sm font-medium text-slate-900">{ext.permit_serial}</div>
-                                            <div className="text-xs text-slate-500">{ext.permit_type}</div>
-                                            <div className="text-xs text-slate-500 flex items-center gap-1">
-                                                <MapPin className="w-3 h-3" />
-                                                {ext.work_location}
-                                            </div>
-                                        </div>
-                                    </div>
+                                <td className="px-4 py-4 text-sm font-medium text-slate-900">{ext.permit_serial}</td>
+                                <td className="px-4 py-4 text-sm text-slate-600">{ext.site_name}</td>
+                                <td className="px-4 py-4 text-sm text-slate-600">{ext.work_location}</td>
+                                <td className="px-4 py-4 text-sm text-slate-600">{formatDate(ext.original_end_time)}</td>
+                                <td className="px-4 py-4 text-sm font-medium text-green-700">{formatDate(ext.new_end_time)}</td>
+                                <td className="px-4 py-4 text-sm text-slate-600 max-w-xs truncate">{ext.reason}</td>
+                                <td className="px-4 py-4 text-sm text-slate-600">{ext.requested_by_name}</td>
+                                <td className="px-4 py-4 text-sm">
+                                    {getStatusBadge(ext.my_approval_status || ext.status)}
                                 </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm">
-                                        <div className="flex items-center gap-1 text-slate-500">
-                                            <Clock className="w-3 h-3" />
-                                            <span className="text-xs">From:</span>
-                                        </div>
-                                        <div className="text-xs text-slate-600">{formatDate(ext.original_end_time)}</div>
-                                        <div className="flex items-center gap-1 text-green-600 mt-1">
-                                            <Clock className="w-3 h-3" />
-                                            <span className="text-xs">To:</span>
-                                        </div>
-                                        <div className="text-xs font-medium text-green-700">{formatDate(ext.new_end_time)}</div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm text-slate-600 max-w-xs">
-                                        {ext.reason}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center space-x-2">
-                                        <User className="w-4 h-4 text-slate-400" />
-                                        <div>
-                                            <div className="text-sm text-slate-900">{ext.requested_by_name}</div>
-                                            <div className="text-xs text-slate-500">{formatDate(ext.requested_at)}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="space-y-1">
-                                        {ext.site_leader_name && (
-                                            <div className="flex items-center justify-between text-xs">
-                                                <span className="text-slate-600">Site Leader:</span>
-                                                {getStatusBadge(ext.site_leader_status || 'Pending')}
-                                            </div>
-                                        )}
-                                        {ext.safety_officer_name && (
-                                            <div className="flex items-center justify-between text-xs">
-                                                <span className="text-slate-600">Safety:</span>
-                                                {getStatusBadge(ext.safety_officer_status || 'Pending')}
-                                            </div>
+                                <td className="px-4 py-4 text-sm">
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleView(ext)}
+                                            className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+                                            title="View Complete PTW Details"
+                                        >
+                                            <Eye className="w-3 h-3 mr-1" />
+                                            View PTW
+                                        </button>
+                                        {showActions && (
+                                            <>
+                                                <button
+                                                    onClick={() => handleApprove(ext)}
+                                                    className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
+                                                >
+                                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                                    Approve
+                                                </button>
+                                                <button
+                                                    onClick={() => handleReject(ext)}
+                                                    className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700"
+                                                >
+                                                    <XCircle className="w-3 h-3 mr-1" />
+                                                    Reject
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 </td>
-                                {showActions && (
-                                    <td className="px-6 py-4">
-                                        <div className="flex space-x-2">
-                                            <button
-                                                onClick={() => window.open(`/permit/${ext.permit_id}`, '_blank')}
-                                                className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700"
-                                                title="View Permit Details"
-                                            >
-                                                <Eye className="w-3 h-3 mr-1" />
-                                                View
-                                            </button>
-                                            <button
-                                                onClick={() => handleApprove(ext)}
-                                                className="inline-flex items-center px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700"
-                                            >
-                                                <CheckCircle className="w-3 h-3 mr-1" />
-                                                Approve
-                                            </button>
-                                            <button
-                                                onClick={() => handleReject(ext)}
-                                                className="inline-flex items-center px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700"
-                                            >
-                                                <XCircle className="w-3 h-3 mr-1" />
-                                                Reject
-                                            </button>
-                                        </div>
-                                    </td>
-                                )}
                             </tr>
                         ))}
                     </tbody>
@@ -403,8 +444,8 @@ export default function ExtensionApprovalDashboard() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="flex items-center justify-center h-64">
+                <div className="w-12 h-12 border-b-2 border-blue-600 rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -415,52 +456,13 @@ export default function ExtensionApprovalDashboard() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">PTW Extension Approvals</h1>
-                    <p className="text-sm text-slate-600 mt-1">Review and approve extension requests for active permits</p>
-                </div>
-                <button
-                    onClick={loadExtensions}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                    Refresh
-                </button>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-yellow-600">Pending Approvals</p>
-                            <p className="text-2xl font-bold text-yellow-900">{pendingExtensions.length}</p>
-                        </div>
-                        <Clock className="w-8 h-8 text-yellow-600" />
-                    </div>
-                </div>
-
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-green-600">Approved</p>
-                            <p className="text-2xl font-bold text-green-900">{approvedExtensions.length}</p>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                </div>
-
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-red-600">Rejected</p>
-                            <p className="text-2xl font-bold text-red-900">{rejectedExtensions.length}</p>
-                        </div>
-                        <XCircle className="w-8 h-8 text-red-600" />
-                    </div>
+                    <p className="mt-1 text-sm text-slate-600">Review and approve extension requests</p>
                 </div>
             </div>
 
             {/* Tabs */}
             <div className="border-b border-slate-200">
-                <nav className="flex space-x-8">
+                <nav className="flex -mb-px space-x-8">
                     <button
                         onClick={() => setActiveTab('pending')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'pending'
@@ -498,13 +500,13 @@ export default function ExtensionApprovalDashboard() {
                 {activeTab === 'rejected' && renderExtensionTable(rejectedExtensions, false)}
             </div>
 
-            {/* Approve Modal */}
+            {/* ==================== APPROVE MODAL ==================== */}
             {showApproveModal && selectedExtension && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold text-slate-900 mb-4">Approve Extension Request</h3>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="w-full max-w-2xl p-6 mx-4 overflow-y-auto bg-white rounded-lg max-h-[90vh]">
+                        <h3 className="mb-4 text-lg font-bold text-slate-900">Approve Extension Request</h3>
 
-                        <div className="space-y-4 mb-6">
+                        <div className="mb-6 space-y-4">
                             <div>
                                 <p className="text-sm text-slate-600">PTW Serial</p>
                                 <p className="font-medium">{selectedExtension.permit_serial}</p>
@@ -518,59 +520,66 @@ export default function ExtensionApprovalDashboard() {
                                 <p className="text-sm text-slate-600">Reason</p>
                                 <p className="text-sm">{selectedExtension.reason}</p>
                             </div>
+
+                            {/* Remarks (Optional) */}
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-slate-700">
+                                    Comments (Optional)
+                                </label>
+                                <textarea
+                                    value={remarks}
+                                    onChange={(e) => setRemarks(e.target.value)}
+                                    className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows={3}
+                                    placeholder="Add any comments..."
+                                />
+                            </div>
+
+                            {/* Signature Canvas */}
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-slate-700">
+                                    Digital Signature <span className="text-red-500">*</span>
+                                </label>
+                                <div className="border-2 border-dashed rounded-lg border-slate-300">
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={600}
+                                        height={200}
+                                        className="w-full cursor-crosshair"
+                                        onMouseDown={startDrawing}
+                                        onMouseMove={draw}
+                                        onMouseUp={stopDrawing}
+                                        onMouseLeave={stopDrawing}
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={clearSignature}
+                                    className="flex items-center gap-2 px-3 py-1 mt-2 text-sm text-red-600 transition-colors rounded hover:bg-red-50"
+                                >
+                                    <Eraser className="w-4 h-4" />
+                                    Clear Signature
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Remarks (Optional)
-                            </label>
-                            <textarea
-                                value={remarks}
-                                onChange={(e) => setRemarks(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                                rows={3}
-                                placeholder="Add any comments..."
-                            />
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Signature *
-                            </label>
-                            <canvas
-                                ref={canvasRef}
-                                width={500}
-                                height={150}
-                                onMouseDown={startDrawing}
-                                onMouseMove={draw}
-                                onMouseUp={stopDrawing}
-                                onMouseLeave={stopDrawing}
-                                className="border-2 border-slate-300 rounded cursor-crosshair w-full"
-                            />
-                            <button
-                                onClick={clearSignature}
-                                className="mt-2 px-3 py-1 text-sm bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
-                            >
-                                Clear Signature
-                            </button>
-                        </div>
-
-                        <div className="flex justify-end space-x-3">
+                        {/* Actions */}
+                        <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => {
                                     setShowApproveModal(false);
                                     setSelectedExtension(null);
                                     setRemarks('');
-                                    clearSignature();
                                 }}
-                                className="px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                                className="px-4 py-2 text-sm font-medium transition-colors border rounded-lg text-slate-700 border-slate-300 hover:bg-slate-50"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={submitApproval}
-                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                className="px-4 py-2 text-sm font-medium text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700"
                             >
+                                <CheckCircle className="inline-block w-4 h-4 mr-2" />
                                 Approve Extension
                             </button>
                         </div>
@@ -578,51 +587,306 @@ export default function ExtensionApprovalDashboard() {
                 </div>
             )}
 
-            {/* Reject Modal */}
+            {/* ==================== REJECT MODAL ==================== */}
             {showRejectModal && selectedExtension && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-                        <h3 className="text-lg font-bold text-slate-900 mb-4">Reject Extension Request</h3>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="w-full max-w-2xl p-6 mx-4 overflow-y-auto bg-white rounded-lg max-h-[90vh]">
+                        <h3 className="mb-4 text-lg font-bold text-slate-900">Reject Extension Request</h3>
 
-                        <div className="space-y-4 mb-6">
+                        <div className="mb-6 space-y-4">
                             <div>
                                 <p className="text-sm text-slate-600">PTW Serial</p>
                                 <p className="font-medium">{selectedExtension.permit_serial}</p>
                             </div>
+                            <div>
+                                <p className="text-sm text-slate-600">Extension Details</p>
+                                <p className="text-sm">From: {formatDate(selectedExtension.original_end_time)}</p>
+                                <p className="text-sm font-medium text-green-700">To: {formatDate(selectedExtension.new_end_time)}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-slate-600">Reason for Extension</p>
+                                <p className="text-sm">{selectedExtension.reason}</p>
+                            </div>
+
+                            {/* Rejection Reason (Required) */}
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-slate-700">
+                                    Rejection Reason <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    value={remarks}
+                                    onChange={(e) => setRemarks(e.target.value)}
+                                    className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    rows={4}
+                                    placeholder="Please provide a detailed reason for rejection..."
+                                    required
+                                />
+                            </div>
                         </div>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Rejection Reason *
-                            </label>
-                            <textarea
-                                value={remarks}
-                                onChange={(e) => setRemarks(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                                rows={4}
-                                placeholder="Please provide a detailed reason for rejection..."
-                                required
-                            />
-                        </div>
-
-                        <div className="flex justify-end space-x-3">
+                        {/* Actions */}
+                        <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => {
                                     setShowRejectModal(false);
                                     setSelectedExtension(null);
                                     setRemarks('');
                                 }}
-                                className="px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                                className="px-4 py-2 text-sm font-medium transition-colors border rounded-lg text-slate-700 border-slate-300 hover:bg-slate-50"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={submitRejection}
-                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                                className="px-4 py-2 text-sm font-medium text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700"
                             >
+                                <XCircle className="inline-block w-4 h-4 mr-2" />
                                 Reject Extension
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ==================== VIEW PTW DETAILS MODAL ==================== */}
+            {showViewModal && selectedExtension && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="w-full max-w-4xl p-6 mx-4 overflow-y-auto bg-white rounded-lg max-h-[90vh]">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold text-slate-900">Complete PTW Details</h3>
+                            <button
+                                onClick={() => {
+                                    setShowViewModal(false);
+                                    setSelectedExtension(null);
+                                    setPtwDetails(null);
+                                }}
+                                className="p-2 transition-colors rounded-lg hover:bg-slate-100"
+                            >
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {loadingDetails ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="w-12 h-12 border-b-2 border-blue-600 rounded-full animate-spin"></div>
+                            </div>
+                        ) : ptwDetails && ptwDetails.permit ? (
+                            <div className="space-y-6">
+                                {/* Extension Request Info */}
+                                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <h4 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
+                                        <Clock className="w-5 h-5 text-yellow-600" />
+                                        Extension Request
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <p className="text-slate-600">Original End Time:</p>
+                                            <p className="font-medium">{formatDate(selectedExtension.original_end_time)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">New End Time:</p>
+                                            <p className="font-medium text-green-700">{formatDate(selectedExtension.new_end_time)}</p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <p className="text-slate-600">Reason:</p>
+                                            <p className="font-medium">{selectedExtension.reason}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Requested By:</p>
+                                            <p className="font-medium">{selectedExtension.requested_by_name}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Requested At:</p>
+                                            <p className="font-medium">{formatDate(selectedExtension.requested_at)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Basic PTW Information */}
+                                <div className="p-4 bg-white border rounded-lg border-slate-200">
+                                    <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-blue-600" />
+                                        Basic Information
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <p className="text-slate-600">PTW Serial:</p>
+                                            <p className="font-medium">{ptwDetails.permit.permit_serial}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Type:</p>
+                                            <p className="font-medium">{ptwDetails.permit.permit_type || ptwDetails.permit.permit_types}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Site:</p>
+                                            <p className="font-medium">{ptwDetails.permit.site_name}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Status:</p>
+                                            <p className="font-medium">{ptwDetails.permit.status}</p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <p className="text-slate-600">Work Location:</p>
+                                            <p className="font-medium">{ptwDetails.permit.work_location}</p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <p className="text-slate-600">Work Description:</p>
+                                            <p className="font-medium">{ptwDetails.permit.work_description}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Start Time:</p>
+                                            <p className="font-medium">{formatDate(ptwDetails.permit.start_time)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Current End Time:</p>
+                                            <p className="font-medium">{formatDate(ptwDetails.permit.end_time)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* People Involved */}
+                                <div className="p-4 bg-white border rounded-lg border-slate-200">
+                                    <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <User className="w-5 h-5 text-purple-600" />
+                                        People Involved
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <p className="text-slate-600">Created By:</p>
+                                            <p className="font-medium">{ptwDetails.permit.created_by_name}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Permit Initiator:</p>
+                                            <p className="font-medium">{ptwDetails.permit.permit_initiator}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Issued To:</p>
+                                            <p className="font-medium">{ptwDetails.permit.receiver_name}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Department:</p>
+                                            <p className="font-medium">{ptwDetails.permit.issue_department}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Approval Status */}
+                                <div className="p-4 bg-white border rounded-lg border-slate-200">
+                                    <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                        Approval Status
+                                    </h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                                            <span className="font-medium">Area Manager:</span>
+                                            <div className="text-right">
+                                                <p>{ptwDetails.permit.area_manager_name || 'Not assigned'}</p>
+                                                <span className={`text-xs px-2 py-1 rounded ${ptwDetails.permit.area_manager_status === 'Approved'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : ptwDetails.permit.area_manager_status === 'Rejected'
+                                                        ? 'bg-red-100 text-red-800'
+                                                        : 'bg-yellow-100 text-yellow-800'
+                                                    }`}>
+                                                    {ptwDetails.permit.area_manager_status || 'Pending'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                                            <span className="font-medium">Safety Officer:</span>
+                                            <div className="text-right">
+                                                <p>{ptwDetails.permit.safety_officer_name || 'Not assigned'}</p>
+                                                <span className={`text-xs px-2 py-1 rounded ${ptwDetails.permit.safety_officer_status === 'Approved'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : ptwDetails.permit.safety_officer_status === 'Rejected'
+                                                        ? 'bg-red-100 text-red-800'
+                                                        : 'bg-yellow-100 text-yellow-800'
+                                                    }`}>
+                                                    {ptwDetails.permit.safety_officer_status || 'Pending'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                                            <span className="font-medium">Site Leader:</span>
+                                            <div className="text-right">
+                                                <p>{ptwDetails.permit.site_leader_name || 'Not assigned'}</p>
+                                                <span className={`text-xs px-2 py-1 rounded ${ptwDetails.permit.site_leader_status === 'Approved'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : ptwDetails.permit.site_leader_status === 'Rejected'
+                                                        ? 'bg-red-100 text-red-800'
+                                                        : 'bg-yellow-100 text-yellow-800'
+                                                    }`}>
+                                                    {ptwDetails.permit.site_leader_status || 'Pending'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Team Members */}
+                                {ptwDetails.team_members && ptwDetails.team_members.length > 0 && (
+                                    <div className="p-4 bg-white border rounded-lg border-slate-200">
+                                        <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                            <Users className="w-5 h-5 text-indigo-600" />
+                                            Team Members ({ptwDetails.team_members.length})
+                                        </h4>
+                                        <div className="space-y-2 text-sm">
+                                            {ptwDetails.team_members.map((member: any, idx: number) => (
+                                                <div key={idx} className="p-2 bg-slate-50 rounded">
+                                                    <p className="font-medium">{member.worker_name}</p>
+                                                    <p className="text-slate-600">{member.company_name} - {member.worker_role}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Hazards */}
+                                {ptwDetails.hazards && ptwDetails.hazards.length > 0 && (
+                                    <div className="p-4 bg-white border rounded-lg border-slate-200">
+                                        <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                                            Identified Hazards ({ptwDetails.hazards.length})
+                                        </h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {ptwDetails.hazards.map((hazard: any, idx: number) => (
+                                                <span key={idx} className="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                                                    {hazard.name || hazard.hazard_name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* PPE */}
+                                {ptwDetails.ppe && ptwDetails.ppe.length > 0 && (
+                                    <div className="p-4 bg-white border rounded-lg border-slate-200">
+                                        <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                            <Shield className="w-5 h-5 text-orange-600" />
+                                            Required PPE ({ptwDetails.ppe.length})
+                                        </h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {ptwDetails.ppe.map((item: any, idx: number) => (
+                                                <span key={idx} className="px-3 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
+                                                    {item.name || item.ppe_name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Control Measures */}
+                                {ptwDetails.permit.control_measures && (
+                                    <div className="p-4 bg-white border rounded-lg border-slate-200">
+                                        <h4 className="font-bold text-slate-900 mb-2">Control Measures</h4>
+                                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{ptwDetails.permit.control_measures}</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="py-12 text-center text-slate-600">
+                                No PTW details available
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
