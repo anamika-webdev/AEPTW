@@ -15,7 +15,10 @@ const createNotification = async (userId, notificationType, message, permitId = 
         console.log(`🔔 Creating notification for User ${userId}: ${notificationType}`);
 
         // Validate notification type
-        const validTypes = ['APPROVAL_REQUEST', 'PTW_APPROVED', 'PTW_REJECTED', 'EXTENSION_REQUEST', 'PTW_CLOSED'];
+        const validTypes = [
+            'APPROVAL_REQUEST', 'PTW_APPROVED', 'PTW_REJECTED', 'EXTENSION_REQUEST', 'PTW_CLOSED',
+            'extension_approved', 'extension_partial', 'extension_rejected'
+        ];
         if (!validTypes.includes(notificationType)) {
             console.error(`❌ Invalid notification type: ${notificationType}`);
             return null;

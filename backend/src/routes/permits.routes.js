@@ -1452,7 +1452,7 @@ router.get('/:id', async (req, res) => {
     let teamMembers = [];
     try {
       const [members] = await pool.query(
-        `SELECT id, name, role, contact_number 
+        `SELECT id, worker_name as name, worker_role as role, contact_number 
          FROM permit_team_members 
          WHERE permit_id = ? 
          ORDER BY id`,
@@ -1502,7 +1502,7 @@ router.get('/:id', async (req, res) => {
       const [responses] = await pool.query(`
         SELECT 
           cr.id,
-          mq.question,
+          mq.question_text as question,
           cr.response,
           cr.remarks
         FROM permit_checklist_responses cr

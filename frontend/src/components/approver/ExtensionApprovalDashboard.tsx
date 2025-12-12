@@ -1,10 +1,10 @@
 // frontend/src/components/approver/ExtensionApprovalDashboard.tsx
-// ✅ FIXED: Approve/Reject functionality + Complete PTW Details View
+// ✅ COMPLETE FIXED VERSION - Extension Approval, Rejection, and View functionality
 
 import { useState, useEffect, useRef } from 'react';
 import {
     Clock, CheckCircle, XCircle, AlertCircle, Eye, Eraser,
-    FileText, Users, Shield, User, AlertTriangle
+    FileText, Users, AlertTriangle, HardHat
 } from 'lucide-react';
 
 interface ExtensionRequest {
@@ -74,13 +74,14 @@ export default function ExtensionApprovalDashboard() {
 
     useEffect(() => {
         // Initialize canvas for signature
-        const canvas = canvasRef.current;
-        if (canvas) {
+        if (showApproveModal && canvasRef.current) {
+            const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
             if (ctx) {
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
                 ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
             }
         }
     }, [showApproveModal]);
@@ -93,31 +94,35 @@ export default function ExtensionApprovalDashboard() {
 
             console.log('🔄 Loading extension requests...');
 
-            // Fetch pending extensions
-            const pendingRes = await fetch(`${baseURL}/extension-approvals/pending`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const pendingData = await pendingRes.json();
+            // Fetch all three tabs in parallel
+            const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
+                fetch(`${baseURL}/extension-approvals/pending`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch(`${baseURL}/extension-approvals/approved`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch(`${baseURL}/extension-approvals/rejected`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+            ]);
+
+            const [pendingData, approvedData, rejectedData] = await Promise.all([
+                pendingRes.json(),
+                approvedRes.json(),
+                rejectedRes.json()
+            ]);
+
             if (pendingData.success) {
                 console.log(`✅ Loaded ${pendingData.data.length} pending extensions`);
                 setPendingExtensions(pendingData.data);
             }
 
-            // Fetch approved extensions
-            const approvedRes = await fetch(`${baseURL}/extension-approvals/approved`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const approvedData = await approvedRes.json();
             if (approvedData.success) {
                 console.log(`✅ Loaded ${approvedData.data.length} approved extensions`);
                 setApprovedExtensions(approvedData.data);
             }
 
-            // Fetch rejected extensions
-            const rejectedRes = await fetch(`${baseURL}/extension-approvals/rejected`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const rejectedData = await rejectedRes.json();
             if (rejectedData.success) {
                 console.log(`✅ Loaded ${rejectedData.data.length} rejected extensions`);
                 setRejectedExtensions(rejectedData.data);
@@ -131,82 +136,76 @@ export default function ExtensionApprovalDashboard() {
         }
     };
 
-    const loadPTWDetails = async (permitId: number) => {
+    // ==================== HANDLE VIEW PTW DETAILS ====================
+    const handleView = async (ext: ExtensionRequest) => {
+        setSelectedExtension(ext);
+        setShowViewModal(true);
+        setLoadingDetails(true);
+        setPtwDetails(null);
+
         try {
-            setLoadingDetails(true);
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-            console.log(`📥 Loading PTW details for permit ID: ${permitId}`);
+            console.log(`🔍 Fetching PTW details for permit_id: ${ext.permit_id}`);
 
-            const response = await fetch(`${baseURL}/permits/${permitId}`, {
+            const response = await fetch(`${baseURL}/permits/${ext.permit_id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             const data = await response.json();
-            if (data.success && data.data) {
-                console.log('✅ PTW details loaded:', data.data);
+
+            if (data.success) {
+                console.log('✅ Loaded PTW details for Permit ID:', ext.permit_id, data.data);
                 setPtwDetails(data.data);
             } else {
-                throw new Error(data.message || 'Failed to load PTW details');
+                console.error('❌ Failed to load PTW details:', data.message);
+                alert(`Failed to load PTW details: ${data.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('❌ Error loading PTW details:', error);
-            alert('Failed to load PTW details');
+            alert('Error loading PTW details. Please try again.');
         } finally {
             setLoadingDetails(false);
         }
     };
 
-    const handleView = async (extension: ExtensionRequest) => {
-        setSelectedExtension(extension);
-        await loadPTWDetails(extension.permit_id);
-        setShowViewModal(true);
-    };
-
-    const handleApprove = (extension: ExtensionRequest) => {
-        setSelectedExtension(extension);
-        setRemarks('');
+    // ==================== HANDLE APPROVE ====================
+    const handleApprove = (ext: ExtensionRequest) => {
+        setSelectedExtension(ext);
         setShowApproveModal(true);
-        // Clear signature canvas
-        setTimeout(() => {
-            const canvas = canvasRef.current;
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                }
-            }
-        }, 100);
-    };
-
-    const handleReject = (extension: ExtensionRequest) => {
-        setSelectedExtension(extension);
         setRemarks('');
-        setShowRejectModal(true);
     };
 
+    // ==================== HANDLE REJECT ====================
+    const handleReject = (ext: ExtensionRequest) => {
+        setSelectedExtension(ext);
+        setShowRejectModal(true);
+        setRemarks('');
+    };
+
+    // ==================== SUBMIT APPROVAL ====================
     const submitApproval = async () => {
         if (!selectedExtension) return;
 
         const canvas = canvasRef.current;
         if (!canvas) {
-            alert('Please add your signature');
+            alert('Signature canvas not found');
             return;
         }
 
-        // Check if canvas has any drawing
+        // Check if signature is drawn
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            alert('Canvas error');
+            alert('Could not access signature canvas');
             return;
         }
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const hasDrawing = imageData.data.some((channel) => channel !== 0);
+        const hasSignature = imageData.data.some(channel => channel !== 0);
 
-        if (!hasDrawing) {
-            alert('Please add your signature before approving');
+        if (!hasSignature) {
+            alert('Please provide your digital signature');
             return;
         }
 
@@ -247,6 +246,7 @@ export default function ExtensionApprovalDashboard() {
         }
     };
 
+    // ==================== SUBMIT REJECTION ====================
     const submitRejection = async () => {
         if (!selectedExtension) return;
 
@@ -291,7 +291,7 @@ export default function ExtensionApprovalDashboard() {
         }
     };
 
-    // Canvas drawing functions
+    // ==================== CANVAS DRAWING FUNCTIONS ====================
     const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -339,7 +339,9 @@ export default function ExtensionApprovalDashboard() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
 
+    // ==================== UTILITY FUNCTIONS ====================
     const formatDate = (dateString: string) => {
+        if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -353,7 +355,8 @@ export default function ExtensionApprovalDashboard() {
         const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
             'Pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
             'Approved': { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
-            'Rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' }
+            'Rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
+            'Extension_Requested': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' }
         };
 
         const config = statusConfig[status] || statusConfig['Pending'];
@@ -365,6 +368,7 @@ export default function ExtensionApprovalDashboard() {
         );
     };
 
+    // ==================== RENDER EXTENSION TABLE ====================
     const renderExtensionTable = (extensions: ExtensionRequest[], showActions: boolean) => {
         if (extensions.length === 0) {
             return (
@@ -399,7 +403,7 @@ export default function ExtensionApprovalDashboard() {
                                 <td className="px-4 py-4 text-sm text-slate-600">{ext.work_location}</td>
                                 <td className="px-4 py-4 text-sm text-slate-600">{formatDate(ext.original_end_time)}</td>
                                 <td className="px-4 py-4 text-sm font-medium text-green-700">{formatDate(ext.new_end_time)}</td>
-                                <td className="px-4 py-4 text-sm text-slate-600 max-w-xs truncate">{ext.reason}</td>
+                                <td className="px-4 py-4 text-sm text-slate-600 max-w-xs truncate" title={ext.reason}>{ext.reason}</td>
                                 <td className="px-4 py-4 text-sm text-slate-600">{ext.requested_by_name}</td>
                                 <td className="px-4 py-4 text-sm">
                                     {getStatusBadge(ext.my_approval_status || ext.status)}
@@ -521,10 +525,10 @@ export default function ExtensionApprovalDashboard() {
                                 <p className="text-sm">{selectedExtension.reason}</p>
                             </div>
 
-                            {/* Remarks (Optional) */}
+                            {/* Optional Remarks */}
                             <div>
                                 <label className="block mb-2 text-sm font-medium text-slate-700">
-                                    Comments (Optional)
+                                    Remarks (Optional)
                                 </label>
                                 <textarea
                                     value={remarks}
@@ -535,7 +539,7 @@ export default function ExtensionApprovalDashboard() {
                                 />
                             </div>
 
-                            {/* Signature Canvas */}
+                            {/* Digital Signature */}
                             <div>
                                 <label className="block mb-2 text-sm font-medium text-slate-700">
                                     Digital Signature <span className="text-red-500">*</span>
@@ -553,7 +557,6 @@ export default function ExtensionApprovalDashboard() {
                                     />
                                 </div>
                                 <button
-                                    type="button"
                                     onClick={clearSignature}
                                     className="flex items-center gap-2 px-3 py-1 mt-2 text-sm text-red-600 transition-colors rounded hover:bg-red-50"
                                 >
@@ -673,31 +676,16 @@ export default function ExtensionApprovalDashboard() {
                         ) : ptwDetails && ptwDetails.permit ? (
                             <div className="space-y-6">
                                 {/* Extension Request Info */}
-                                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                                    <h4 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
-                                        <Clock className="w-5 h-5 text-yellow-600" />
-                                        Extension Request
-                                    </h4>
+                                <div className="p-4 rounded-lg bg-blue-50 border-blue-200">
+                                    <h4 className="font-bold text-blue-900 mb-3">Extension Request Information</h4>
                                     <div className="grid grid-cols-2 gap-3 text-sm">
                                         <div>
-                                            <p className="text-slate-600">Original End Time:</p>
-                                            <p className="font-medium">{formatDate(selectedExtension.original_end_time)}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">New End Time:</p>
-                                            <p className="font-medium text-green-700">{formatDate(selectedExtension.new_end_time)}</p>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <p className="text-slate-600">Reason:</p>
-                                            <p className="font-medium">{selectedExtension.reason}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">Requested By:</p>
-                                            <p className="font-medium">{selectedExtension.requested_by_name}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">Requested At:</p>
+                                            <p className="text-blue-600">Requested At:</p>
                                             <p className="font-medium">{formatDate(selectedExtension.requested_at)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-blue-600">Requested By:</p>
+                                            <p className="font-medium">{selectedExtension.requested_by_name}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -733,91 +721,27 @@ export default function ExtensionApprovalDashboard() {
                                             <p className="text-slate-600">Work Description:</p>
                                             <p className="font-medium">{ptwDetails.permit.work_description}</p>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Timeline */}
+                                <div className="p-4 bg-white border rounded-lg border-slate-200">
+                                    <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <Clock className="w-5 h-5 text-blue-600" />
+                                        Timeline
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
                                         <div>
                                             <p className="text-slate-600">Start Time:</p>
                                             <p className="font-medium">{formatDate(ptwDetails.permit.start_time)}</p>
                                         </div>
                                         <div>
-                                            <p className="text-slate-600">Current End Time:</p>
-                                            <p className="font-medium">{formatDate(ptwDetails.permit.end_time)}</p>
+                                            <p className="text-slate-600">Original End Time:</p>
+                                            <p className="font-medium">{formatDate(selectedExtension.original_end_time)}</p>
                                         </div>
-                                    </div>
-                                </div>
-
-                                {/* People Involved */}
-                                <div className="p-4 bg-white border rounded-lg border-slate-200">
-                                    <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                        <User className="w-5 h-5 text-purple-600" />
-                                        People Involved
-                                    </h4>
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
-                                        <div>
-                                            <p className="text-slate-600">Created By:</p>
-                                            <p className="font-medium">{ptwDetails.permit.created_by_name}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">Permit Initiator:</p>
-                                            <p className="font-medium">{ptwDetails.permit.permit_initiator}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">Issued To:</p>
-                                            <p className="font-medium">{ptwDetails.permit.receiver_name}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">Department:</p>
-                                            <p className="font-medium">{ptwDetails.permit.issue_department}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Approval Status */}
-                                <div className="p-4 bg-white border rounded-lg border-slate-200">
-                                    <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                        <CheckCircle className="w-5 h-5 text-green-600" />
-                                        Approval Status
-                                    </h4>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                                            <span className="font-medium">Area Manager:</span>
-                                            <div className="text-right">
-                                                <p>{ptwDetails.permit.area_manager_name || 'Not assigned'}</p>
-                                                <span className={`text-xs px-2 py-1 rounded ${ptwDetails.permit.area_manager_status === 'Approved'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : ptwDetails.permit.area_manager_status === 'Rejected'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                    {ptwDetails.permit.area_manager_status || 'Pending'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                                            <span className="font-medium">Safety Officer:</span>
-                                            <div className="text-right">
-                                                <p>{ptwDetails.permit.safety_officer_name || 'Not assigned'}</p>
-                                                <span className={`text-xs px-2 py-1 rounded ${ptwDetails.permit.safety_officer_status === 'Approved'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : ptwDetails.permit.safety_officer_status === 'Rejected'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                    {ptwDetails.permit.safety_officer_status || 'Pending'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                                            <span className="font-medium">Site Leader:</span>
-                                            <div className="text-right">
-                                                <p>{ptwDetails.permit.site_leader_name || 'Not assigned'}</p>
-                                                <span className={`text-xs px-2 py-1 rounded ${ptwDetails.permit.site_leader_status === 'Approved'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : ptwDetails.permit.site_leader_status === 'Rejected'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                    {ptwDetails.permit.site_leader_status || 'Pending'}
-                                                </span>
-                                            </div>
+                                        <div className="col-span-2 p-3 bg-green-50 rounded border border-green-200">
+                                            <p className="text-green-700 font-semibold">New End Time (if approved):</p>
+                                            <p className="font-bold text-green-900 text-lg">{formatDate(selectedExtension.new_end_time)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -826,14 +750,19 @@ export default function ExtensionApprovalDashboard() {
                                 {ptwDetails.team_members && ptwDetails.team_members.length > 0 && (
                                     <div className="p-4 bg-white border rounded-lg border-slate-200">
                                         <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                            <Users className="w-5 h-5 text-indigo-600" />
+                                            <Users className="w-5 h-5 text-blue-600" />
                                             Team Members ({ptwDetails.team_members.length})
                                         </h4>
-                                        <div className="space-y-2 text-sm">
+                                        <div className="space-y-2">
                                             {ptwDetails.team_members.map((member: any, idx: number) => (
-                                                <div key={idx} className="p-2 bg-slate-50 rounded">
-                                                    <p className="font-medium">{member.worker_name}</p>
-                                                    <p className="text-slate-600">{member.company_name} - {member.worker_role}</p>
+                                                <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded">
+                                                    <div>
+                                                        <p className="font-medium">{member.worker_name}</p>
+                                                        <p className="text-xs text-slate-600">{member.worker_role}</p>
+                                                    </div>
+                                                    {member.company_name && (
+                                                        <p className="text-xs text-slate-500">{member.company_name}</p>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -844,13 +773,13 @@ export default function ExtensionApprovalDashboard() {
                                 {ptwDetails.hazards && ptwDetails.hazards.length > 0 && (
                                     <div className="p-4 bg-white border rounded-lg border-slate-200">
                                         <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                                            <AlertTriangle className="w-5 h-5 text-orange-600" />
                                             Identified Hazards ({ptwDetails.hazards.length})
                                         </h4>
                                         <div className="flex flex-wrap gap-2">
                                             {ptwDetails.hazards.map((hazard: any, idx: number) => (
-                                                <span key={idx} className="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                                                    {hazard.name || hazard.hazard_name}
+                                                <span key={idx} className="px-3 py-1 text-sm bg-orange-100 text-orange-800 rounded-full">
+                                                    {hazard.hazard_name || hazard.name}
                                                 </span>
                                             ))}
                                         </div>
@@ -861,30 +790,23 @@ export default function ExtensionApprovalDashboard() {
                                 {ptwDetails.ppe && ptwDetails.ppe.length > 0 && (
                                     <div className="p-4 bg-white border rounded-lg border-slate-200">
                                         <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                            <Shield className="w-5 h-5 text-orange-600" />
+                                            <HardHat className="w-5 h-5 text-green-600" />
                                             Required PPE ({ptwDetails.ppe.length})
                                         </h4>
                                         <div className="flex flex-wrap gap-2">
                                             {ptwDetails.ppe.map((item: any, idx: number) => (
-                                                <span key={idx} className="px-3 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
-                                                    {item.name || item.ppe_name}
+                                                <span key={idx} className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">
+                                                    {item.ppe_name || item.name}
                                                 </span>
                                             ))}
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Control Measures */}
-                                {ptwDetails.permit.control_measures && (
-                                    <div className="p-4 bg-white border rounded-lg border-slate-200">
-                                        <h4 className="font-bold text-slate-900 mb-2">Control Measures</h4>
-                                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{ptwDetails.permit.control_measures}</p>
-                                    </div>
-                                )}
                             </div>
                         ) : (
-                            <div className="py-12 text-center text-slate-600">
-                                No PTW details available
+                            <div className="py-12 text-center">
+                                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                                <p className="text-slate-600">Failed to load PTW details</p>
                             </div>
                         )}
                     </div>
