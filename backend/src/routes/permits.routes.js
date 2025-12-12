@@ -1061,13 +1061,33 @@ router.get('/:id', async (req, res) => {
       [id]
     );
 
+    // Get extension requests
+    const [extensions] = await pool.query(
+      `SELECT 
+        pe.*,
+        requester.full_name as requested_by_name,
+        requester.email as requested_by_email,
+        sl.full_name as site_leader_name,
+        sl.email as site_leader_email,
+        so.full_name as safety_officer_name,
+        so.email as safety_officer_email
+       FROM permit_extensions pe
+       LEFT JOIN users requester ON pe.requested_by_user_id = requester.id
+       LEFT JOIN users sl ON pe.site_leader_id = sl.id
+       LEFT JOIN users so ON pe.safety_officer_id = so.id
+       WHERE pe.permit_id = ?
+       ORDER BY pe.requested_at DESC`,
+      [id]
+    );
+
     // Combine all data
     const fullPermit = {
       ...permit,
       team_members: teamMembers,
       hazards: hazards,
       ppe: ppe,
-      checklist_responses: checklistResponses
+      checklist_responses: checklistResponses,
+      extensions: extensions
     };
 
     res.json({
@@ -1568,7 +1588,7 @@ router.post('/:id/request-extension', async (req, res) => {
 
     // Check if permit exists and is in Active status
     const [permits] = await connection.query(
-      'SELECT id, status, permit_serial, site_leader_id, safety_officer_id FROM permits WHERE id = ?',
+      'SELECT id, status, permit_serial, end_time, site_leader_id, safety_officer_id FROM permits WHERE id = ?',
       [id]
     );
 
@@ -1597,6 +1617,7 @@ router.post('/:id/request-extension', async (req, res) => {
           permit_id, 
           requested_by_user_id, 
           requested_at,
+          original_end_time,
           new_end_time, 
           reason, 
           status,
@@ -1604,8 +1625,8 @@ router.post('/:id/request-extension', async (req, res) => {
           site_leader_status,
           safety_officer_id,
           safety_officer_status
-        ) VALUES (?, ?, NOW(), ?, ?, 'Pending', ?, 'Pending', ?, 'Pending')
-      `, [id, userId, new_end_time, reason, permit.site_leader_id, permit.safety_officer_id]);
+        ) VALUES (?, ?, NOW(), ?, ?, ?, 'Extension_Requested', ?, 'Pending', ?, 'Pending')
+      `, [id, userId, permit.end_time, new_end_time, reason, permit.site_leader_id, permit.safety_officer_id]);
 
       console.log('✅ Extension request inserted into permit_extensions with approvers');
     } catch (err) {

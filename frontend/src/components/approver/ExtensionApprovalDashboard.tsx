@@ -8,7 +8,8 @@ import {
     XCircle,
     FileText,
     User,
-    MapPin
+    MapPin,
+    Eye
 } from 'lucide-react';
 
 interface ExtensionRequest {
@@ -56,36 +57,58 @@ export default function ExtensionApprovalDashboard() {
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+            console.log('🔍 Loading extension requests...');
+            console.log('📍 Base URL:', baseURL);
+            console.log('🔑 Token exists:', !!token);
+
             // Fetch pending extensions
+            console.log('📥 Fetching pending extensions from:', `${baseURL}/extension-approvals/pending`);
             const pendingRes = await fetch(`${baseURL}/extension-approvals/pending`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            console.log('📊 Pending response status:', pendingRes.status);
             const pendingData = await pendingRes.json();
+            console.log('📦 Pending data:', pendingData);
             if (pendingData.success) {
+                console.log(`✅ Found ${pendingData.data.length} pending extensions`);
                 setPendingExtensions(pendingData.data);
+            } else {
+                console.error('❌ Pending request failed:', pendingData.message);
             }
 
             // Fetch approved extensions
+            console.log('📥 Fetching approved extensions from:', `${baseURL}/extension-approvals/approved`);
             const approvedRes = await fetch(`${baseURL}/extension-approvals/approved`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            console.log('📊 Approved response status:', approvedRes.status);
             const approvedData = await approvedRes.json();
+            console.log('📦 Approved data:', approvedData);
             if (approvedData.success) {
+                console.log(`✅ Found ${approvedData.data.length} approved extensions`);
                 setApprovedExtensions(approvedData.data);
+            } else {
+                console.error('❌ Approved request failed:', approvedData.message);
             }
 
             // Fetch rejected extensions
+            console.log('📥 Fetching rejected extensions from:', `${baseURL}/extension-approvals/rejected`);
             const rejectedRes = await fetch(`${baseURL}/extension-approvals/rejected`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            console.log('📊 Rejected response status:', rejectedRes.status);
             const rejectedData = await rejectedRes.json();
+            console.log('📦 Rejected data:', rejectedData);
             if (rejectedData.success) {
+                console.log(`✅ Found ${rejectedData.data.length} rejected extensions`);
                 setRejectedExtensions(rejectedData.data);
+            } else {
+                console.error('❌ Rejected request failed:', rejectedData.message);
             }
 
         } catch (error) {
-            console.error('Error loading extensions:', error);
-            alert('Failed to load extension requests');
+            console.error('❌ Error loading extensions:', error);
+            alert('Failed to load extension requests. Check console for details.');
         } finally {
             setLoading(false);
         }
@@ -345,6 +368,14 @@ export default function ExtensionApprovalDashboard() {
                                 {showActions && (
                                     <td className="px-6 py-4">
                                         <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => window.open(`/permit/${ext.permit_id}`, '_blank')}
+                                                className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700"
+                                                title="View Permit Details"
+                                            >
+                                                <Eye className="w-3 h-3 mr-1" />
+                                                View
+                                            </button>
                                             <button
                                                 onClick={() => handleApprove(ext)}
                                                 className="inline-flex items-center px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700"

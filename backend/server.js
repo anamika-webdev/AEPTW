@@ -42,6 +42,7 @@ const notificationsRoutes = require('./src/routes/notifications.routes');
 const approverSitesRoutes = require('./src/routes/approverSites.routes');
 const uploadsRoutes = require('./src/routes/uploads.routes');
 const evidenceRoutes = require('./src/routes/evidence.routes');
+const extensionApprovalsRoutes = require('./src/routes/extension-approvals.routes');
 
 const { initScheduler } = require('./src/services/cronService');
 
@@ -63,8 +64,9 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/approvers', approverSitesRoutes);
 app.use('/api', evidenceRoutes); // Checked before /api/uploads to handle /uploads/evidence
 app.use('/api/uploads', uploadsRoutes);
+app.use('/api/extension-approvals', extensionApprovalsRoutes);
 
-console.log('✅ Approver sites, Uploads, and Evidence routes loaded successfully');
+console.log('✅ Approver sites, Uploads, Evidence, and Extension Approval routes loaded successfully');
 
 // Vendors route (if separate file exists)
 try {

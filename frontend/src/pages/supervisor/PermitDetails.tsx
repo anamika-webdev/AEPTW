@@ -861,71 +861,169 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
               <Clock className="text-purple-600 w-7 h-7" />
               <h2 className="text-2xl font-bold text-slate-900">Extension Requests ({extensions.length})</h2>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {extensions.map((ext) => (
-                <div key={ext.id} className="p-4 border-2 rounded-lg border-purple-100 bg-purple-50">
-                  <div className="flex flex-col gap-2 md:flex-row md:justify-between md:items-start">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold uppercase text-purple-700">Request Date:</span>
-                        <span className="text-sm font-medium text-slate-700">{formatDate(ext.requested_at)}</span>
-                      </div>
-                      <div className="mb-2 text-sm text-slate-800">
-                        <span className="font-bold">Reason: </span>
-                        {ext.reason}
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <span className="text-slate-500">From:</span>
-                          <span className="font-medium text-slate-900">{formatDate(ext.original_end_time)}</span>
+                <div key={ext.id} className="border-2 rounded-lg border-purple-200 bg-gradient-to-br from-purple-50 to-white overflow-hidden">
+                  {/* Header Section */}
+                  <div className="p-4 bg-purple-100 border-b border-purple-200">
+                    <div className="flex flex-col gap-2 md:flex-row md:justify-between md:items-center">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Calendar className="w-4 h-4 text-purple-600" />
+                          <span className="text-xs font-bold uppercase text-purple-700">Request Date:</span>
+                          <span className="text-sm font-medium text-slate-700">{formatDate(ext.requested_at)}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-slate-500">To:</span>
-                          <span className="font-bold text-green-700">{formatDate(ext.new_end_time)}</span>
-                        </div>
+                        {ext.requested_by_name && (
+                          <div className="flex items-center gap-2 text-xs text-slate-600">
+                            <User className="w-3 h-3" />
+                            <span>Requested by: <span className="font-medium">{ext.requested_by_name}</span></span>
+                          </div>
+                        )}
                       </div>
-                      {ext.requested_by_name && (
-                        <div className="mt-2 text-xs text-slate-500">
-                          Requested by: {ext.requested_by_name}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-end gap-2 mt-2 md:mt-0">
-                      <span className={`px-3 py-1 text-xs font-bold rounded-full ${ext.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                        ext.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                        {ext.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-4 py-2 text-sm font-bold rounded-full shadow-sm ${ext.status === 'Extended' || ext.status === 'Approved' ? 'bg-green-100 text-green-800 border-2 border-green-300' :
+                            ext.status === 'Extension_Rejected' || ext.status === 'Rejected' ? 'bg-red-100 text-red-800 border-2 border-red-300' :
+                              ext.status === 'Extension_Requested' || ext.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300' :
+                                'bg-gray-100 text-gray-800 border-2 border-gray-300'
+                          }`}>
+                          {ext.status === 'Extended' ? '✓ Extended' :
+                            ext.status === 'Extension_Requested' ? '⏳ Pending Approval' :
+                              ext.status === 'Extension_Rejected' ? '✗ Rejected' :
+                                ext.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Approval Details for Extension */}
+                  {/* Time Extension Details */}
+                  <div className="p-4 bg-white">
+                    <div className="mb-3">
+                      <span className="text-sm font-bold text-slate-700">Reason for Extension:</span>
+                      <p className="mt-1 text-sm text-slate-600 italic bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        "{ext.reason}"
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-purple-200">
+                      <div>
+                        <span className="text-xs font-semibold text-slate-500 uppercase block mb-1">Original End Time</span>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-slate-500" />
+                          <span className="font-medium text-slate-900">{formatDate(ext.original_end_time)}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-xs font-semibold text-green-600 uppercase block mb-1">New End Time</span>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-green-600" />
+                          <span className="font-bold text-green-700 text-lg">{formatDate(ext.new_end_time)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Approval Status Section */}
                   {(ext.site_leader_status || ext.safety_officer_status) && (
-                    <div className="mt-4 pt-3 border-t border-purple-200 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {ext.site_leader_status && (
-                        <div className="text-xs">
-                          <span className="font-semibold text-slate-600 block mb-1">Site Leader:</span>
-                          <span className={`${ext.site_leader_status === 'Approved' ? 'text-green-700' :
-                            ext.site_leader_status === 'Rejected' ? 'text-red-700' :
-                              'text-yellow-700'
-                            } font-medium`}>
-                            {ext.site_leader_status}
-                          </span>
-                          {ext.site_leader_remarks && <p className="mt-1 text-slate-500 italic">"{ext.site_leader_remarks}"</p>}
+                    <div className="p-4 bg-slate-50 border-t-2 border-purple-200">
+                      <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Approval Status
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Site Leader Approval */}
+                        {ext.site_leader_status && (
+                          <div className={`p-4 rounded-lg border-2 ${ext.site_leader_status === 'Approved' ? 'bg-green-50 border-green-300' :
+                              ext.site_leader_status === 'Rejected' ? 'bg-red-50 border-red-300' :
+                                'bg-yellow-50 border-yellow-300'
+                            }`}>
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <span className="text-xs font-semibold text-slate-600 uppercase block">Site Leader</span>
+                                {(ext as any).site_leader_name && (
+                                  <span className="text-xs text-slate-500">{(ext as any).site_leader_name}</span>
+                                )}
+                              </div>
+                              <span className={`px-2 py-1 text-xs font-bold rounded-full ${ext.site_leader_status === 'Approved' ? 'bg-green-200 text-green-800' :
+                                  ext.site_leader_status === 'Rejected' ? 'bg-red-200 text-red-800' :
+                                    'bg-yellow-200 text-yellow-800'
+                                }`}>
+                                {ext.site_leader_status}
+                              </span>
+                            </div>
+                            {(ext as any).site_leader_approved_at && (
+                              <div className="text-xs text-slate-500 flex items-center gap-1 mt-2">
+                                <Calendar className="w-3 h-3" />
+                                {formatDate((ext as any).site_leader_approved_at)}
+                              </div>
+                            )}
+                            {ext.site_leader_remarks && (
+                              <div className="mt-2 pt-2 border-t border-current/20">
+                                <span className="text-xs font-semibold text-slate-600">Remarks:</span>
+                                <p className="mt-1 text-xs text-slate-600 italic">"{ext.site_leader_remarks}"</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Safety Officer Approval */}
+                        {ext.safety_officer_status && (
+                          <div className={`p-4 rounded-lg border-2 ${ext.safety_officer_status === 'Approved' ? 'bg-green-50 border-green-300' :
+                              ext.safety_officer_status === 'Rejected' ? 'bg-red-50 border-red-300' :
+                                'bg-yellow-50 border-yellow-300'
+                            }`}>
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <span className="text-xs font-semibold text-slate-600 uppercase block">Safety Officer</span>
+                                {(ext as any).safety_officer_name && (
+                                  <span className="text-xs text-slate-500">{(ext as any).safety_officer_name}</span>
+                                )}
+                              </div>
+                              <span className={`px-2 py-1 text-xs font-bold rounded-full ${ext.safety_officer_status === 'Approved' ? 'bg-green-200 text-green-800' :
+                                  ext.safety_officer_status === 'Rejected' ? 'bg-red-200 text-red-800' :
+                                    'bg-yellow-200 text-yellow-800'
+                                }`}>
+                                {ext.safety_officer_status}
+                              </span>
+                            </div>
+                            {(ext as any).safety_officer_approved_at && (
+                              <div className="text-xs text-slate-500 flex items-center gap-1 mt-2">
+                                <Calendar className="w-3 h-3" />
+                                {formatDate((ext as any).safety_officer_approved_at)}
+                              </div>
+                            )}
+                            {ext.safety_officer_remarks && (
+                              <div className="mt-2 pt-2 border-t border-current/20">
+                                <span className="text-xs font-semibold text-slate-600">Remarks:</span>
+                                <p className="mt-1 text-xs text-slate-600 italic">"{ext.safety_officer_remarks}"</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Overall Status Message */}
+                      {ext.status === 'Extended' && (
+                        <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+                          <div className="flex items-center gap-2 text-green-800">
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="font-semibold">Extension Approved - Permit end time has been extended</span>
+                          </div>
                         </div>
                       )}
-                      {ext.safety_officer_status && (
-                        <div className="text-xs">
-                          <span className="font-semibold text-slate-600 block mb-1">Safety Officer:</span>
-                          <span className={`${ext.safety_officer_status === 'Approved' ? 'text-green-700' :
-                            ext.safety_officer_status === 'Rejected' ? 'text-red-700' :
-                              'text-yellow-700'
-                            } font-medium`}>
-                            {ext.safety_officer_status}
-                          </span>
-                          {ext.safety_officer_remarks && <p className="mt-1 text-slate-500 italic">"{ext.safety_officer_remarks}"</p>}
+                      {(ext.status === 'Extension_Requested' || ext.status === 'Pending') && (
+                        <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                          <div className="flex items-center gap-2 text-yellow-800">
+                            <Clock className="w-5 h-5" />
+                            <span className="font-semibold">Awaiting approval from all required approvers</span>
+                          </div>
+                        </div>
+                      )}
+                      {(ext.status === 'Extension_Rejected' || ext.status === 'Rejected') && (
+                        <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+                          <div className="flex items-center gap-2 text-red-800">
+                            <XCircle className="w-5 h-5" />
+                            <span className="font-semibold">Extension Request Rejected</span>
+                          </div>
                         </div>
                       )}
                     </div>
