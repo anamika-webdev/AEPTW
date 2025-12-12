@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth.middleware');
+const upload = require('../middleware/upload.middleware'); // Import upload middleware
 
 // Apply authentication to all routes
 router.use(authenticateToken);
@@ -1463,7 +1464,7 @@ router.post('/:id/request-extension', async (req, res) => {
 // ============================================================================
 // POST /api/permits/:id/close - Close PTW
 // ============================================================================
-router.post('/:id/close', async (req, res) => {
+router.post('/:id/close', upload.array('images', 10), async (req, res) => {
   let connection;
 
   try {
@@ -1471,24 +1472,27 @@ router.post('/:id/close', async (req, res) => {
     await connection.beginTransaction();
 
     const { id } = req.params;
-    const {
-      housekeeping_done,
-      tools_removed,
-      locks_removed,
-      area_restored,
-      remarks
-    } = req.body;
     const userId = req.user.id;
 
+    // Parse body (multipart/form-data converts booleans to strings)
+    const housekeeping_done = req.body.housekeeping_done === 'true';
+    const tools_removed = req.body.tools_removed === 'true';
+    const locks_removed = req.body.locks_removed === 'true';
+    const area_restored = req.body.area_restored === 'true';
+    const remarks = req.body.remarks;
+
+    // Parse evidence metadata
+    const { descriptions, categories, timestamps, latitudes, longitudes } = req.body;
+
     console.log(`📥 POST /api/permits/${id}/close - User: ${userId}`);
-    console.log('Closure data:', req.body);
+    console.log('Closure data:', { housekeeping_done, tools_removed, locks_removed, area_restored, remarks });
 
     // Validate required fields
     if (
-      housekeeping_done === undefined ||
-      tools_removed === undefined ||
-      locks_removed === undefined ||
-      area_restored === undefined
+      req.body.housekeeping_done === undefined ||
+      req.body.tools_removed === undefined ||
+      req.body.locks_removed === undefined ||
+      req.body.area_restored === undefined
     ) {
       await connection.rollback();
       return res.status(400).json({
@@ -1522,17 +1526,18 @@ router.post('/:id/close', async (req, res) => {
 
     const permit = permits[0];
 
-    if (permit.status !== 'Active' && permit.status !== 'Extension_Requested' && permit.status !== 'Extended') {
+    if (permit.status !== 'Active' && permit.status !== 'Extension_Requested' && permit.status !== 'Extended' && permit.status !== 'Ready_To_Start') {
       await connection.rollback();
       return res.status(400).json({
         success: false,
-        message: `Cannot close permit with status: ${permit.status}. Only Active or Extended permits can be closed.`
+        message: `Cannot close permit with status: ${permit.status}. Only Active, Ready To Start, or Extended permits can be closed.`
       });
     }
 
-    // Insert closure record into permit_closure table (optional)
+    // Insert closure record into permit_closure table
+    let closureId;
     try {
-      await connection.query(`
+      const [result] = await connection.query(`
         INSERT INTO permit_closure (
           permit_id, 
           closed_by_user_id, 
@@ -1545,10 +1550,52 @@ router.post('/:id/close', async (req, res) => {
         ) VALUES (?, ?, NOW(), ?, ?, ?, ?, ?)
       `, [id, userId, housekeeping_done, tools_removed, locks_removed, area_restored, remarks || null]);
 
-      console.log('✅ Closure record inserted into permit_closure');
+      closureId = result.insertId;
+      console.log('✅ Closure record inserted into permit_closure, ID:', closureId);
     } catch (err) {
-      console.log('⚠️ permit_closure table may not exist:', err.message);
-      // Continue anyway - we'll still update the permit status
+      console.error('❌ Error creating closure record:', err);
+      throw err;
+    }
+
+    // Handle Evidence Uploads
+    if (req.files && req.files.length > 0) {
+      const descArray = JSON.parse(descriptions || '[]');
+      const catArray = JSON.parse(categories || '[]');
+      const timeArray = JSON.parse(timestamps || '[]');
+      const latArray = JSON.parse(latitudes || '[]');
+      const lonArray = JSON.parse(longitudes || '[]');
+      const files = req.files;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const filePath = `/uploads/closure/${file.filename}`;
+
+        await connection.query(
+          `INSERT INTO permit_closure_evidence (
+            closure_id, 
+            permit_id, 
+            file_path, 
+            category,
+            description, 
+            timestamp, 
+            latitude, 
+            longitude,
+            captured_by_user_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            closureId,
+            id,
+            filePath,
+            catArray[i] || 'other',
+            descArray[i] || null,
+            timeArray[i] || new Date(),
+            latArray[i] || null,
+            lonArray[i] || null,
+            userId
+          ]
+        );
+      }
+      console.log(`✅ Uploaded ${files.length} closure evidence images`);
     }
 
     // Update permit status to Closed
@@ -1587,5 +1634,129 @@ router.post('/:id/close', async (req, res) => {
   }
 });
 
+// ⭐ NEW: Upload closure evidence with photos
+router.post('/:id/closure/evidence', authenticateToken, upload.array('images', 10), async (req, res) => {
+  const connection = await pool.getConnection();
 
+  try {
+    const { id } = req.params;
+    const { descriptions, categories, timestamps, latitudes, longitudes } = req.body;
+    const userId = req.user.id;
+
+    console.log(`📸 POST /api/permits/${id}/closure/evidence - User: ${userId}`);
+
+    // Check if permit has closure
+    const [closures] = await connection.query(
+      'SELECT id FROM permit_closure WHERE permit_id = ?',
+      [id]
+    );
+
+    if (closures.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Permit closure not found. Please close the permit first.'
+      });
+    }
+
+    const closureId = closures[0].id;
+
+    // Parse arrays from request body
+    const descArray = JSON.parse(descriptions || '[]');
+    const catArray = JSON.parse(categories || '[]');
+    const timeArray = JSON.parse(timestamps || '[]');
+    const latArray = JSON.parse(latitudes || '[]');
+    const lonArray = JSON.parse(longitudes || '[]');
+
+    const files = req.files;
+    const evidenceRecords = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const filePath = `/uploads/closure/${file.filename}`;
+
+      const [result] = await connection.query(
+        `INSERT INTO permit_closure_evidence (
+          closure_id, 
+          permit_id, 
+          file_path, 
+          category,
+          description, 
+          timestamp, 
+          latitude, 
+          longitude,
+          captured_by_user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          closureId,
+          id,
+          filePath,
+          catArray[i] || 'other',
+          descArray[i] || null,
+          timeArray[i] || new Date(),
+          latArray[i] || null,
+          lonArray[i] || null,
+          userId
+        ]
+      );
+
+      evidenceRecords.push({
+        id: result.insertId,
+        file_path: filePath,
+        category: catArray[i] || 'other',
+        description: descArray[i] || null,
+        timestamp: timeArray[i] || new Date(),
+        latitude: latArray[i] || null,
+        longitude: lonArray[i] || null
+      });
+    }
+
+    console.log(`✅ Uploaded ${evidenceRecords.length} closure evidence images`);
+
+    res.json({
+      success: true,
+      message: 'Closure evidence uploaded successfully',
+      data: evidenceRecords
+    });
+
+  } catch (error) {
+    console.error('❌ Error uploading closure evidence:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload closure evidence',
+      error: error.message
+    });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// ⭐ NEW: Get closure evidence for a permit
+router.get('/:id/closure/evidence', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [evidence] = await pool.query(
+      `SELECT 
+        pce.*,
+        u.full_name as captured_by_name
+      FROM permit_closure_evidence pce
+      LEFT JOIN users u ON pce.captured_by_user_id = u.id
+      WHERE pce.permit_id = ?
+      ORDER BY pce.timestamp DESC`,
+      [id]
+    );
+
+    res.json({
+      success: true,
+      data: evidence
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching closure evidence:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch closure evidence'
+    });
+  }
+});
 module.exports = router;

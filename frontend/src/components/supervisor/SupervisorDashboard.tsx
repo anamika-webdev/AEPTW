@@ -57,6 +57,15 @@ interface ClosureData {
   completion_notes: string;
   safety_incidents: string;
   supervisor_signature: string;
+  closureEvidences?: {
+    file: File;
+    preview: string;
+    category: string;
+    description: string;
+    timestamp: string;
+    latitude: number | null;
+    longitude: number | null;
+  }[];
 }
 
 export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardProps) {
@@ -254,19 +263,43 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+      const formData = new FormData();
+      formData.append('housekeeping_done', String(closureData.housekeeping_done));
+      formData.append('tools_removed', String(closureData.tools_removed));
+      formData.append('locks_removed', String(closureData.locks_removed));
+      formData.append('area_restored', String(closureData.area_restored));
+      formData.append('remarks', `${closureData.completion_notes}\n\nSafety Incidents: ${closureData.safety_incidents || 'None'}\n\nSigned by: ${closureData.supervisor_signature}`);
+
+      // Append Evidence
+      if (closureData.closureEvidences && closureData.closureEvidences.length > 0) {
+        const descriptions: string[] = [];
+        const categories: string[] = [];
+        const timestamps: string[] = [];
+        const latitudes: (number | null)[] = [];
+        const longitudes: (number | null)[] = [];
+
+        closureData.closureEvidences.forEach((evidence) => {
+          formData.append('images', evidence.file);
+          descriptions.push(evidence.description || '');
+          categories.push(evidence.category);
+          timestamps.push(evidence.timestamp);
+          latitudes.push(evidence.latitude);
+          longitudes.push(evidence.longitude);
+        });
+
+        formData.append('descriptions', JSON.stringify(descriptions));
+        formData.append('categories', JSON.stringify(categories));
+        formData.append('timestamps', JSON.stringify(timestamps));
+        formData.append('latitudes', JSON.stringify(latitudes));
+        formData.append('longitudes', JSON.stringify(longitudes));
+      }
+
       const response = await fetch(`${baseURL}/permits/${permitId}/close`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          housekeeping_done: closureData.housekeeping_done,
-          tools_removed: closureData.tools_removed,
-          locks_removed: closureData.locks_removed,
-          area_restored: closureData.area_restored,
-          remarks: `${closureData.completion_notes}\n\nSafety Incidents: ${closureData.safety_incidents || 'None'}\n\nSigned by: ${closureData.supervisor_signature}`
-        })
+        body: formData
       });
 
       const data = await response.json();

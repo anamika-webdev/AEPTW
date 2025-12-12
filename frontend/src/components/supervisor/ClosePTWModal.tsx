@@ -1,9 +1,7 @@
-// frontend/src/components/supervisor/ClosePTWModal.tsx
-// COMPLETE VERSION WITH DIGITAL SIGNATURE CANVAS
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { X, AlertTriangle, CheckCircle, PenTool, RotateCcw } from 'lucide-react';
+import { X, AlertTriangle, CheckCircle, PenTool, RotateCcw, Camera } from 'lucide-react';
+import { CameraModal } from '../shared/CameraModal';
 
 interface PermitWithDetails {
   id: number;
@@ -19,6 +17,16 @@ interface ClosePTWModalProps {
   onSubmit: (closureData: ClosureData) => void;
 }
 
+export interface ClosureEvidence {
+  file: File;
+  preview: string;
+  category: 'area_organization' | 'activity_completion';
+  description: string;
+  timestamp: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export interface ClosureData {
   housekeeping_done: boolean;
   tools_removed: boolean;
@@ -27,6 +35,7 @@ export interface ClosureData {
   completion_notes: string;
   safety_incidents: string;
   supervisor_signature: string;
+  closureEvidences?: ClosureEvidence[];
 }
 
 export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
@@ -45,9 +54,12 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
     supervisor_signature: '',
   });
 
+  /* Existing logic */
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
+  const [closureEvidences, setClosureEvidences] = useState<ClosureEvidence[]>([]);
+  const [showCameraModal, setShowCameraModal] = useState(false);
 
   useEffect(() => {
     if (isOpen && canvasRef.current) {
@@ -62,6 +74,64 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
     }
   }, [isOpen]);
 
+  // Helper to get location
+  const getCurrentLocation = (): Promise<{ latitude: number | null; longitude: number | null }> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve({ latitude: null, longitude: null });
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.warn('Error getting location:', error);
+          resolve({ latitude: null, longitude: null });
+        }
+      );
+    });
+  };
+
+
+
+  const handleCameraCapture = async (blob: Blob) => {
+    try {
+      const location = await getCurrentLocation();
+      const timestamp = new Date().toISOString();
+
+      const file = new File([blob], `closure-evidence-${Date.now()}.jpg`, {
+        type: 'image/jpeg'
+      });
+      const preview = URL.createObjectURL(file);
+
+      const newEvidence: ClosureEvidence = {
+        file,
+        preview,
+        category: 'area_organization', // Default category
+        description: '',
+        timestamp,
+        latitude: location.latitude,
+        longitude: location.longitude
+      };
+
+      setClosureEvidences(prev => [...prev, newEvidence]);
+    } catch (error) {
+      console.error('Error processing captured evidence', error);
+    }
+  };
+
+  const removeEvidence = (index: number) => {
+    setClosureEvidences(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateEvidenceDescription = (index: number, desc: string) => {
+    setClosureEvidences(prev => prev.map((item, i) => i === index ? { ...item, description: desc } : item));
+  };
+
   if (!isOpen || !permit) return null;
 
   const handleCheckboxChange = (field: keyof ClosureData) => {
@@ -74,14 +144,14 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     ctx.beginPath();
     ctx.moveTo(x, y);
     setIsDrawing(true);
@@ -90,17 +160,17 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
-    
+
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     ctx.lineTo(x, y);
     ctx.stroke();
   };
@@ -112,10 +182,10 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
   const clearSignature = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasSignature(false);
     setClosureData(prev => ({ ...prev, supervisor_signature: '' }));
@@ -123,8 +193,8 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const allChecked = 
+
+    const allChecked =
       closureData.housekeeping_done &&
       closureData.tools_removed &&
       closureData.locks_removed &&
@@ -152,7 +222,7 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
     }
   };
 
-  const allChecklistComplete = 
+  const allChecklistComplete =
     closureData.housekeeping_done &&
     closureData.tools_removed &&
     closureData.locks_removed &&
@@ -248,6 +318,54 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
             </div>
           </div>
 
+
+          {/* Evidence Capture Section */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Evidence Photos <span className="text-red-500">*</span>
+            </h3>
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowCameraModal(true)}
+                className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-orange-500 transition-all"
+              >
+                <div className="p-3 mb-3 bg-orange-100 rounded-full text-orange-600">
+                  <Camera className="w-8 h-8" />
+                </div>
+                <span className="text-lg font-medium text-gray-900 text-center">Click to Capture Evidence</span>
+                <span className="text-sm text-gray-500 text-center">Capture area and activity photos</span>
+              </button>
+            </div>
+
+            {/* Preview List */}
+            {closureEvidences.length > 0 && (
+              <div className="space-y-2 mt-2">
+                {closureEvidences.map((evidence, index) => (
+                  <div key={index} className="flex gap-3 p-2 bg-gray-50 rounded border border-gray-200">
+                    <img src={evidence.preview} alt="Preview" className="w-12 h-12 object-cover rounded bg-gray-200" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between">
+                        <span className="text-xs font-bold text-gray-600 uppercase">{evidence.category.replace('_', ' ')}</span>
+                        <button type="button" onClick={() => removeEvidence(index)} className="text-red-500 hover:text-red-700">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Description..."
+                        value={evidence.description}
+                        onChange={(e) => updateEvidenceDescription(index, e.target.value)}
+                        className="w-full mt-1 text-xs border-b border-gray-300 bg-transparent focus:border-orange-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Notes */}
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -336,17 +454,23 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
             <Button
               type="submit"
               disabled={!allChecklistComplete || !hasSignature}
-              className={`flex-1 ${
-                allChecklistComplete && hasSignature
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-gray-300 cursor-not-allowed'
-              }`}
+              className={`flex-1 ${allChecklistComplete && hasSignature
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-gray-300 cursor-not-allowed'
+                }`}
             >
               Close PTW
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </div >
+      {showCameraModal && (
+        <CameraModal
+          isOpen={showCameraModal}
+          onClose={() => setShowCameraModal(false)}
+          onCapture={handleCameraCapture}
+        />
+      )}
+    </div >
   );
 };

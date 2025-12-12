@@ -55,7 +55,7 @@ interface PTWFormData {
   // Add other missing fields to this interface or rely on state initialization inference if this interface is incomplete
   [key: string]: any;
 }
-
+import { CameraModal } from '../shared/CameraModal';
 
 export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -72,13 +72,16 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [areaManagers, setAreaManagers] = useState<User[]>([]);
   const [safetyOfficers, setSafetyOfficers] = useState<User[]>([]);
   const [siteLeaders, setSiteLeaders] = useState<User[]>([]);
-
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [captureType, setCaptureType] = useState<'worker' | 'evidence'>('worker');
+  const [currentWorkerIndex, setCurrentWorkerIndex] = useState<number | null>(null);
   const [newWorkers, setNewWorkers] = useState<Array<{
     name: string;
     phone: string;
     email: string;
     companyName: string;
     role: WorkerRole;
+    trainingEvidences: TrainingEvidence[];  // ⭐ ADD THIS LINE
   }>>([]);
 
   const [formData, setFormData] = useState<PTWFormData>({
@@ -120,7 +123,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     declaration: false,
   });
 
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+
 
   // Geolocation function
   const getCurrentLocation = (): Promise<{ latitude: number | null; longitude: number | null }> => {
@@ -144,53 +147,61 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       );
     });
   };
+  // ⭐ NEW: Handle captured photo from camera
+  const handlePhotoCaptured = (workerIndex: number, blob: Blob) => {
+    const file = new File([blob], `training-evidence-${Date.now()}.jpg`, {
+      type: 'image/jpeg'
+    });
 
-  // Handle evidence upload
-  const handleEvidenceUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-    category: Evidence['category']
-  ) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
+    const evidence: TrainingEvidence = {
+      id: `evidence-${Date.now()}-${Math.random()}`,
+      file,
+      preview: URL.createObjectURL(blob),
+      caption: '',
+    };
 
+    setNewWorkers((prev) =>
+      prev.map((worker, idx) =>
+        idx === workerIndex
+          ? { ...worker, trainingEvidences: [...worker.trainingEvidences, evidence] }
+          : worker
+      )
+    );
+  };
+
+  const handleEvidenceCaptured = async (blob: Blob) => {
     try {
       const location = await getCurrentLocation();
       const timestamp = new Date().toISOString();
 
-      const newEvidences: Evidence[] = [];
+      const file = new File([blob], `evidence-${Date.now()}.jpg`, {
+        type: 'image/jpeg'
+      });
+      const preview = URL.createObjectURL(blob);
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const preview = URL.createObjectURL(file);
-
-        const evidence: Evidence = {
-          id: `${Date.now()}-${i}`,
-          file,
-          preview,
-          timestamp,
-          latitude: location.latitude,
-          longitude: location.longitude,
-          category,
-          description: '',
-        };
-
-        newEvidences.push(evidence);
-      }
+      const evidence: Evidence = {
+        id: `${Date.now()}`,
+        file,
+        preview,
+        timestamp,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        category: 'ppe', // Default category
+        description: '',
+      };
 
       setFormData((prev) => ({
         ...prev,
-        evidences: [...prev.evidences, ...newEvidences],
+        evidences: [...prev.evidences, evidence],
       }));
     } catch (error) {
-      console.error('Error uploading evidence:', error);
-      alert('Failed to upload evidence. Please try again.');
-    }
-
-    // Reset input
-    if (event.target) {
-      event.target.value = '';
+      console.error('Error processing captured evidence:', error);
+      alert('Failed to process captured photo.');
     }
   };
+
+
+
 
   // Remove evidence
   const removeEvidence = (id: string) => {
@@ -513,6 +524,103 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         : [...prev.categories, category]
     }));
   };
+  // ⭐ UPDATED: Camera Capture Handler (replaces upload handler)
+  const handleCameraCapture = async (workerIndex: number) => {
+    try {
+      // Request camera access
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' } // Use back camera on mobile
+      });
+
+      // Create video element
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.setAttribute('playsinline', 'true'); // Important for iOS
+      await video.play();
+
+      // Create canvas for capture
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Show camera preview in modal (you'll need to implement the modal UI)
+      // For now, auto-capture after 2 seconds
+      setTimeout(() => {
+        const context = canvas.getContext('2d');
+        if (context) {
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          // Convert to blob
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const file = new File([blob], `training-evidence-${Date.now()}.jpg`, {
+                type: 'image/jpeg'
+              });
+
+              const evidence: TrainingEvidence = {
+                id: `evidence-${Date.now()}-${Math.random()}`,
+                file,
+                preview: URL.createObjectURL(blob),
+                caption: '',
+              };
+
+              // Add to worker's evidence
+              setNewWorkers((prev) =>
+                prev.map((worker, idx) =>
+                  idx === workerIndex
+                    ? { ...worker, trainingEvidences: [...worker.trainingEvidences, evidence] }
+                    : worker
+                )
+              );
+            }
+
+            // Stop camera
+            stream.getTracks().forEach(track => track.stop());
+          }, 'image/jpeg', 0.9);
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error('Camera access error:', error);
+      alert('Unable to access camera. Please check permissions.');
+    }
+  };
+
+  // ⭐ NEW FUNCTION 2: Remove Training Evidence
+  const handleRemoveTrainingEvidence = (workerIndex: number, evidenceId: string) => {
+    setNewWorkers((prev) =>
+      prev.map((worker, idx) => {
+        if (idx === workerIndex) {
+          // Revoke object URL to prevent memory leaks
+          const evidence = worker.trainingEvidences.find((e) => e.id === evidenceId);
+          if (evidence) {
+            URL.revokeObjectURL(evidence.preview);
+          }
+          return {
+            ...worker,
+            trainingEvidences: worker.trainingEvidences.filter((e) => e.id !== evidenceId),
+          };
+        }
+        return worker;
+      })
+    );
+  };
+
+  // ⭐ NEW FUNCTION 3: Update Evidence Caption
+  const handleUpdateEvidenceCaption = (workerIndex: number, evidenceId: string, caption: string) => {
+    setNewWorkers((prev) =>
+      prev.map((worker, idx) =>
+        idx === workerIndex
+          ? {
+            ...worker,
+            trainingEvidences: worker.trainingEvidences.map((e) =>
+              e.id === evidenceId ? { ...e, caption } : e
+            ),
+          }
+          : worker
+      )
+    );
+  };
   const handleNext = () => {
     console.log('📍 Current Step:', currentStep);
 
@@ -599,6 +707,17 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       if (formData.selectedWorkers.length === 0 && newWorkers.length === 0) {
         alert('Please assign at least one worker');
         return;
+      }
+
+      // ⭐ NEW: Validate training evidences for new workers
+      const workersWithoutEvidence = newWorkers.filter(
+        (worker) => worker.trainingEvidences && worker.trainingEvidences.length === 0
+      );
+      if (workersWithoutEvidence.length > 0) {
+        const proceed = window.confirm(
+          `Warning: ${workersWithoutEvidence.length} worker(s) have no training evidence uploaded. Do you want to proceed anyway?`
+        );
+        if (!proceed) return;
       }
     }
 
@@ -880,11 +999,19 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       phone: '',
       email: '',
       companyName: '',
-      role: 'Worker' as WorkerRole
+      role: 'Worker' as WorkerRole,
+      trainingEvidences: []  // ⭐ ADD THIS LINE
     }]);
   };
 
   const removeNewWorker = (index: number) => {
+    // ⭐ Clean up any object URLs to prevent memory leaks
+    const worker = newWorkers[index];
+    if (worker && worker.trainingEvidences) {
+      worker.trainingEvidences.forEach((evidence) => {
+        URL.revokeObjectURL(evidence.preview);
+      });
+    }
     setNewWorkers(newWorkers.filter((_, i) => i !== index));
   };
 
@@ -902,6 +1029,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     setNewWorkers(updated);
   };
 
+
   interface RequirementRowProps {
     questionId: number;
     label: string;
@@ -911,7 +1039,13 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     textValue?: string;
     onTextChange?: (value: string) => void;
   }
-
+  //  Training Evidence Interface
+  interface TrainingEvidence {
+    id: string;
+    file: File;
+    preview: string;
+    caption?: string;
+  }
 
   // ALTERNATIVE FIX: Uncontrolled input with ref (no re-render issues)
   const RequirementRow = memo(({
@@ -1468,98 +1602,196 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     Add New Worker
                   </Button>
 
-                  {newWorkers.map((worker, index) => (
-                    <div key={index} className="p-4 space-y-4 border rounded-lg border-slate-200">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                          <Label htmlFor={`name-${index}`}>Name *</Label>
-                          <Input
-                            id={`name-${index}`}
-                            value={worker.name}
-                            onChange={(e) => updateNewWorker(index, 'name', e.target.value)}
-                            placeholder="e.g., Rahul Mishra"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`companyName-${index}`}>Company Name *</Label>
-                          <Input
-                            id={`companyName-${index}`}
-                            value={worker.companyName}
-                            onChange={(e) => updateNewWorker(index, 'companyName', e.target.value)}
-                            placeholder="e.g., XYZ Pvt Ltd"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`phone-${index}`}>Phone *</Label>
-                          <Input
-                            id={`phone-${index}`}
-                            value={worker.phone}
-                            onChange={(e) => updateNewWorker(index, 'phone', e.target.value)}
-                            placeholder="e.g., +1234567890"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`email-${index}`}>Email *</Label>
-                          <Input
-                            id={`email-${index}`}
-                            value={worker.email}
-                            onChange={(e) => updateNewWorker(index, 'email', e.target.value)}
-                            placeholder="e.g., rahul.mishra@example.com"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`role-${index}`}>Role *</Label>
-                          <Select
-                            value={worker.role}
-                            onValueChange={(value) => updateNewWorker(index, 'role', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Worker">Worker</SelectItem>
-                              <SelectItem value="Supervisor">Supervisor</SelectItem>
-                              <SelectItem value="Fire_Watcher">Fire Watcher</SelectItem>
-                              <SelectItem value="Standby">Standby Person</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex gap-2 pt-3 mt-3 border-t border-orange-300">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!worker.name || !worker.phone || !worker.companyName) {
-                                alert('Please fill required fields');
-                                return;
-                              }
-                              alert(`Worker "${worker.name}" saved!`);
-                            }}
-                            className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
-                          >
-                            💾 Save Worker
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeNewWorker(index)}
-                            className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700"
-                          >
-                            ✕ Remove
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex justify-end">
-                        <Button
-                          onClick={() => removeNewWorker(index)}
-                          variant="outline"
-                          size="sm"
-                          type="button"
-                          className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  {/* Display Added Workers with Input Fields + Training Evidence */}
+                  {newWorkers.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-slate-900">
+                        Added Workers ({newWorkers.length})
+                      </h4>
+
+                      {newWorkers.map((worker, index) => (
+                        <div
+                          key={index}
+                          className="p-6 border-2 rounded-lg border-slate-200 bg-slate-50 space-y-4"
                         >
-                          Remove Worker
-                        </Button>
-                      </div>
+                          {/* Worker Info Header with Delete Button */}
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h5 className="font-semibold text-slate-900">
+                                {worker.name || `New Worker ${index + 1}`}
+                              </h5>
+                              <p className="text-sm text-slate-600">{worker.role}</p>
+                            </div>
+                            <Button
+                              onClick={() => removeNewWorker(index)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+
+                          {/* ✅ WORKER INPUT FIELDS - THIS WAS MISSING */}
+                          <div className="grid gap-4 md:grid-cols-2">
+                            {/* Name Input */}
+                            <div>
+                              <Label>Worker Name *</Label>
+                              <Input
+                                value={worker.name}
+                                onChange={(e) => updateNewWorker(index, 'name', e.target.value)}
+                                placeholder="Full name"
+                                className="bg-white"
+                              />
+                            </div>
+
+                            {/* Role Select */}
+                            <div>
+                              <Label>Role *</Label>
+                              <Select
+                                value={worker.role}
+                                onValueChange={(value) => updateNewWorker(index, 'role', value)}
+                              >
+                                <SelectTrigger className="bg-white">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Technician">Technician</SelectItem>
+                                  <SelectItem value="Contract_Worker">Contract Worker</SelectItem>
+                                  <SelectItem value="Supervisor">Supervisor</SelectItem>
+                                  <SelectItem value="Engineer">Engineer</SelectItem>
+                                  <SelectItem value="Worker">Worker</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Company Name Input */}
+                            <div>
+                              <Label>Company Name *</Label>
+                              <Input
+                                value={worker.companyName}
+                                onChange={(e) => updateNewWorker(index, 'companyName', e.target.value)}
+                                placeholder="Company name"
+                                className="bg-white"
+                              />
+                            </div>
+
+                            {/* Phone Input */}
+                            <div>
+                              <Label>Phone Number *</Label>
+                              <Input
+                                value={worker.phone}
+                                onChange={(e) => updateNewWorker(index, 'phone', e.target.value)}
+                                placeholder="+91 XXXXXXXXXX"
+                                className="bg-white"
+                              />
+                            </div>
+
+                            {/* Email Input - Full Width */}
+                            <div className="md:col-span-2">
+                              <Label>Email</Label>
+                              <Input
+                                type="email"
+                                value={worker.email}
+                                onChange={(e) => updateNewWorker(index, 'email', e.target.value)}
+                                placeholder="email@example.com"
+                                className="bg-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* ⭐ TRAINING EVIDENCE UPLOAD SECTION */}
+                          <div className="mt-4 p-4 border-2 border-dashed rounded-lg border-green-300 bg-green-50">
+                            {/* Header with Upload Button */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <Camera className="w-5 h-5 text-green-600" />
+                                <h6 className="font-medium text-slate-900">
+                                  Training Evidence / Certificate
+                                </h6>
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  setCurrentWorkerIndex(index);
+                                  setCaptureType('worker');
+                                  setShowCameraModal(true);
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                              >
+                                <Camera className="w-4 h-4" />
+                                Take Photo
+                              </Button>
+                            </div>
+
+                            {/* Evidence Count / Status */}
+                            {worker.trainingEvidences && worker.trainingEvidences.length > 0 ? (
+                              <p className="text-sm text-green-700 mb-3">
+                                {worker.trainingEvidences.length} image(s) uploaded
+                              </p>
+                            ) : (
+                              <p className="text-sm text-slate-600 mb-3">
+                                No training evidence uploaded yet. Upload training certificates or photos.
+                              </p>
+                            )}
+
+                            {/* Evidence Thumbnails Grid */}
+                            {worker.trainingEvidences && worker.trainingEvidences.length > 0 && (
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-3">
+                                {worker.trainingEvidences.map((evidence) => (
+                                  <div
+                                    key={evidence.id}
+                                    className="relative group bg-white border-2 border-slate-200 rounded-lg overflow-hidden"
+                                  >
+                                    {/* Image Preview */}
+                                    <div className="relative aspect-square">
+                                      <img
+                                        src={evidence.preview}
+                                        alt="Training evidence"
+                                        className="w-full h-full object-cover"
+                                      />
+                                      {/* Delete Button Overlay */}
+                                      <button
+                                        onClick={() => handleRemoveTrainingEvidence(index, evidence.id)}
+                                        className="absolute top-2 right-2 w-8 h-8 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                                        type="button"
+                                      >
+                                        <X className="w-4 h-4 text-white" />
+                                      </button>
+                                    </div>
+
+                                    {/* Caption Input */}
+                                    <div className="p-2">
+                                      <Input
+                                        value={evidence.caption || ''}
+                                        onChange={(e) =>
+                                          handleUpdateEvidenceCaption(index, evidence.id, e.target.value)
+                                        }
+                                        placeholder="Add caption..."
+                                        className="text-xs"
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Upload Instructions */}
+                            <div className="flex items-start gap-2 p-3 bg-green-100 rounded">
+                              <ImageIcon className="w-4 h-4 text-green-700 flex-shrink-0 mt-0.5" />
+                              <div className="text-xs text-green-800">
+                                <p className="font-medium">Upload Guidelines:</p>
+                                <ul className="list-disc list-inside mt-1 space-y-0.5">
+                                  <li>Use camera to capture clear photos</li>
+                                  <li>Ensure good lighting and focus</li>
+                                  <li>Capture training certificates, safety induction proof, or ID cards</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>
@@ -1793,11 +2025,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <Button
                   type="button"
                   onClick={() => {
-                    const input = cameraInputRef.current;
-                    if (input) {
-                      // Force click - more reliable than optional chaining
-                      input.click();
-                    }
+                    setCaptureType('evidence');
+                    setShowCameraModal(true);
                   }}
                   className="gap-2 bg-purple-600 hover:bg-purple-700 px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all"
                 >
@@ -1811,31 +2040,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               </div>
 
               {/* Camera input - FIXED: Not hidden completely, just visually hidden */}
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={(e) => handleEvidenceUpload(e, 'ppe')}
-                style={{
-                  position: 'absolute',
-                  opacity: 0,
-                  pointerEvents: 'none',
-                  width: '1px',
-                  height: '1px'
-                }}
-              />
-
-              {/* Hidden camera input - improved for better camera triggering */}
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={(e) => handleEvidenceUpload(e, 'ppe')}
-                className="hidden"
-                style={{ display: 'none' }}
-              />
+              {/* Camera inputs removed - using CameraModal */}
 
               {/* Evidence Gallery */}
               {formData.evidences.length > 0 && (
@@ -2666,6 +2871,23 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           title="Issuer Digital Signature"
           onSave={handleSignatureSave}
           onCancel={() => setShowSignature(false)}
+        />
+      )}
+      {/* ⭐ NEW: Camera Capture Modal */}
+      {showCameraModal && (
+        <CameraModal
+          isOpen={showCameraModal}
+          onClose={() => {
+            setShowCameraModal(false);
+            setCurrentWorkerIndex(null);
+          }}
+          onCapture={(blob) => {
+            if (captureType === 'worker' && currentWorkerIndex !== null) {
+              handlePhotoCaptured(currentWorkerIndex, blob);
+            } else if (captureType === 'evidence') {
+              handleEvidenceCaptured(blob);
+            }
+          }}
         />
       )}
     </div>

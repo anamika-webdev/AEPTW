@@ -25,7 +25,8 @@ import {
   ImageIcon
 } from 'lucide-react';
 import { evidenceAPI, Evidence } from '../../services/evidenceAPI';
-
+import { closureEvidenceAPI, ClosureEvidence } from '../../services/closureEvidenceAPI';
+import { CameraModal } from '../../components/shared/CameraModal';
 interface PermitDetailsProps {
   ptwId: number;
   onBack: () => void;
@@ -153,6 +154,19 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
   const [checklistResponses, setChecklistResponses] = useState<ChecklistResponse[]>([]);
   const [extensions, setExtensions] = useState<ExtensionRequest[]>([]);
   const [evidences, setEvidences] = useState<Evidence[]>([]);
+  const [closureEvidences, setClosureEvidences] = useState<ClosureEvidence[]>([]);
+  const [savedClosureEvidences, setSavedClosureEvidences] = useState<ClosureEvidence[]>([]);
+  const [isUploadingClosure, setIsUploadingClosure] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+
+  // Close Permit State
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [housekeepingDone, setHousekeepingDone] = useState(false);
+  const [toolsRemoved, setToolsRemoved] = useState(false);
+  const [locksRemoved, setLocksRemoved] = useState(false);
+  const [areaRestored, setAreaRestored] = useState(false);
+  const [closureRemarks, setClosureRemarks] = useState('');
+
 
   useEffect(() => {
     loadPermitDetails();
@@ -171,6 +185,16 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
         }
       } catch (err) {
         console.warn('Failed to load evidences:', err);
+      }
+
+      // Load Closure Evidences
+      try {
+        const closureRes = await closureEvidenceAPI.get(ptwId);
+        if (closureRes.success && closureRes.data) {
+          setSavedClosureEvidences(closureRes.data);
+        }
+      } catch (err) {
+        console.warn('Failed to load closure evidences:', err);
       }
 
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -227,7 +251,26 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
       setLoading(false);
     }
   };
+  const getCurrentLocation = (): Promise<{ latitude: number | null; longitude: number | null }> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve({ latitude: null, longitude: null });
+        return;
+      }
 
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        () => {
+          resolve({ latitude: null, longitude: null });
+        }
+      );
+    });
+  };
   const getStatusBadge = (status: string) => {
     const config: Record<string, { bg: string; text: string; icon: any }> = {
       'Initiated': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: Clock },
@@ -247,7 +290,122 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
       </span>
     );
   };
+  const handleCameraCapture = async (blob: Blob) => {
+    try {
+      const location = await getCurrentLocation();
+      const timestamp = new Date().toISOString();
 
+      const file = new File([blob], `closure-evidence-${Date.now()}.jpg`, {
+        type: 'image/jpeg'
+      });
+      const preview = URL.createObjectURL(file);
+
+      const evidence: ClosureEvidence = {
+        permit_id: ptwId,
+        file,
+        preview,
+        category: 'area_organization',
+        description: '',
+        timestamp,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      };
+
+      setClosureEvidences((prev) => [...prev, evidence]);
+    } catch (error) {
+      console.error('Error preparing closure evidence:', error);
+      alert('Failed to prepare evidence. Please try again.');
+    }
+  };
+
+  const removeClosureEvidence = (index: number) => {
+    setClosureEvidences((prev) => {
+      const updated = [...prev];
+      if (updated[index].preview) {
+        URL.revokeObjectURL(updated[index].preview!);
+      }
+      updated.splice(index, 1);
+      return updated;
+    });
+  };
+
+  const updateClosureEvidenceDescription = (index: number, description: string) => {
+    setClosureEvidences((prev) =>
+      prev.map((e, i) => (i === index ? { ...e, description } : e))
+    );
+  };
+
+  const handleClosePermit = async () => {
+    if (!housekeepingDone || !toolsRemoved || !locksRemoved || !areaRestored) {
+      alert('All checklist items must be completed before closing the permit.');
+      return;
+    }
+
+    if (closureEvidences.length === 0) {
+      if (!confirm('No closure evidence photos uploaded. Are you sure you want to close without photos?')) {
+        return;
+      }
+    }
+
+    setIsUploadingClosure(true);
+    try {
+      const formData = new FormData();
+      formData.append('housekeeping_done', String(housekeepingDone));
+      formData.append('tools_removed', String(toolsRemoved));
+      formData.append('locks_removed', String(locksRemoved));
+      formData.append('area_restored', String(areaRestored));
+      formData.append('remarks', closureRemarks);
+
+      // Append Evidence
+      const descriptions: string[] = [];
+      const categories: string[] = [];
+      const timestamps: string[] = [];
+      const latitudes: (number | null)[] = [];
+      const longitudes: (number | null)[] = [];
+
+      closureEvidences.forEach((evidence) => {
+        formData.append('images', evidence.file);
+        descriptions.push(evidence.description || '');
+        categories.push(evidence.category);
+        timestamps.push(evidence.timestamp);
+        latitudes.push(evidence.latitude);
+        longitudes.push(evidence.longitude);
+      });
+
+      formData.append('descriptions', JSON.stringify(descriptions));
+      formData.append('categories', JSON.stringify(categories));
+      formData.append('timestamps', JSON.stringify(timestamps));
+      formData.append('latitudes', JSON.stringify(latitudes));
+      formData.append('longitudes', JSON.stringify(longitudes));
+
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      const response = await fetch(`${baseURL}/permits/${ptwId}/close`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Permit closed successfully!');
+        setShowCloseModal(false);
+        setClosureEvidences([]);
+        loadPermitDetails();
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error: any) {
+      console.error('Error closing permit:', error);
+      alert(error.message || 'Failed to close permit.');
+    } finally {
+      setIsUploadingClosure(false);
+    }
+  };
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString('en-US', {
@@ -964,6 +1122,97 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
           </div>
         )}
 
+        {/* ==================== SECTION 11: Permit Closure & Evidence ==================== */}
+        <div className="p-6 bg-white shadow-lg rounded-xl">
+          <div className="flex items-center gap-3 pb-4 mb-6 border-b-2">
+            <FileCheck className="text-teal-600 w-7 h-7" />
+            <h2 className="text-2xl font-bold text-slate-900">Permit Closure</h2>
+          </div>
+
+          {/* Close Permit Button */}
+          {(permit.status === 'Active' || permit.status === 'Ready_To_Start' || permit.status === 'Extension_Requested' || permit.status === 'Extended') && (
+            <div className="mb-6">
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      To close this permit, please click the button below. You will be asked to capture evidence photos and complete the safety checklist.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowCloseModal(true)}
+                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95"
+              >
+                <CheckCircle className="w-6 h-6" />
+                Close Permit
+              </button>
+            </div>
+          )}
+
+
+
+          {/* 2. Display Saved Closure Evidence */}
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Saved Closure Evidence</h3>
+            {savedClosureEvidences.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {savedClosureEvidences.map((evidence, index) => (
+                  <div key={evidence.id || index} className="overflow-hidden border-2 rounded-lg border-teal-100 bg-teal-50/30">
+                    <div className="relative aspect-video bg-slate-100 group">
+                      {evidence.file_path ? (
+                        <img
+                          src={closureEvidenceAPI.getFileUrl(evidence.file_path)}
+                          alt={evidence.category}
+                          className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300?text=Image+Error'; }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full text-slate-400">
+                          <ImageIcon className="w-10 h-10" />
+                        </div>
+                      )}
+                      <div className="absolute top-2 left-2 px-2 py-1 text-xs font-bold text-white bg-teal-900/80 rounded capitalize backdrop-blur-sm">
+                        {evidence.category.replace('_', ' ')}
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center gap-2 mb-1 text-xs text-slate-500">
+                        <Clock className="w-3 h-3" />
+                        {new Date(evidence.timestamp).toLocaleString()}
+                      </div>
+                      {evidence.latitude && evidence.longitude && (
+                        <div className="flex items-center gap-2 mb-2 text-xs text-slate-500">
+                          <MapPin className="w-3 h-3" />
+                          {Number(evidence.latitude).toFixed(6)}, {Number(evidence.longitude).toFixed(6)}
+                        </div>
+                      )}
+                      <p className="text-sm font-medium text-slate-800 line-clamp-2">
+                        {evidence.description || <span className="text-slate-400 italic font-normal">No description</span>}
+                      </p>
+                      {evidence.captured_by_name && (
+                        <p className="mt-2 text-xs text-slate-500 pt-2 border-t border-teal-100">
+                          Uploaded by: <span className="font-medium text-teal-700">{evidence.captured_by_name}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 bg-slate-50 rounded-lg border border-slate-200 border-dashed">
+                <FileCheck className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                <p className="text-slate-500 text-sm">No closure evidence uploaded yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Back Button */}
         <div className="flex justify-center pt-6">
           <button
@@ -974,6 +1223,177 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
           </button>
         </div>
       </div>
+
+
+      {/* Close Permit Modal */}
+      {
+        showCloseModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
+            <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl overflow-hidden">
+              <div className="p-6 bg-red-600 text-white flex justify-between items-center">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <AlertOctagon className="w-6 h-6" />
+                  Close Permit: {permit?.permit_serial}
+                </h3>
+                <button onClick={() => setShowCloseModal(false)} className="hover:bg-red-700 p-2 rounded-full transition-colors">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800 font-medium">
+                    Ensure all work is completed and the area is safe before closing. This action cannot be undone.
+                  </p>
+                </div>
+
+                {/* Checklist */}
+                <div>
+                  <h4 className="text-lg font-semibold text-slate-900 mb-3">Closure Checklist</h4>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
+                        checked={housekeepingDone}
+                        onChange={(e) => setHousekeepingDone(e.target.checked)}
+                      />
+                      <span className="font-medium text-slate-700">Housekeeping completed</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
+                        checked={toolsRemoved}
+                        onChange={(e) => setToolsRemoved(e.target.checked)}
+                      />
+                      <span className="font-medium text-slate-700">All tools & equipment removed</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
+                        checked={locksRemoved}
+                        onChange={(e) => setLocksRemoved(e.target.checked)}
+                      />
+                      <span className="font-medium text-slate-700">LOTO locks removed (if applicable)</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
+                        checked={areaRestored}
+                        onChange={(e) => setAreaRestored(e.target.checked)}
+                      />
+                      <span className="font-medium text-slate-700">Area restored to safe condition</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Evidence Capture & Review */}
+                <div>
+                  <h4 className="text-lg font-semibold text-slate-900 mb-3">Closure Evidence (Required)</h4>
+
+                  <div className="mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowCameraModal(true)}
+                      className="w-full cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-300 rounded-xl bg-red-50 hover:bg-red-100 transition-all"
+                    >
+                      <div className="p-3 bg-white rounded-full mb-3 shadow-md transform group-hover:scale-110 transition-transform">
+                        <Camera className="w-8 h-8 text-red-600" />
+                      </div>
+                      <span className="font-bold text-red-900 text-lg">Click to Capture Evidence</span>
+                      <span className="text-sm text-red-700 mt-1">Take photos of area and activity completion</span>
+                    </button>
+                  </div>
+
+                  {/* Previews */}
+                  {closureEvidences.length > 0 ? (
+                    <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                      <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Captured Photos ({closureEvidences.length})</p>
+                      {closureEvidences.map((evidence, index) => (
+                        <div key={index} className="flex gap-3 bg-white p-2 rounded border border-slate-200 shadow-sm relative">
+                          <div className="w-16 h-16 flex-shrink-0 bg-slate-100 rounded overflow-hidden">
+                            <img
+                              src={evidence.preview}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start">
+                              <div className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 uppercase tracking-wide border border-slate-200">
+                                {evidence.category.replace('_', ' ')}
+                              </div>
+                              <button
+                                onClick={() => removeClosureEvidence(index)}
+                                className="text-red-500 hover:text-red-700 p-1"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <input
+                              type="text"
+                              placeholder="Add description..."
+                              value={evidence.description}
+                              onChange={(e) => updateClosureEvidenceDescription(index, e.target.value)}
+                              className="mt-2 w-full text-xs p-1.5 border border-slate-300 rounded focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-red-600 italic bg-red-50 p-3 rounded border border-red-100">
+                      <AlertTriangle className="inline w-4 h-4 mr-1" />
+                      Please capture at least one photo of the area/activity.
+                    </p>
+                  )}
+                </div>
+
+                {/* Remarks */}
+                <div>
+                  <h4 className="text-lg font-semibold text-slate-900 mb-2">Remarks / Comments</h4>
+                  <textarea
+                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Enter any final comments..."
+                    value={closureRemarks}
+                    onChange={(e) => setClosureRemarks(e.target.value)}
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <button
+                    onClick={() => setShowCloseModal(false)}
+                    className="flex-1 px-6 py-3 font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleClosePermit}
+                    disabled={isUploadingClosure || !housekeepingDone || !toolsRemoved || !locksRemoved || !areaRestored}
+                    className="flex-1 px-6 py-3 font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isUploadingClosure ? 'Closing...' : 'Confirm Close & Submit'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {
+        showCameraModal && (
+          <CameraModal
+            isOpen={showCameraModal}
+            onClose={() => setShowCameraModal(false)}
+            onCapture={handleCameraCapture}
+          />
+        )
+      }
     </div>
   );
 }

@@ -2,7 +2,7 @@
 // ✅ UPDATED WITH APPROVAL/REJECTION DETAILS DISPLAY
 
 import { useState, useEffect, useRef } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, Eye, Eraser, Layout, Calendar } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, Eye, Eraser, Layout, Calendar, Edit } from 'lucide-react';
 import Pagination from '../../components/common/Pagination';
 import { usePagination } from '../../hooks/usePagination';
 import { approvalsAPI } from '../../services/api';
@@ -406,6 +406,22 @@ export default function ApproverDashboard({ initialTab = 'pending', onNavigate }
                       >
                         <Eye className="w-3 h-3" />
                         View
+                      </button>
+
+                      {/* Edit Button - Available for all permits */}
+                      <button
+                        onClick={() => {
+                          if (onNavigate) {
+                            onNavigate('permit-edit', { permitId: permit.id });
+                          } else {
+                            console.warn('onNavigate not provided for edit action');
+                            alert(`Edit permit ${permit.permit_serial}\n\nPlease ensure ApproverDashboard has onNavigate prop configured for editing.`);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-600 transition-colors bg-blue-100 rounded hover:bg-blue-200"
+                      >
+                        <Edit className="w-3 h-3" />
+                        Edit
                       </button>
 
                       {/* Approve/Reject - Only on Pending tab */}
