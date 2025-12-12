@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { DigitalSignature } from '../shared/DigitalSignature';
+import PersonnelFields from './PersonnelFields';
 
 import {
   sitesAPI,
@@ -690,20 +691,69 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       }
     }
 
-    // Step 5: Checklist Validation
+    // Step 5: Checklist Validation - DYNAMIC BASED ON PERMIT TYPE
     if (currentStep === 5) {
-      // Validate Mandatory Personnel Name Fields (IDs 398-401)
-      const mandatoryFields = [
-        { id: 398, label: 'Entrant Name' },
-        { id: 399, label: 'Attendant Name' },
-        { id: 400, label: 'Supervisor Name' },
-        { id: 401, label: 'Stand-by Person Name' }
-      ];
+      const isConfinedSpace = formData.categories.includes('Confined Space');
+      const isHotWork = formData.categories.includes('Hot Work');
 
-      for (const field of mandatoryFields) {
-        if (!formData.checklistTextResponses[field.id] || formData.checklistTextResponses[field.id].trim().length < 2) {
-          alert(`Please enter valid ${field.label}`);
-          return;
+      // Define required fields based on permit type
+      const requiredFields: { id: number; label: string }[] = [];
+
+      // Confined Space specific fields
+      if (isConfinedSpace) {
+        requiredFields.push(
+          { id: 398, label: 'Entrant Name' },
+          { id: 4398, label: 'Entrant Contact' },
+          { id: 399, label: 'Attendant Name' },
+          { id: 4399, label: 'Attendant Contact' },
+          { id: 401, label: 'Stand-by Person Name' },
+          { id: 4401, label: 'Stand-by Person Contact' }
+        );
+      }
+
+      // Hot Work specific fields
+      if (isHotWork) {
+        requiredFields.push(
+          { id: 500, label: 'Fire Watcher Name' },
+          { id: 4500, label: 'Fire Watcher Contact' },
+          { id: 503, label: 'Fire Fighter Availability' }
+        );
+
+        // If fire fighter is available, require their details
+        if (formData.checklistTextResponses[503] === 'Yes') {
+          requiredFields.push(
+            { id: 504, label: 'Fire Fighter Name' },
+            { id: 4504, label: 'Fire Fighter Contact' }
+          );
+        }
+      }
+
+      // Common fields (all permits)
+      requiredFields.push(
+        { id: 400, label: 'Supervisor Name' },
+        { id: 4400, label: 'Supervisor Contact' },
+        { id: 501, label: 'First Aider Name' },
+        { id: 4501, label: 'First Aider Contact' },
+        { id: 502, label: 'AED Certified Person Name' },
+        { id: 4502, label: 'AED Certified Person Contact' }
+      );
+
+      // Validate all required fields
+      for (const field of requiredFields) {
+        const value = formData.checklistTextResponses[field.id];
+
+        // Check if field is a contact number (ID >= 4000)
+        if (field.id >= 4000) {
+          if (!value || !/^[0-9]{10}$/.test(value)) {
+            alert(`Please enter a valid 10-digit ${field.label}`);
+            return;
+          }
+        } else {
+          // Name field validation
+          if (!value || value.trim().length < 2) {
+            alert(`Please enter valid ${field.label} (minimum 2 characters)`);
+            return;
+          }
         }
       }
 
@@ -2316,195 +2366,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     })}
                   </div>
                 </div>
-                {/* MANDATORY NAME FIELDS - ALWAYS VISIBLE */}
-                <div className="p-6 border rounded-lg border-amber-200 bg-amber-50">
-
-                  <p className="text-sm text-amber-700 mb-4">
-                    The following personnel details are required for all permit types:
-                  </p>
-
-                  <div className="space-y-4 bg-white p-4 rounded-lg">
-                    {/* Entrant Name */}
-                    <div className="py-3 border-b border-slate-100">
-                      <Label htmlFor="entrant-name" className="block mb-2 text-sm font-medium text-slate-900">
-                        Entrant Name
-                        <span className="ml-1 text-red-500 font-bold">*</span>
-                        <span className="ml-2 text-xs text-slate-500 font-normal">(Required)</span>
-                      </Label>
-                      <Input
-                        id="entrant-name"
-                        type="text"
-                        value={formData.checklistTextResponses[398] || ''}
-                        onChange={(e) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            checklistTextResponses: {
-                              ...prev.checklistTextResponses,
-                              [398]: e.target.value
-                            }
-                          }));
-                        }}
-                        placeholder="Enter full name (minimum 2 characters)"
-                        required
-                        minLength={2}
-                        className="max-w-md"
-                        autoComplete="off"
-                      />
-                      {formData.checklistTextResponses[398] !== undefined && formData.checklistTextResponses[398] !== '' && (
-                        <>
-                          {formData.checklistTextResponses[398].trim().length === 0 ? (
-                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                              <X className="w-3 h-3" /> This field cannot contain only spaces
-                            </p>
-                          ) : formData.checklistTextResponses[398].trim().length < 2 ? (
-                            <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> Please enter at least 2 characters
-                            </p>
-                          ) : (
-                            <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
-                              <Check className="w-3 h-3" /> Valid entry
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {/* Attendant Name */}
-                    <div className="py-3 border-b border-slate-100">
-                      <Label htmlFor="attendant-name" className="block mb-2 text-sm font-medium text-slate-900">
-                        Attendant Name
-                        <span className="ml-1 text-red-500 font-bold">*</span>
-                        <span className="ml-2 text-xs text-slate-500 font-normal">(Required)</span>
-                      </Label>
-                      <Input
-                        id="attendant-name"
-                        type="text"
-                        value={formData.checklistTextResponses[399] || ''}
-                        onChange={(e) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            checklistTextResponses: {
-                              ...prev.checklistTextResponses,
-                              [399]: e.target.value
-                            }
-                          }));
-                        }}
-                        placeholder="Enter full name (minimum 2 characters)"
-                        required
-                        minLength={2}
-                        className="max-w-md"
-                        autoComplete="off"
-                      />
-                      {formData.checklistTextResponses[399] !== undefined && formData.checklistTextResponses[399] !== '' && (
-                        <>
-                          {formData.checklistTextResponses[399].trim().length === 0 ? (
-                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                              <X className="w-3 h-3" /> This field cannot contain only spaces
-                            </p>
-                          ) : formData.checklistTextResponses[399].trim().length < 2 ? (
-                            <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> Please enter at least 2 characters
-                            </p>
-                          ) : (
-                            <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
-                              <Check className="w-3 h-3" /> Valid entry
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {/* Supervisor Name */}
-                    <div className="py-3 border-b border-slate-100">
-                      <Label htmlFor="supervisor-name" className="block mb-2 text-sm font-medium text-slate-900">
-                        Supervisor Name
-                        <span className="ml-1 text-red-500 font-bold">*</span>
-                        <span className="ml-2 text-xs text-slate-500 font-normal">(Required)</span>
-                      </Label>
-                      <Input
-                        id="supervisor-name"
-                        type="text"
-                        value={formData.checklistTextResponses[400] || ''}
-                        onChange={(e) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            checklistTextResponses: {
-                              ...prev.checklistTextResponses,
-                              [400]: e.target.value
-                            }
-                          }));
-                        }}
-                        placeholder="Enter full name (minimum 2 characters)"
-                        required
-                        minLength={2}
-                        className="max-w-md"
-                        autoComplete="off"
-                      />
-                      {formData.checklistTextResponses[400] !== undefined && formData.checklistTextResponses[400] !== '' && (
-                        <>
-                          {formData.checklistTextResponses[400].trim().length === 0 ? (
-                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                              <X className="w-3 h-3" /> This field cannot contain only spaces
-                            </p>
-                          ) : formData.checklistTextResponses[400].trim().length < 2 ? (
-                            <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> Please enter at least 2 characters
-                            </p>
-                          ) : (
-                            <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
-                              <Check className="w-3 h-3" /> Valid entry
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {/* Stand-by Person Name */}
-                    <div className="py-3">
-                      <Label htmlFor="standby-name" className="block mb-2 text-sm font-medium text-slate-900">
-                        Stand-by Person Name
-                        <span className="ml-1 text-red-500 font-bold">*</span>
-                        <span className="ml-2 text-xs text-slate-500 font-normal">(Required)</span>
-                      </Label>
-                      <Input
-                        id="standby-name"
-                        type="text"
-                        value={formData.checklistTextResponses[401] || ''}
-                        onChange={(e) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            checklistTextResponses: {
-                              ...prev.checklistTextResponses,
-                              [401]: e.target.value
-                            }
-                          }));
-                        }}
-                        placeholder="Enter full name (minimum 2 characters)"
-                        required
-                        minLength={2}
-                        className="max-w-md"
-                        autoComplete="off"
-                      />
-                      {formData.checklistTextResponses[401] !== undefined && formData.checklistTextResponses[401] !== '' && (
-                        <>
-                          {formData.checklistTextResponses[401].trim().length === 0 ? (
-                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                              <X className="w-3 h-3" /> This field cannot contain only spaces
-                            </p>
-                          ) : formData.checklistTextResponses[401].trim().length < 2 ? (
-                            <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> Please enter at least 2 characters
-                            </p>
-                          ) : (
-                            <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
-                              <Check className="w-3 h-3" /> Valid entry
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                {/* DYNAMIC PERSONNEL FIELDS BASED ON PERMIT TYPE */}
+                <PersonnelFields
+                  selectedCategories={formData.categories}
+                  formData={formData}
+                  setFormData={setFormData}
+                />
               </>
             )}
           </div>
@@ -2577,8 +2444,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               {/* Safety Officer - OPTIONAL */}
               <div>
                 <label className="block text-sm font-medium text-slate-900 mb-2">
-                  Safety Officer <span className="text-xs text-slate-500">(Optional)</span>
-                  {/* ⭐ ADD THIS INDICATOR */}
+                  Safety Officer
                   {formData.safety_officer_id && (
                     <span className="ml-2 text-xs text-green-600 font-normal">
                       ✓ Pre-selected
@@ -2605,10 +2471,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               {/* Site Leader - CONDITIONAL REQUIRED/OPTIONAL */}
               <div className={requiresSiteLeaderApproval ? 'p-4 border-2 border-red-200 rounded-lg bg-red-50' : ''}>
                 <label className="block text-sm font-medium text-slate-900 mb-2">
-                  Site Leader {requiresSiteLeaderApproval ? (
+                  Site Leader {requiresSiteLeaderApproval && (
                     <span className="text-red-500">* (Required for High-Risk)</span>
-                  ) : (
-                    <span className="text-xs text-slate-500">(Optional)</span>
                   )}
                   {formData.site_leader_id && (
                     <span className="ml-2 text-xs text-green-600 font-normal">
