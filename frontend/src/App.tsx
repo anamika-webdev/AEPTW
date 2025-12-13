@@ -244,7 +244,7 @@ function App() {
                 />
               )}
               {currentPage === 'extension-approvals' && (
-                <ExtensionApprovalDashboard />
+                <ExtensionApprovalDashboard onNavigate={handleNavigate} />
               )}
             </>
           )}

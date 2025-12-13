@@ -32,30 +32,35 @@ Implemented dynamic personnel fields in PTW creation based on permit type with c
 - Entrant Name + Contact
 - Attendant Name + Contact
 - Stand-by Person Name + Contact
-- Supervisor Name + Contact (common)
-- First Aider Name + Contact (common)
-- AED Certified Person Name + Contact (common)
+- Supervisor Name + Contact (Always required)
+- First Aider Name + Contact
+- AED Certified Person Name + Contact
 
 #### Hot Work:
 - Fire Watcher Name + Contact
-- Fire Fighter Available (checkbox)
-  - If Yes: Fire Fighter Name + Contact
-- Supervisor Name + Contact (common)
-- First Aider Name + Contact (common)
-- AED Certified Person Name + Contact (common)
+- Fire Fighter Name + Contact (Mandatory)
+- Fire Fighter Available (Checkbox - implicit)
+- Supervisor Name + Contact
+- First Aider Name + Contact
+- AED Certified Person Name + Contact
 
-#### All Other Permits:
+#### Electrical:
+- Fire Fighter Name + Contact (Mandatory)
+- Supervisor Name + Contact
+- First Aider Name + Contact
+- AED Certified Person Name + Contact
+
+#### General / Height / Other:
 - Supervisor Name + Contact
 - First Aider Name + Contact
 - AED Certified Person Name + Contact
 
 ### 3. Validation Logic
 **File**: `frontend/src/components/supervisor/CreatePTW.tsx`
-- Updated Step 5 validation to be dynamic
+- Updated Step 5 validation to be dynamic and strict
 - Validates based on selected permit types
 - Contact number validation: 10 digits
 - Name validation: minimum 2 characters
-- Conditional validation for Hot Work fire fighter
 
 ### 4. UI Integration
 **File**: `frontend/src/components/supervisor/CreatePTW.tsx`
@@ -71,10 +76,10 @@ Implemented dynamic personnel fields in PTW creation based on permit type with c
 - 400: Supervisor Name (All)
 - 401: Stand-by Person Name (Confined Space)
 - 500: Fire Watcher Name (Hot Work)
-- 501: First Aider Name (All)
-- 502: AED Certified Person Name (All)
-- 503: Fire Fighter Available (Hot Work - Yes/No)
-- 504: Fire Fighter Name (Hot Work - conditional)
+- 501: First Aider Name (All permit types)
+- 502: AED Certified Person Name (All permit types)
+- 503: Fire Fighter Available (Hot Work/Electrical - Checkbox)
+- 504: Fire Fighter Name (Hot Work/Electrical)
 
 ### Contact Fields (ID + 4000):
 - 4398: Entrant Contact
@@ -91,8 +96,9 @@ Implemented dynamic personnel fields in PTW creation based on permit type with c
 ### Color Coding:
 - **Purple**: Confined Space specific fields
 - **Orange**: Hot Work specific fields
-- **Blue**: Common fields (all permits)
-- **Red**: Hot Work safety requirements
+- **Red**: Fire Safety Team (Hot Work / Electrical)
+- **Blue**: Supervisor
+- **Emerald**: Emergency Response (First Aider / AED)
 
 ### Validation Feedback:
 - ✅ Green checkmark: Valid entry
@@ -101,35 +107,25 @@ Implemented dynamic personnel fields in PTW creation based on permit type with c
 
 ## 🧪 Testing Checklist
 
-- [ ] Create Confined Space permit - verify all CS fields appear
-- [ ] Create Hot Work permit - verify fire watcher fields appear
-- [ ] Create General permit - verify only common fields appear
+- [ ] Create Confined Space permit - verify Supervisor + CS fields + First Aider + AED
+- [ ] Create Hot Work permit - verify Fire Watcher + Fire Fighter + First Aider + AED
+- [ ] Create Electrical permit - verify Fire Fighter + First Aider + AED (No Fire Watcher)
+- [ ] Create General permit - verify Supervisor + First Aider + AED
 - [ ] Test contact validation - must be 10 digits
 - [ ] Test name validation - minimum 2 characters
-- [ ] Test Hot Work fire fighter checkbox - conditional fields
 - [ ] Submit permit - verify all data saves correctly
-- [ ] View created permit - verify all personnel data displays
 
 ## 📝 Notes
 
 1. **Backward Compatibility**: Existing permits with old field structure will still work
 2. **Extensibility**: Easy to add new permit types and their specific personnel
 3. **Reusability**: PersonnelFields component can be used in Edit PTW if needed
-4. **Performance**: Reduced component size by 95% (189 lines → 6 lines)
-
-## 🚀 Next Steps
-
-1. Test the form with all permit types
-2. Update backend API to save contact fields
-3. Update PermitDetails view to display contact information
-4. Add contact fields to PDF export
-5. Update database backup/restore scripts
 
 ## ⚠️ Important
 
 The validation now requires:
-- **All permits**: Supervisor + First Aider + AED Person (with contacts)
-- **Confined Space**: + Entrant + Attendant + Stand-by (with contacts)
-- **Hot Work**: + Fire Watcher (with contact), Fire Fighter availability
-
-Make sure users are aware of these new requirements!
+- **Supervisor**: ALWAYS (all permit types)
+- **First Aider + AED**: ALWAYS (all permit types)
+- **Confined Space**: Entrant + Attendant + Stand-by
+- **Hot Work**: Fire Watcher + Fire Fighter
+- **Electrical**: Fire Fighter

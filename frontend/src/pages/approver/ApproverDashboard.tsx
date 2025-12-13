@@ -513,7 +513,7 @@ export default function ApproverDashboard({ initialTab = 'pending', onNavigate }
         </div>
 
         {viewMode === 'extensions' ? (
-          <ExtensionApprovalDashboard />
+          <ExtensionApprovalDashboard onNavigate={onNavigate || (() => console.warn('onNavigate missing'))} />
         ) : (
           <>
             {/* Stats */}

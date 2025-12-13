@@ -693,79 +693,78 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
     // Step 5: Checklist Validation - DYNAMIC BASED ON PERMIT TYPE
     if (currentStep === 5) {
-      const isConfinedSpace = formData.categories.includes('Confined Space');
-      const isHotWork = formData.categories.includes('Hot Work');
-
-      // Define required fields based on permit type
-      const requiredFields: { id: number; label: string }[] = [];
-
-      // Confined Space specific fields
-      if (isConfinedSpace) {
-        requiredFields.push(
-          { id: 398, label: 'Entrant Name' },
-          { id: 4398, label: 'Entrant Contact' },
-          { id: 399, label: 'Attendant Name' },
-          { id: 4399, label: 'Attendant Contact' },
-          { id: 401, label: 'Stand-by Person Name' },
-          { id: 4401, label: 'Stand-by Person Contact' }
-        );
+      if (!formData.categories || formData.categories.length === 0) {
+        alert('Please select at least one permit category in Step 1');
+        return;
       }
 
-      // Hot Work specific fields
-      if (isHotWork) {
-        requiredFields.push(
-          { id: 500, label: 'Fire Watcher Name' },
-          { id: 4500, label: 'Fire Watcher Contact' },
-          { id: 503, label: 'Fire Fighter Availability' }
-        );
-
-        // If fire fighter is available, require their details
-        if (formData.checklistTextResponses[503] === 'Yes') {
-          requiredFields.push(
-            { id: 504, label: 'Fire Fighter Name' },
-            { id: 4504, label: 'Fire Fighter Contact' }
-          );
-        }
-      }
-
-      // Common fields (all permits)
-      requiredFields.push(
-        { id: 400, label: 'Supervisor Name' },
-        { id: 4400, label: 'Supervisor Contact' },
-        { id: 501, label: 'First Aider Name' },
-        { id: 4501, label: 'First Aider Contact' },
-        { id: 502, label: 'AED Certified Person Name' },
-        { id: 4502, label: 'AED Certified Person Contact' }
-      );
-
-      // Validate all required fields
-      for (const field of requiredFields) {
-        const value = formData.checklistTextResponses[field.id];
-
-        // Check if field is a contact number (ID >= 4000)
-        if (field.id >= 4000) {
-          if (!value || !/^[0-9]{10}$/.test(value)) {
-            alert(`Please enter a valid 10-digit ${field.label}`);
-            return;
-          }
-        } else {
-          // Name field validation
-          if (!value || value.trim().length < 2) {
-            alert(`Please enter valid ${field.label} (minimum 2 characters)`);
-            return;
-          }
-        }
-      }
 
       // Validate other dynamic checklist questions
       const activeQuestions = checklistQuestions.filter(q =>
         formData.categories.includes(q.permit_type as PermitType)
       );
 
-      for (const q of activeQuestions) {
-        // Skip if it's one of the mandatory name fields (just in case they were added to checklistQuestions)
-        if ([398, 399, 400, 401].includes(q.id)) continue;
+      // ⭐ PERSONNEL FIELDS VALIDATION ⭐
+      const hasCat = (cat: PermitType) => formData.categories.includes(cat);
+      const isGeneral = hasCat('General');
+      const isHotWork = hasCat('Hot_Work');
+      const isElectrical = hasCat('Electrical');
+      const isHeight = hasCat('Height');
+      const isConfinedSpace = hasCat('Confined_Space');
 
+      // Helper to validate a specific field pair
+      const validateField = (id: number, name: string, contactId: number) => {
+        const val = formData.checklistTextResponses[id];
+        const contact = formData.checklistTextResponses[contactId];
+
+        if (!val || val.trim().length < 2) {
+          alert(`Please enter a valid ${name}`);
+          return false;
+        }
+        if (!contact || !/^[0-9]{10}$/.test(contact)) {
+          alert(`Please enter a valid 10-digit contact number for ${name}`);
+          return false;
+        }
+        return true;
+      };
+
+      // 1. Supervisor (Required for ALL)
+      if (!validateField(400, 'Supervisor Name', 4400)) return;
+
+      // 2. Emergency Response (ALL permit types now require First Aider & AED)
+      if (isGeneral || isHotWork || isElectrical || isHeight || isConfinedSpace) {
+        if (!validateField(501, 'First Aider Name', 4501)) return;
+        if (!validateField(502, 'AED Certified Person Name', 4502)) return;
+      }
+
+      // 3. Fire Safety (Hot Work OR Electrical) 
+      // Note: User requirement says Fire Fighter is required for BOTH Hot Work and Electrical
+      if (isHotWork || isElectrical) {
+        if (!validateField(504, 'Fire Fighter Name', 4504)) return;
+      }
+
+      // 4. Hot Work Specific
+      if (isHotWork) {
+        if (!validateField(500, 'Fire Watcher Name', 4500)) return;
+        // Fire Fighter Availability Checkbox (503)
+        // If we treat 503 as "Are they available?", we might want to check it.
+        // PersonnelFields sets it to 'Yes'/'No'.
+        // If checking 'Yes' is mandatory:
+        // if (formData.checklistTextResponses[503] !== 'Yes') {
+        //   alert('Fire Fighter Available on Site must be checked for Hot Work');
+        //   return;
+        // }
+      }
+
+      // 5. Confined Space Specific
+      if (isConfinedSpace) {
+        if (!validateField(398, 'Entrant Name', 4398)) return;
+        if (!validateField(399, 'Attendant Name', 4399)) return;
+        if (!validateField(401, 'Stand-by Person Name', 4401)) return;
+      }
+
+
+      for (const q of activeQuestions) {
         if (q.response_type === 'text') {
           // Generic text input
           if (!formData.checklistTextResponses[q.id] || formData.checklistTextResponses[q.id].trim() === '') {
@@ -867,11 +866,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         })),
       ];
 
-      // ✅ FIXED: Skip the mandatory name fields (398-401) - they don't exist in DB
-      const mandatoryNameFieldIds = [398, 399, 400, 401];
-
       const checklistResponses = Object.entries(formData.checklistResponses)
-        .filter(([questionId]) => !mandatoryNameFieldIds.includes(parseInt(questionId)))
         .map(([questionId, response]) => ({
           question_id: parseInt(questionId),
           response: response as ChecklistResponse,
@@ -880,11 +875,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
       Object.entries(formData.checklistTextResponses).forEach(([questionId, textValue]) => {
         const qId = parseInt(questionId);
-
-        // Skip mandatory name fields that don't exist in database
-        if (mandatoryNameFieldIds.includes(qId)) {
-          return;
-        }
 
         if (textValue) {
           checklistResponses.push({
@@ -2232,13 +2222,11 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 {/* CATEGORY-SPECIFIC QUESTIONS */}
                 <div className="p-6 border rounded-lg border-slate-200">
                   <div className="space-y-6">
-                    {/* FILTER: Show ONLY questions for selected categories, EXCLUDING the 4 name fields */}
+                    {/* FILTER: Show ONLY questions for selected categories */}
                     {formData.categories.map((category: PermitType) => {
-                      // Define the IDs of the 4 mandatory name fields to exclude
-                      const mandatoryNameFieldIds = [398, 399, 400, 401];
 
                       const categoryQuestions = checklistQuestions.filter(
-                        q => q.permit_type === category && !mandatoryNameFieldIds.includes(q.id)
+                        q => q.permit_type === category
                       );
 
                       const categoryNames: Record<PermitType, string> = {

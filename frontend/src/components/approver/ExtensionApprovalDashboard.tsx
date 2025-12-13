@@ -3,9 +3,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import {
-    Clock, CheckCircle, XCircle, AlertCircle, Eye, Eraser,
-    FileText, Users, AlertTriangle, HardHat
+    CheckCircle, XCircle, Eye, Eraser, AlertCircle, Clock
 } from 'lucide-react';
+import Pagination from '../common/Pagination';
+import { usePagination } from '../../hooks/usePagination';
 
 interface ExtensionRequest {
     id: number;
@@ -40,16 +41,13 @@ interface ExtensionRequest {
     permit_status?: string;
 }
 
-interface PTWDetails {
-    permit: any;
-    team_members: any[];
-    hazards: any[];
-    ppe: any[];
-    checklist_responses: any[];
-    extensions: any[];
+
+
+interface ExtensionApprovalDashboardProps {
+    onNavigate: (page: string, data?: any) => void;
 }
 
-export default function ExtensionApprovalDashboard() {
+export default function ExtensionApprovalDashboard({ onNavigate }: ExtensionApprovalDashboardProps) {
     const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
     const [pendingExtensions, setPendingExtensions] = useState<ExtensionRequest[]>([]);
     const [approvedExtensions, setApprovedExtensions] = useState<ExtensionRequest[]>([]);
@@ -59,10 +57,9 @@ export default function ExtensionApprovalDashboard() {
     // Modals
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
-    const [showViewModal, setShowViewModal] = useState(false);
+
+    // Selection
     const [selectedExtension, setSelectedExtension] = useState<ExtensionRequest | null>(null);
-    const [ptwDetails, setPtwDetails] = useState<PTWDetails | null>(null);
-    const [loadingDetails, setLoadingDetails] = useState(false);
 
     const [remarks, setRemarks] = useState('');
     const [isDrawing, setIsDrawing] = useState(false);
@@ -87,86 +84,46 @@ export default function ExtensionApprovalDashboard() {
     }, [showApproveModal]);
 
     const loadExtensions = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-            console.log('🔄 Loading extension requests...');
+            // Fetch pending
+            const pendingRes = await fetch(`${baseURL}/extension-approvals/pending`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const pendingData = await pendingRes.json();
+            if (pendingData.success) setPendingExtensions(pendingData.data);
 
-            // Fetch all three tabs in parallel
-            const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
-                fetch(`${baseURL}/extension-approvals/pending`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }),
-                fetch(`${baseURL}/extension-approvals/approved`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }),
-                fetch(`${baseURL}/extension-approvals/rejected`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
-            ]);
+            // Fetch approved
+            const approvedRes = await fetch(`${baseURL}/extension-approvals/approved`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const approvedData = await approvedRes.json();
+            if (approvedData.success) setApprovedExtensions(approvedData.data);
 
-            const [pendingData, approvedData, rejectedData] = await Promise.all([
-                pendingRes.json(),
-                approvedRes.json(),
-                rejectedRes.json()
-            ]);
-
-            if (pendingData.success) {
-                console.log(`✅ Loaded ${pendingData.data.length} pending extensions`);
-                setPendingExtensions(pendingData.data);
-            }
-
-            if (approvedData.success) {
-                console.log(`✅ Loaded ${approvedData.data.length} approved extensions`);
-                setApprovedExtensions(approvedData.data);
-            }
-
-            if (rejectedData.success) {
-                console.log(`✅ Loaded ${rejectedData.data.length} rejected extensions`);
-                setRejectedExtensions(rejectedData.data);
-            }
+            // Fetch rejected
+            const rejectedRes = await fetch(`${baseURL}/extension-approvals/rejected`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const rejectedData = await rejectedRes.json();
+            if (rejectedData.success) setRejectedExtensions(rejectedData.data);
 
         } catch (error) {
-            console.error('❌ Error loading extensions:', error);
-            alert('Failed to load extension requests. Please try again.');
+            console.error('Error loading extensions:', error);
         } finally {
             setLoading(false);
         }
     };
 
     // ==================== HANDLE VIEW PTW DETAILS ====================
-    const handleView = async (ext: ExtensionRequest) => {
-        setSelectedExtension(ext);
-        setShowViewModal(true);
-        setLoadingDetails(true);
-        setPtwDetails(null);
-
-        try {
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-            console.log(`🔍 Fetching PTW details for permit_id: ${ext.permit_id}`);
-
-            const response = await fetch(`${baseURL}/permits/${ext.permit_id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                console.log('✅ Loaded PTW details for Permit ID:', ext.permit_id, data.data);
-                setPtwDetails(data.data);
-            } else {
-                console.error('❌ Failed to load PTW details:', data.message);
-                alert(`Failed to load PTW details: ${data.message || 'Unknown error'}`);
-            }
-        } catch (error) {
-            console.error('❌ Error loading PTW details:', error);
-            alert('Error loading PTW details. Please try again.');
-        } finally {
-            setLoadingDetails(false);
+    const handleView = (ext: ExtensionRequest) => {
+        if (ext.permit_id) {
+            onNavigate('permit-detail', { permitId: ext.permit_id });
+        } else {
+            console.error('Missing permit_id for extension:', ext);
+            alert('Cannot view details: Missing Permit ID');
         }
     };
 
@@ -368,8 +325,20 @@ export default function ExtensionApprovalDashboard() {
         );
     };
 
-    // ==================== RENDER EXTENSION TABLE ====================
-    const renderExtensionTable = (extensions: ExtensionRequest[], showActions: boolean) => {
+    // ============= EXTENSION TABLE COMPONENT WITH PAGINATION =============
+    const ExtensionTable = ({ extensions, showActions }: { extensions: ExtensionRequest[], showActions: boolean }) => {
+        const {
+            currentPage,
+            totalPages,
+            itemsPerPage,
+            paginatedData,
+            setCurrentPage,
+            setItemsPerPage
+        } = usePagination<ExtensionRequest>({
+            data: extensions,
+            initialItemsPerPage: 10
+        });
+
         if (extensions.length === 0) {
             return (
                 <div className="p-12 text-center">
@@ -380,68 +349,79 @@ export default function ExtensionApprovalDashboard() {
         }
 
         return (
-            <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-slate-50">
-                        <tr>
-                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">PTW Serial</th>
-                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Site</th>
-                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Location</th>
-                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Original End</th>
-                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">New End</th>
-                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Reason</th>
-                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Requested By</th>
-                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Status</th>
-                            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-200">
-                        {extensions.map((ext) => (
-                            <tr key={ext.id} className="hover:bg-slate-50">
-                                <td className="px-4 py-4 text-sm font-medium text-slate-900">{ext.permit_serial}</td>
-                                <td className="px-4 py-4 text-sm text-slate-600">{ext.site_name}</td>
-                                <td className="px-4 py-4 text-sm text-slate-600">{ext.work_location}</td>
-                                <td className="px-4 py-4 text-sm text-slate-600">{formatDate(ext.original_end_time)}</td>
-                                <td className="px-4 py-4 text-sm font-medium text-green-700">{formatDate(ext.new_end_time)}</td>
-                                <td className="px-4 py-4 text-sm text-slate-600 max-w-xs truncate" title={ext.reason}>{ext.reason}</td>
-                                <td className="px-4 py-4 text-sm text-slate-600">{ext.requested_by_name}</td>
-                                <td className="px-4 py-4 text-sm">
-                                    {getStatusBadge(ext.my_approval_status || ext.status)}
-                                </td>
-                                <td className="px-4 py-4 text-sm">
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handleView(ext)}
-                                            className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-                                            title="View Complete PTW Details"
-                                        >
-                                            <Eye className="w-3 h-3 mr-1" />
-                                            View PTW
-                                        </button>
-                                        {showActions && (
-                                            <>
-                                                <button
-                                                    onClick={() => handleApprove(ext)}
-                                                    className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
-                                                >
-                                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                                    Approve
-                                                </button>
-                                                <button
-                                                    onClick={() => handleReject(ext)}
-                                                    className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700"
-                                                >
-                                                    <XCircle className="w-3 h-3 mr-1" />
-                                                    Reject
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </td>
+            <div className="space-y-4">
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-slate-50">
+                            <tr>
+                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">PTW Serial</th>
+                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Site</th>
+                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Location</th>
+                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Original End</th>
+                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">New End</th>
+                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Reason</th>
+                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Requested By</th>
+                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Status</th>
+                                <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-slate-700 uppercase">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-slate-200">
+                            {paginatedData.map((ext) => (
+                                <tr key={ext.id} className="hover:bg-slate-50">
+                                    <td className="px-4 py-4 text-sm font-medium text-slate-900">{ext.permit_serial}</td>
+                                    <td className="px-4 py-4 text-sm text-slate-600">{ext.site_name}</td>
+                                    <td className="px-4 py-4 text-sm text-slate-600">{ext.work_location}</td>
+                                    <td className="px-4 py-4 text-sm text-slate-600">{formatDate(ext.original_end_time)}</td>
+                                    <td className="px-4 py-4 text-sm font-medium text-green-700">{formatDate(ext.new_end_time)}</td>
+                                    <td className="px-4 py-4 text-sm text-slate-600 max-w-xs truncate" title={ext.reason}>{ext.reason}</td>
+                                    <td className="px-4 py-4 text-sm text-slate-600">{ext.requested_by_name}</td>
+                                    <td className="px-4 py-4 text-sm">
+                                        {getStatusBadge(ext.my_approval_status || ext.status)}
+                                    </td>
+                                    <td className="px-4 py-4 text-sm">
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleView(ext)}
+                                                className="inline-flex items-center px-3 py-1 text-xs font-medium text-orange-600 transition-colors bg-orange-100 rounded hover:bg-orange-200"
+                                                title="View Complete PTW Details"
+                                            >
+                                                <Eye className="w-3 h-3 mr-1" />
+                                                View PTW
+                                            </button>
+                                            {showActions && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleApprove(ext)}
+                                                        className="inline-flex items-center px-3 py-1 text-xs font-medium text-green-700 transition-colors bg-green-100 rounded hover:bg-green-200"
+                                                    >
+                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReject(ext)}
+                                                        className="inline-flex items-center px-3 py-1 text-xs font-medium text-red-700 transition-colors bg-red-100 rounded hover:bg-red-200"
+                                                    >
+                                                        <XCircle className="w-3 h-3 mr-1" />
+                                                        Reject
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={extensions.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         );
     };
@@ -461,6 +441,37 @@ export default function ExtensionApprovalDashboard() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">PTW Extension Approvals</h1>
                     <p className="mt-1 text-sm text-slate-600">Review and approve extension requests</p>
+                </div>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-6 bg-white rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">Pending Approvals</p>
+                            <p className="text-3xl font-bold text-yellow-600">{pendingExtensions.length}</p>
+                        </div>
+                        <Clock className="w-10 h-10 text-yellow-600" />
+                    </div>
+                </div>
+                <div className="p-6 bg-white rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">Approved</p>
+                            <p className="text-3xl font-bold text-green-600">{approvedExtensions.length}</p>
+                        </div>
+                        <CheckCircle className="w-10 h-10 text-green-600" />
+                    </div>
+                </div>
+                <div className="p-6 bg-white rounded-lg shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">Rejected</p>
+                            <p className="text-3xl font-bold text-red-600">{rejectedExtensions.length}</p>
+                        </div>
+                        <XCircle className="w-10 h-10 text-red-600" />
+                    </div>
                 </div>
             </div>
 
@@ -499,9 +510,9 @@ export default function ExtensionApprovalDashboard() {
 
             {/* Tables */}
             <div className="bg-white rounded-lg shadow">
-                {activeTab === 'pending' && renderExtensionTable(pendingExtensions, true)}
-                {activeTab === 'approved' && renderExtensionTable(approvedExtensions, false)}
-                {activeTab === 'rejected' && renderExtensionTable(rejectedExtensions, false)}
+                {activeTab === 'pending' && <ExtensionTable extensions={pendingExtensions} showActions={true} />}
+                {activeTab === 'approved' && <ExtensionTable extensions={approvedExtensions} showActions={false} />}
+                {activeTab === 'rejected' && <ExtensionTable extensions={rejectedExtensions} showActions={false} />}
             </div>
 
             {/* ==================== APPROVE MODAL ==================== */}
@@ -651,167 +662,7 @@ export default function ExtensionApprovalDashboard() {
                 </div>
             )}
 
-            {/* ==================== VIEW PTW DETAILS MODAL ==================== */}
-            {showViewModal && selectedExtension && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="w-full max-w-4xl p-6 mx-4 overflow-y-auto bg-white rounded-lg max-h-[90vh]">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-bold text-slate-900">Complete PTW Details</h3>
-                            <button
-                                onClick={() => {
-                                    setShowViewModal(false);
-                                    setSelectedExtension(null);
-                                    setPtwDetails(null);
-                                }}
-                                className="p-2 transition-colors rounded-lg hover:bg-slate-100"
-                            >
-                                <XCircle className="w-6 h-6" />
-                            </button>
-                        </div>
 
-                        {loadingDetails ? (
-                            <div className="flex items-center justify-center py-12">
-                                <div className="w-12 h-12 border-b-2 border-blue-600 rounded-full animate-spin"></div>
-                            </div>
-                        ) : ptwDetails && ptwDetails.permit ? (
-                            <div className="space-y-6">
-                                {/* Extension Request Info */}
-                                <div className="p-4 rounded-lg bg-blue-50 border-blue-200">
-                                    <h4 className="font-bold text-blue-900 mb-3">Extension Request Information</h4>
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
-                                        <div>
-                                            <p className="text-blue-600">Requested At:</p>
-                                            <p className="font-medium">{formatDate(selectedExtension.requested_at)}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-blue-600">Requested By:</p>
-                                            <p className="font-medium">{selectedExtension.requested_by_name}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Basic PTW Information */}
-                                <div className="p-4 bg-white border rounded-lg border-slate-200">
-                                    <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                        <FileText className="w-5 h-5 text-blue-600" />
-                                        Basic Information
-                                    </h4>
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
-                                        <div>
-                                            <p className="text-slate-600">PTW Serial:</p>
-                                            <p className="font-medium">{ptwDetails.permit.permit_serial}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">Type:</p>
-                                            <p className="font-medium">{ptwDetails.permit.permit_type || ptwDetails.permit.permit_types}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">Site:</p>
-                                            <p className="font-medium">{ptwDetails.permit.site_name}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">Status:</p>
-                                            <p className="font-medium">{ptwDetails.permit.status}</p>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <p className="text-slate-600">Work Location:</p>
-                                            <p className="font-medium">{ptwDetails.permit.work_location}</p>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <p className="text-slate-600">Work Description:</p>
-                                            <p className="font-medium">{ptwDetails.permit.work_description}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Timeline */}
-                                <div className="p-4 bg-white border rounded-lg border-slate-200">
-                                    <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                        <Clock className="w-5 h-5 text-blue-600" />
-                                        Timeline
-                                    </h4>
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
-                                        <div>
-                                            <p className="text-slate-600">Start Time:</p>
-                                            <p className="font-medium">{formatDate(ptwDetails.permit.start_time)}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-slate-600">Original End Time:</p>
-                                            <p className="font-medium">{formatDate(selectedExtension.original_end_time)}</p>
-                                        </div>
-                                        <div className="col-span-2 p-3 bg-green-50 rounded border border-green-200">
-                                            <p className="text-green-700 font-semibold">New End Time (if approved):</p>
-                                            <p className="font-bold text-green-900 text-lg">{formatDate(selectedExtension.new_end_time)}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Team Members */}
-                                {ptwDetails.team_members && ptwDetails.team_members.length > 0 && (
-                                    <div className="p-4 bg-white border rounded-lg border-slate-200">
-                                        <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                            <Users className="w-5 h-5 text-blue-600" />
-                                            Team Members ({ptwDetails.team_members.length})
-                                        </h4>
-                                        <div className="space-y-2">
-                                            {ptwDetails.team_members.map((member: any, idx: number) => (
-                                                <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded">
-                                                    <div>
-                                                        <p className="font-medium">{member.worker_name}</p>
-                                                        <p className="text-xs text-slate-600">{member.worker_role}</p>
-                                                    </div>
-                                                    {member.company_name && (
-                                                        <p className="text-xs text-slate-500">{member.company_name}</p>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Hazards */}
-                                {ptwDetails.hazards && ptwDetails.hazards.length > 0 && (
-                                    <div className="p-4 bg-white border rounded-lg border-slate-200">
-                                        <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                            <AlertTriangle className="w-5 h-5 text-orange-600" />
-                                            Identified Hazards ({ptwDetails.hazards.length})
-                                        </h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {ptwDetails.hazards.map((hazard: any, idx: number) => (
-                                                <span key={idx} className="px-3 py-1 text-sm bg-orange-100 text-orange-800 rounded-full">
-                                                    {hazard.hazard_name || hazard.name}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* PPE */}
-                                {ptwDetails.ppe && ptwDetails.ppe.length > 0 && (
-                                    <div className="p-4 bg-white border rounded-lg border-slate-200">
-                                        <h4 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                            <HardHat className="w-5 h-5 text-green-600" />
-                                            Required PPE ({ptwDetails.ppe.length})
-                                        </h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {ptwDetails.ppe.map((item: any, idx: number) => (
-                                                <span key={idx} className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">
-                                                    {item.ppe_name || item.name}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="py-12 text-center">
-                                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                                <p className="text-slate-600">Failed to load PTW details</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

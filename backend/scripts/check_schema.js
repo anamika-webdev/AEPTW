@@ -15,17 +15,19 @@ async function checkSchema() {
         console.log('Connecting to database...');
         connection = await mysql.createConnection(dbConfig);
 
-        console.log('Querying schema for notifications table...');
+        console.log('Querying schema for permits table...');
         const [rows] = await connection.query(`
-            SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE 
-            FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'notification_type';
-        `, [dbConfig.database]);
+            SELECT COLUMN_TYPE
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = '${dbConfig.database}'
+            AND TABLE_NAME = 'permits'
+            AND COLUMN_NAME = 'status'
+        `);
 
         if (rows.length > 0) {
-            console.log('TYPE:', rows[0].COLUMN_TYPE);
+            console.log('Status Column Type:', rows[0].COLUMN_TYPE);
         } else {
-            console.log('Column not found or table does not exist.');
+            console.log('Column "status" not found in "permits" table or table does not exist.');
         }
 
     } catch (error) {

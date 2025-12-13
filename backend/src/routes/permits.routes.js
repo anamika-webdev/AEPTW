@@ -475,7 +475,7 @@ router.get('/my-extended', async (req, res) => {
       LEFT JOIN users so ON p.safety_officer_id = so.id
       LEFT JOIN users sl ON p.site_leader_id = sl.id
       WHERE p.created_by_user_id = ?
-      AND p.status IN ('Extension_Requested', 'Extended')
+      AND p.status IN ('Extension_Requested', 'Extended', 'Extension_Rejected')
       GROUP BY p.id
       ORDER BY p.updated_at DESC
     `, [userId]);
@@ -1536,17 +1536,18 @@ router.get('/:id', async (req, res) => {
     }
 
     // Return complete permit details
-    console.log('✅ Sending complete permit data');
+    const responseData = {
+      permit,
+      team_members: teamMembers,
+      hazards,
+      ppe,
+      checklist_responses: checklistResponses,
+      extensions: extensions
+    };
+    console.log('✅ Sending complete permit data. Keys:', Object.keys(responseData));
     res.json({
       success: true,
-      data: {
-        permit,
-        team_members: teamMembers,
-        hazards,
-        ppe,
-        checklist_responses: checklistResponses,
-        extensions: extensions
-      }
+      data: responseData
     });
 
   } catch (error) {

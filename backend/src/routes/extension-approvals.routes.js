@@ -423,10 +423,7 @@ router.post('/:extensionId/approve', async (req, res) => {
             await connection.query(`
                 UPDATE permits 
                 SET end_time = ?,
-                    status = CASE 
-                        WHEN status = 'Active' THEN 'Active'
-                        ELSE status 
-                    END,
+                    status = 'Extended',
                     updated_at = NOW()
                 WHERE id = ?
             `, [ue.new_end_time, ue.permit_id]);
@@ -612,6 +609,14 @@ router.post('/:extensionId/reject', async (req, res) => {
                 `Your extension request for ${ext.permit_serial} was rejected by ${fields.roleName}. Reason: ${remarks}`
             ]);
         }
+
+        // Update permit status to Extension_Rejected
+        await connection.query(`
+            UPDATE permits 
+            SET status = 'Extension_Rejected',
+                updated_at = NOW()
+            WHERE id = ?
+        `, [ext.permit_id]);
 
         await connection.commit();
 

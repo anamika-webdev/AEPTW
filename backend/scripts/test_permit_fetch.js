@@ -46,13 +46,13 @@ async function testPermitFetch() {
             console.log('✅ Permit found:', permits[0].permit_serial);
         }
 
-        // Simulate Checklist Query (Common failure point)
+        // Simulate Checklist Query
         console.log('2. Executing Checklist Query...');
         try {
             const [responses] = await connection.query(`
                 SELECT 
                   cr.id,
-                  mq.question,
+                  mq.question_text as question,
                   cr.response,
                   cr.remarks
                 FROM permit_checklist_responses cr
@@ -62,6 +62,20 @@ async function testPermitFetch() {
             console.log(`✅ Checklist responses: ${responses.length}`);
         } catch (err) {
             console.error('❌ Checklist Query Failed:', err.message);
+        }
+
+        // Simulate Team Members Query
+        console.log('3. Executing Team Members Query...');
+        try {
+            const [members] = await connection.query(`
+                SELECT id, worker_name as name, worker_role as role, contact_number 
+                FROM permit_team_members 
+                WHERE permit_id = ? 
+                ORDER BY id
+            `, [permitId]);
+            console.log(`✅ Team Members: ${members.length}`);
+        } catch (err) {
+            console.error('❌ Team Members Query Failed:', err.message);
         }
 
     } catch (error) {

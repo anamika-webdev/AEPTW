@@ -277,7 +277,10 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
       'Approved': { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle },
       'Rejected': { bg: 'bg-red-100', text: 'text-red-800', icon: XCircle },
       'Ready_To_Start': { bg: 'bg-purple-100', text: 'text-purple-800', icon: AlertOctagon },
-      'Active': { bg: 'bg-orange-100', text: 'text-orange-800', icon: CheckCircle },
+      'Active': { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle },
+      'Extension_Requested': { bg: 'bg-orange-100', text: 'text-orange-800', icon: Clock },
+      'Extended': { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle },
+      'Extension_Rejected': { bg: 'bg-red-100', text: 'text-red-800', icon: XCircle },
       'Closed': { bg: 'bg-gray-100', text: 'text-gray-800', icon: FileCheck },
     };
 
@@ -882,9 +885,9 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`px-4 py-2 text-sm font-bold rounded-full shadow-sm ${ext.status === 'Extended' || ext.status === 'Approved' ? 'bg-green-100 text-green-800 border-2 border-green-300' :
-                            ext.status === 'Extension_Rejected' || ext.status === 'Rejected' ? 'bg-red-100 text-red-800 border-2 border-red-300' :
-                              ext.status === 'Extension_Requested' || ext.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300' :
-                                'bg-gray-100 text-gray-800 border-2 border-gray-300'
+                          ext.status === 'Extension_Rejected' || ext.status === 'Rejected' ? 'bg-red-100 text-red-800 border-2 border-red-300' :
+                            ext.status === 'Extension_Requested' || ext.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300' :
+                              'bg-gray-100 text-gray-800 border-2 border-gray-300'
                           }`}>
                           {ext.status === 'Extended' ? '✓ Extended' :
                             ext.status === 'Extension_Requested' ? '⏳ Pending Approval' :
@@ -933,8 +936,8 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                         {/* Site Leader Approval */}
                         {ext.site_leader_status && (
                           <div className={`p-4 rounded-lg border-2 ${ext.site_leader_status === 'Approved' ? 'bg-green-50 border-green-300' :
-                              ext.site_leader_status === 'Rejected' ? 'bg-red-50 border-red-300' :
-                                'bg-yellow-50 border-yellow-300'
+                            ext.site_leader_status === 'Rejected' ? 'bg-red-50 border-red-300' :
+                              'bg-yellow-50 border-yellow-300'
                             }`}>
                             <div className="flex items-start justify-between mb-2">
                               <div>
@@ -944,8 +947,8 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                                 )}
                               </div>
                               <span className={`px-2 py-1 text-xs font-bold rounded-full ${ext.site_leader_status === 'Approved' ? 'bg-green-200 text-green-800' :
-                                  ext.site_leader_status === 'Rejected' ? 'bg-red-200 text-red-800' :
-                                    'bg-yellow-200 text-yellow-800'
+                                ext.site_leader_status === 'Rejected' ? 'bg-red-200 text-red-800' :
+                                  'bg-yellow-200 text-yellow-800'
                                 }`}>
                                 {ext.site_leader_status}
                               </span>
@@ -968,8 +971,8 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                         {/* Safety Officer Approval */}
                         {ext.safety_officer_status && (
                           <div className={`p-4 rounded-lg border-2 ${ext.safety_officer_status === 'Approved' ? 'bg-green-50 border-green-300' :
-                              ext.safety_officer_status === 'Rejected' ? 'bg-red-50 border-red-300' :
-                                'bg-yellow-50 border-yellow-300'
+                            ext.safety_officer_status === 'Rejected' ? 'bg-red-50 border-red-300' :
+                              'bg-yellow-50 border-yellow-300'
                             }`}>
                             <div className="flex items-start justify-between mb-2">
                               <div>
@@ -979,8 +982,8 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                                 )}
                               </div>
                               <span className={`px-2 py-1 text-xs font-bold rounded-full ${ext.safety_officer_status === 'Approved' ? 'bg-green-200 text-green-800' :
-                                  ext.safety_officer_status === 'Rejected' ? 'bg-red-200 text-red-800' :
-                                    'bg-yellow-200 text-yellow-800'
+                                ext.safety_officer_status === 'Rejected' ? 'bg-red-200 text-red-800' :
+                                  'bg-yellow-200 text-yellow-800'
                                 }`}>
                                 {ext.safety_officer_status}
                               </span>

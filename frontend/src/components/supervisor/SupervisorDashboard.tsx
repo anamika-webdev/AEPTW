@@ -324,6 +324,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
       'Active': { bg: 'bg-green-100', text: 'text-green-800', label: 'In Progress' },
       'Extension_Requested': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Extension Requested' },
       'Extended': { bg: 'bg-green-100', text: 'text-green-800', label: 'Extended - Active' },
+      'Extension_Rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Extension Rejected' },
       'Closed': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Closed' },
       'Rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
     };
