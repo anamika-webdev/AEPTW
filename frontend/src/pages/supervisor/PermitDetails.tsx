@@ -1,7 +1,7 @@
 // frontend/src/pages/supervisor/PermitDetails.tsx
 // COMPLETE VERSION - Shows ALL PTW details
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   FileText,
@@ -22,12 +22,16 @@ import {
   FileCheck,
   AlertOctagon,
   Camera,
-  ImageIcon
+  ImageIcon,
+  PenTool,
+  RotateCcw,
+  Download
 } from 'lucide-react';
 import { evidenceAPI, Evidence } from '../../services/evidenceAPI';
 import { closureEvidenceAPI, ClosureEvidence } from '../../services/closureEvidenceAPI';
 import { workerTrainingEvidenceAPI, WorkerTrainingEvidence } from '../../services/workerTrainingEvidenceAPI';
 import { CameraModal } from '../../components/shared/CameraModal';
+import { downloadComprehensivePDF } from '../../utils/pdfGenerator';
 interface PermitDetailsProps {
   ptwId: number;
   onBack: () => void;
@@ -97,7 +101,17 @@ interface PermitData {
   started_at?: string;
   final_submitted_at?: string;
 }
-
+// Add this interface after the ChecklistResponse interface (around line 65)
+interface ClosureData {
+  id: number;
+  closed_at: string;
+  closed_by_name: string;
+  housekeeping_done: boolean;
+  tools_removed: boolean;
+  locks_removed: boolean;
+  area_restored: boolean;
+  remarks?: string;
+}
 interface TeamMember {
   id: number;
   worker_name: string;
@@ -130,7 +144,16 @@ interface ChecklistResponse {
   response: string;
   remarks?: string;
 }
-
+interface ClosureData {
+  id: number;
+  closed_at: string;
+  closed_by_name: string;
+  housekeeping_done: boolean;
+  tools_removed: boolean;
+  locks_removed: boolean;
+  area_restored: boolean;
+  remarks?: string;
+}
 interface ExtensionRequest {
   id: number;
   requested_at: string;
@@ -160,12 +183,17 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
   const [workerTrainingEvidences, setWorkerTrainingEvidences] = useState<WorkerTrainingEvidence[]>([]);
   const [isUploadingClosure, setIsUploadingClosure] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
-
+  const [closureData, setClosureData] = useState<ClosureData | null>(null);
   // Close Permit State
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [housekeepingDone, setHousekeepingDone] = useState(false);
   const [toolsRemoved, setToolsRemoved] = useState(false);
   const [locksRemoved, setLocksRemoved] = useState(false);
+
+  // Signature State
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
   const [areaRestored, setAreaRestored] = useState(false);
   const [closureRemarks, setClosureRemarks] = useState('');
 
@@ -237,7 +265,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
         const ppeItems = data.data.ppe || [];
         const checklist = data.data.checklist_responses || [];
         const ext = data.data.extensions || [];
-
+        const closure = data.data.closure || null;
         console.log('✅ Parsed data:', {
           permit: permitData.permit_serial,
           teamMembers: members.length,
@@ -253,6 +281,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
         setPpe(ppeItems);
         setChecklistResponses(checklist);
         setExtensions(ext);
+        setClosureData(closure);
       } else {
         throw new Error('Invalid response format');
       }
@@ -350,6 +379,69 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
     );
   };
 
+  // Signature Canvas Helpers
+  useEffect(() => {
+    if (showCloseModal && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+      }
+    }
+  }, [showCloseModal]);
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+    setHasSignature(true);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasSignature(false);
+  };
+
   const handleClosePermit = async () => {
     if (!housekeepingDone || !toolsRemoved || !locksRemoved || !areaRestored) {
       alert('All checklist items must be completed before closing the permit.');
@@ -362,14 +454,29 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
       }
     }
 
+    if (!hasSignature) {
+      alert('Please provide your digital signature before closing.');
+      return;
+    }
+
     setIsUploadingClosure(true);
     try {
+      // DEBUG: Verify state
+      // alert(`DEBUG: Submitting ${closureEvidences.length} new photos.`);
+      console.log('Current closureEvidences:', closureEvidences);
+
       const formData = new FormData();
       formData.append('housekeeping_done', String(housekeepingDone));
       formData.append('tools_removed', String(toolsRemoved));
       formData.append('locks_removed', String(locksRemoved));
       formData.append('area_restored', String(areaRestored));
-      formData.append('remarks', closureRemarks);
+
+      // Append Signature to Remarks
+      const signatureData = canvasRef.current?.toDataURL('image/png') || '';
+      const fullRemarks = `${closureRemarks}\n\nSigned by: ${signatureData}`;
+      formData.append('remarks', fullRemarks);
+
+      formData.append('test_submission', 'true'); // Debug marker
 
       // Append Evidence
       const descriptions: string[] = [];
@@ -378,14 +485,58 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
       const latitudes: (number | null)[] = [];
       const longitudes: (number | null)[] = [];
 
+      // Validated evidence count
+      let validFiles = 0;
+
+      // Base64 helper
+      const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+        });
+      };
+
+      const base64Promises: Promise<string | null>[] = [];
+
       closureEvidences.forEach((evidence) => {
-        formData.append('images', evidence.file);
+        if (evidence.file && evidence.file.size > 0) {
+          formData.append('images', evidence.file);
+          base64Promises.push(fileToBase64(evidence.file));
+          validFiles++;
+        } else {
+          console.error('Invalid file encountered:', evidence);
+          // alert('Error: One of the photos is invalid (0 bytes). Please retake.');
+          base64Promises.push(Promise.resolve(null));
+          // Continue anyway to debug
+          return;
+        }
+
         descriptions.push(evidence.description || '');
         categories.push(evidence.category);
         timestamps.push(evidence.timestamp);
         latitudes.push(evidence.latitude);
         longitudes.push(evidence.longitude);
       });
+
+      console.log(`📤 Uploading ${validFiles} files for Permit ${ptwId}`);
+
+      if (closureEvidences.length > 0 && validFiles === 0) {
+        alert('Error: No valid files to upload. Please retake photos.');
+        setIsUploadingClosure(false);
+        return;
+      }
+
+      // Add Base64 fallback
+      try {
+        const base64Results = await Promise.all(base64Promises);
+        const validBase64 = base64Results.filter(s => s !== null);
+        formData.append('images_base64', JSON.stringify(validBase64));
+        console.log('Added Base64 fallbacks:', validBase64.length);
+      } catch (err) {
+        console.error('Base64 conversion failed', err);
+      }
 
       formData.append('descriptions', JSON.stringify(descriptions));
       formData.append('categories', JSON.stringify(categories));
@@ -395,6 +546,17 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
 
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      // DEBUG: Log FormData contents
+      console.log('--- FORM DATA DEBUG ---');
+      for (const pair of formData.entries()) {
+        if (pair[1] instanceof File) {
+          console.log(pair[0], 'FILE:', (pair[1] as File).name, (pair[1] as File).size, (pair[1] as File).type);
+        } else {
+          console.log(pair[0], pair[1]);
+        }
+      }
+      console.log('-----------------------');
 
       const response = await fetch(`${baseURL}/permits/${ptwId}/close`, {
         method: 'POST',
@@ -478,6 +640,23 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
       ? [permit.permit_type]
       : [];
 
+  const handleDownloadPDF = () => {
+    if (!permit) return;
+    const comprehensiveData = {
+      ...permit,
+      team_members: teamMembers,
+      hazards: hazards,
+      ppe: ppe,
+      checklist_responses: checklistResponses,
+      extensions: extensions,
+      closure: closureData,
+      evidence: evidences,
+      closure_evidence: savedClosureEvidences
+    };
+    downloadComprehensivePDF([comprehensiveData]);
+  };
+
+
   return (
     <div className="min-h-screen pb-12 space-y-6 bg-slate-50">
       {/* Header */}
@@ -495,7 +674,16 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
               <p className="text-sm text-slate-600">Complete Permit Details</p>
             </div>
           </div>
-          {getStatusBadge(permit.status)}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700"
+            >
+              <Download className="w-4 h-4" />
+              Download PDF
+            </button>
+            {getStatusBadge(permit.status)}
+          </div>
         </div>
       </div>
 
@@ -1312,7 +1500,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
             {savedClosureEvidences.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {savedClosureEvidences.map((evidence, index) => (
-                  <div key={evidence.id || index} className="overflow-hidden border-2 rounded-lg border-teal-100 bg-teal-50/30">
+                  <div key={`saved-${evidence.id || index}`} className="overflow-hidden border-2 rounded-lg border-teal-100 bg-teal-50/30">
                     <div className="relative aspect-video bg-slate-100 group">
                       {evidence.file_path ? (
                         <img
@@ -1360,6 +1548,103 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
               </div>
             )}
           </div>
+
+          {/* ============= CLOSURE DETAILS SECTION ============= */}
+          {permit?.status === 'Closed' && closureData && (
+            <div className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border-2 border-slate-200 shadow-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-slate-600 rounded-lg">
+                  <FileCheck className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">Permit Closure Details</h3>
+                  <p className="text-sm text-slate-600">
+                    Closed on {formatDate(closureData.closed_at)} by {closureData.closed_by_name}
+                  </p>
+                </div>
+              </div>
+
+              {/* Closure Checklist */}
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck className="w-5 h-5 text-slate-600" />
+                    <span className="font-medium text-slate-900">Housekeeping Completed</span>
+                  </div>
+                  {closureData.housekeeping_done ? (
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck className="w-5 h-5 text-slate-600" />
+                    <span className="font-medium text-slate-900">All Tools and Equipment Removed</span>
+                  </div>
+                  {closureData.tools_removed ? (
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck className="w-5 h-5 text-slate-600" />
+                    <span className="font-medium text-slate-900">All Locks and Tags Removed</span>
+                  </div>
+                  {closureData.locks_removed ? (
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck className="w-5 h-5 text-slate-600" />
+                    <span className="font-medium text-slate-900">Work Area Restored to Normal</span>
+                  </div>
+                  {closureData.area_restored ? (
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  )}
+                </div>
+              </div>
+
+              {/* Closure Remarks & Signature */}
+              {closureData.remarks && (
+                <div className="p-4 bg-white rounded-lg border border-slate-200">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Closure Remarks
+                  </h4>
+
+                  {/* Remarks Text */}
+                  <p className="text-slate-800 whitespace-pre-wrap mb-4">
+                    {closureData.remarks.split('Signed by: ')[0].trim()}
+                  </p>
+
+                  {/* Signature Image */}
+                  {closureData.remarks.includes('Signed by: ') && (
+                    <div className="mt-4 border-t pt-4">
+                      <p className="text-xs font-semibold text-slate-500 mb-2 uppercase">Signed by Supervisor</p>
+                      <div className="p-2 border rounded-lg bg-white inline-block">
+                        <img
+                          src={closureData.remarks.split('Signed by: ')[1].trim()}
+                          alt="Supervisor Signature"
+                          className="h-20 object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Back Button */}
@@ -1513,6 +1798,45 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                   />
                 </div>
 
+                {/* Digital Signature */}
+                <div>
+                  <h4 className="text-lg font-semibold text-slate-900 mb-2">
+                    Digital Signature <span className="text-red-500">*</span>
+                  </h4>
+                  <div className="p-4 border-2 border-slate-300 rounded-lg bg-slate-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <PenTool className="w-4 h-4" />
+                        <span>Sign with mouse or touchpad</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearSignature}
+                        className="flex items-center gap-1 px-3 py-1 text-sm text-slate-600 transition-colors border border-slate-300 rounded hover:bg-slate-100"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Clear
+                      </button>
+                    </div>
+                    <canvas
+                      ref={canvasRef}
+                      width={600}
+                      height={150}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                      className="w-full bg-white border-2 border-slate-300 rounded cursor-crosshair touch-none"
+                    />
+                    {hasSignature && (
+                      <div className="flex items-center gap-2 mt-2 text-sm text-green-600">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Signature captured</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t">
                   <button
@@ -1523,7 +1847,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                   </button>
                   <button
                     onClick={handleClosePermit}
-                    disabled={isUploadingClosure || !housekeepingDone || !toolsRemoved || !locksRemoved || !areaRestored}
+                    disabled={isUploadingClosure || !housekeepingDone || !toolsRemoved || !locksRemoved || !areaRestored || !hasSignature}
                     className="flex-1 px-6 py-3 font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isUploadingClosure ? 'Closing...' : 'Confirm Close & Submit'}
@@ -1532,7 +1856,8 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
               </div>
             </div>
           </div>
-        )}
+        )
+      }
 
       {
         showCameraModal && (
@@ -1543,6 +1868,6 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
           />
         )
       }
-    </div>
+    </div >
   );
 }

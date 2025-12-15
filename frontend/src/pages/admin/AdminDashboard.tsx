@@ -43,7 +43,12 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       const data = await response.json();
       console.log('📥 Stats response:', data);
 
-      setStats(data);
+      if (data.success && data.data) {
+        setStats(data.data);
+      } else {
+        // Fallback or legacy support
+        setStats(data);
+      }
     } catch (error) {
       console.error('❌ Error loading stats:', error);
     } finally {

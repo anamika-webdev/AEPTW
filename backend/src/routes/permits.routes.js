@@ -106,7 +106,7 @@ router.post('/:id/request-extension', async (req, res) => {
         site_leader_status,
         safety_officer_id,
         safety_officer_status
-      ) VALUES (?, ?, NOW(), ?, ?, ?, 'Pending', ?, ?, ?, ?)
+      ) VALUES (?, ?, NOW(), ?, ?, ?, 'Extension_Requested', ?, ?, ?, ?)
     `, [
       id,
       userId,
@@ -1316,6 +1316,28 @@ router.get('/:id', async (req, res) => {
       [id]
     );
 
+    // Get closure details
+    const [closures] = await pool.query(
+      `SELECT 
+        pc.*,
+        u.full_name as closed_by_name
+       FROM permit_closure pc
+       LEFT JOIN users u ON pc.closed_by_user_id = u.id
+       WHERE pc.permit_id = ?`,
+      [id]
+    );
+
+    // Get all evidence
+    const [allEvidence] = await pool.query(
+      `SELECT * FROM permit_evidences WHERE permit_id = ? ORDER BY timestamp DESC`,
+      [id]
+    );
+
+    // Separate pre-work and closure evidence
+    // Assuming 'area_organization' category implies closure/post-work evidence
+    const evidence = allEvidence.filter(e => e.category !== 'area_organization');
+    const closureEvidence = allEvidence.filter(e => e.category === 'area_organization');
+
     // Combine all data
     const fullPermit = {
       ...permit,
@@ -1323,7 +1345,10 @@ router.get('/:id', async (req, res) => {
       hazards: hazards,
       ppe: ppe,
       checklist_responses: checklistResponses,
-      extensions: extensions
+      extensions: extensions,
+      closure: closures[0] || null,
+      evidence: evidence,
+      closure_evidence: closureEvidence
     };
 
     res.json({
@@ -1580,6 +1605,18 @@ router.put('/:id', async (req, res) => {
 
   } catch (error) {
     if (connection) await connection.rollback();
+
+    // Log error to file
+    const fs = require('fs');
+    const errorLog = `
+    [${new Date().toISOString()}] ❌ ERROR /update:
+    - Message: ${error.message}
+    - SQL: ${error.sql || 'N/A'}
+    - Params: ${error.sqlMessage || 'N/A'}
+    - Stack: ${error.stack}
+    `;
+    fs.appendFileSync('backend_debug.log', errorLog);
+
     console.error('❌ Error updating permit:', error);
     res.status(500).json({
       success: false,
@@ -1812,6 +1849,38 @@ router.get('/:id', async (req, res) => {
       console.log('⚠️ Error fetching extensions:', err.message);
     }
 
+    // Get closure details
+    let closure = null;
+    let closureEvidence = [];
+    try {
+      const [clos] = await pool.query(`
+        SELECT pc.*, u.full_name as closed_by_name
+        FROM permit_closure pc
+        LEFT JOIN users u ON pc.closed_by_user_id = u.id
+        WHERE pc.permit_id = ?
+      `, [id]);
+      if (clos.length > 0) {
+        closure = clos[0];
+        console.log(`✅ Found closure record ID: ${closure.id}`);
+
+        const [ce] = await pool.query(`SELECT * FROM permit_closure_evidence WHERE permit_id = ?`, [id]);
+        closureEvidence = ce;
+        console.log(`✅ Found ${closureEvidence.length} closure evidence records`);
+      }
+    } catch (err) {
+      console.log('⚠️ Error fetching closure details:', err.message);
+    }
+
+    // Get pre-work evidence
+    let evidences = [];
+    try {
+      const [evs] = await pool.query(`SELECT * FROM permit_evidence WHERE permit_id = ?`, [id]);
+      evidences = evs;
+      console.log(`📸 Found ${evidences.length} pre-work evidence records`);
+    } catch (err) {
+      console.log('⚠️ Error fetching pre-work evidence:', err.message);
+    }
+
     // Return complete permit details
     const responseData = {
       permit,
@@ -1819,7 +1888,10 @@ router.get('/:id', async (req, res) => {
       hazards,
       ppe,
       checklist_responses: checklistResponses,
-      extensions: extensions
+      extensions: extensions,
+      closure: closure,
+      closure_evidence: closureEvidence,
+      evidence: evidences
     };
     console.log('✅ Sending complete permit data. Keys:', Object.keys(responseData));
     res.json({
@@ -1951,7 +2023,7 @@ router.post('/:id/request-extension', async (req, res) => {
 // ============================================================================
 // POST /api/permits/:id/close - Close PTW
 // ============================================================================
-router.post('/:id/close', authenticateToken, upload.array('images', 10), async (req, res) => {
+router.post('/:id/close', authenticateToken, upload.any(), async (req, res) => {
   let connection;
 
   try {
@@ -1971,7 +2043,18 @@ router.post('/:id/close', authenticateToken, upload.array('images', 10), async (
     // Parse evidence metadata
     const { descriptions, categories, timestamps, latitudes, longitudes } = req.body;
 
+    const fs = require('fs');
+    const logData = `
+    [${new Date().toISOString()}] POST /close request:
+    - Content-Type: ${req.headers['content-type']}
+    - User ID: ${userId}
+    - Files: ${req.files ? req.files.length : '0'}
+    - Body keys: ${Object.keys(req.body).join(', ')}
+    `;
+    fs.appendFileSync('backend_debug.log', logData);
+
     console.log(`📥 POST /api/permits/${id}/close - User: ${userId}`);
+    console.log('Content-Type:', req.headers['content-type']);
     console.log('Raw body:', req.body);
     console.log('Parsed closure data:', { housekeeping_done, tools_removed, locks_removed, area_restored, remarks });
     console.log('Files received:', req.files ? req.files.length : 0);
@@ -2025,6 +2108,11 @@ router.post('/:id/close', authenticateToken, upload.array('images', 10), async (
       });
     }
 
+    // 1. CLEANUP: Delete any existing closure records for this permit to prevent duplicates
+    // This handles cases where a previous attempt partially succeeded or left a 'zombie' record
+    await connection.query('DELETE FROM permit_closure_evidence WHERE permit_id = ?', [id]);
+    await connection.query('DELETE FROM permit_closure WHERE permit_id = ?', [id]);
+
     // Insert closure record into permit_closure table
     let closureId;
     try {
@@ -2049,13 +2137,49 @@ router.post('/:id/close', authenticateToken, upload.array('images', 10), async (
     }
 
     // Handle Evidence Uploads
-    if (req.files && req.files.length > 0) {
+    let files = req.files || [];
+
+    // Fallback to Base64 if no files found
+    if (files.length === 0 && req.body.images_base64) {
+      console.log('⚠️ No files in req.files, attempting Base64 fallback...');
+      const fs = require('fs');
+      const path = require('path');
+
+      try {
+        const base64Images = JSON.parse(req.body.images_base64);
+        const uploadDir = path.join(__dirname, '../../uploads/closure');
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+        files = base64Images.map((base64Str, index) => {
+          // Remove header "data:image/jpeg;base64,"
+          const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          if (!matches || matches.length !== 3) return null;
+
+          const type = matches[1];
+          const buffer = Buffer.from(matches[2], 'base64');
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + index;
+          const extension = type.split('/')[1] || 'jpg';
+          const filename = `closure-fallback-${uniqueSuffix}.${extension}`;
+
+          fs.writeFileSync(path.join(uploadDir, filename), buffer);
+
+          return {
+            filename: filename
+          };
+        }).filter(f => f !== null);
+
+        console.log(`✅ Recovered ${files.length} images from Base64 fallback`);
+      } catch (e) {
+        console.error('❌ Base64 fallback failed:', e.message);
+      }
+    }
+
+    if (files.length > 0) {
       const descArray = JSON.parse(descriptions || '[]');
       const catArray = JSON.parse(categories || '[]');
       const timeArray = JSON.parse(timestamps || '[]');
       const latArray = JSON.parse(latitudes || '[]');
       const lonArray = JSON.parse(longitudes || '[]');
-      const files = req.files;
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -2079,7 +2203,7 @@ router.post('/:id/close', authenticateToken, upload.array('images', 10), async (
             filePath,
             catArray[i] || 'other',
             descArray[i] || null,
-            timeArray[i] || new Date(),
+            timeArray[i] ? new Date(timeArray[i]) : new Date(),
             latArray[i] || null,
             lonArray[i] || null,
             userId
@@ -2114,6 +2238,17 @@ router.post('/:id/close', authenticateToken, upload.array('images', 10), async (
 
   } catch (error) {
     if (connection) await connection.rollback();
+
+    // Log error to file
+    const fs = require('fs');
+    const errorLog = `
+    [${new Date().toISOString()}] ❌ ERROR /close:
+    - Message: ${error.message}
+    - SQL: ${error.sql || 'N/A'}
+    - Stack: ${error.stack}
+    `;
+    fs.appendFileSync('backend_debug.log', errorLog);
+
     console.error('❌ Error closing permit:', error);
     res.status(500).json({
       success: false,

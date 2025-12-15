@@ -18,6 +18,7 @@ import {
   Download
 } from 'lucide-react';
 import { permitsAPI } from '../../services/api';
+import { downloadComprehensivePDF } from '../../utils/pdfGenerator';
 
 interface Permit {
   id: number;
@@ -116,11 +117,13 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
         .filter(r => r.success && r.data)
         .map(r => r.data);
 
+
       if (permitsWithDetails.length > 0) {
-        await downloadPermitsPDF(permitsWithDetails);
+        await downloadComprehensivePDF(permitsWithDetails);
         alert(`Successfully downloaded ${permitsWithDetails.length} permit(s) with complete details`);
       } else {
         alert('Failed to fetch permit details. Please try again.');
+        // Fallback removed
       }
     } catch (error) {
       console.error('Error downloading permits:', error);
@@ -136,14 +139,46 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
       // Fetch complete details for the permit
       const response = await permitsAPI.getById(permit.id);
       if (response.success && response.data) {
-        await downloadPermitsPDF([response.data]);
+        await downloadComprehensivePDF([response.data]);
       } else {
-        // Fallback to basic data if detailed fetch fails
-        await downloadPermitsPDF([permit]);
+        alert('Failed to fetch complete details for download.');
       }
     } catch (error) {
       console.error('Error downloading permit:', error);
       alert('Failed to download permit. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (filteredPermits.length === 0) {
+      alert('No permits to download');
+      return;
+    }
+
+    if (filteredPermits.length > 20) {
+      if (!confirm(`You are about to download ${filteredPermits.length} permits. This may take a while. Continue?`)) {
+        return;
+      }
+    }
+
+    setIsDownloading(true);
+    try {
+      // Fetch complete details for all filtered permits
+      const permitDetailsPromises = filteredPermits.map(p => permitsAPI.getById(p.id));
+      const responses = await Promise.all(permitDetailsPromises);
+      const permitsWithDetails = responses
+        .filter(r => r.success && r.data)
+        .map(r => r.data);
+
+      if (permitsWithDetails.length > 0) {
+        await downloadComprehensivePDF(permitsWithDetails);
+        alert(`Successfully downloaded ${permitsWithDetails.length} permit(s) of ${filteredPermits.length}`);
+      }
+    } catch (error) {
+      console.error('Error downloading permits:', error);
+      alert('Failed to download permits. Please try again.');
     } finally {
       setIsDownloading(false);
     }
@@ -460,6 +495,14 @@ export default function AllPermits({ onNavigate }: AllPermitsProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownloadAll}
+              disabled={isDownloading || filteredPermits.length === 0}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className={`w-4 h-4 ${isDownloading ? 'animate-pulse' : ''}`} />
+              Download All ({filteredPermits.length})
+            </button>
             {selectedPermits.length > 0 && (
               <button
                 onClick={handleDownloadSelected}

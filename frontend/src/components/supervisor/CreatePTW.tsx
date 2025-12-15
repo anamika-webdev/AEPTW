@@ -1,9 +1,12 @@
+
 // src/components/supervisor/CreatePTW.tsx - COMPLETE UPDATED VERSION WITH FIXES
 import { useState, useEffect, useCallback, memo } from 'react';
 import { ArrowLeft, FileText, Check, AlertTriangle, X, Camera, Clock, MapPin, ImageIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+
+import { isValidPhoneNumber } from '../../utils/validation';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
@@ -150,12 +153,12 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   };
   // ⭐ NEW: Handle captured photo from camera
   const handlePhotoCaptured = (workerIndex: number, blob: Blob) => {
-    const file = new File([blob], `training-evidence-${Date.now()}.jpg`, {
+    const file = new File([blob], `training - evidence - ${Date.now()}.jpg`, {
       type: 'image/jpeg'
     });
 
     const evidence: TrainingEvidence = {
-      id: `evidence-${Date.now()}-${Math.random()}`,
+      id: `evidence - ${Date.now()} -${Math.random()} `,
       file,
       preview: URL.createObjectURL(blob),
       caption: '',
@@ -175,13 +178,13 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       const location = await getCurrentLocation();
       const timestamp = new Date().toISOString();
 
-      const file = new File([blob], `evidence-${Date.now()}.jpg`, {
+      const file = new File([blob], `evidence - ${Date.now()}.jpg`, {
         type: 'image/jpeg'
       });
       const preview = URL.createObjectURL(blob);
 
       const evidence: Evidence = {
-        id: `${Date.now()}`,
+        id: `${Date.now()} `,
         file,
         preview,
         timestamp,
@@ -285,7 +288,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       // ⭐ MODIFIED: Handle sites with auto-prefill logic
       if (sitesRes.success && sitesRes.data) {
         const sitesList = Array.isArray(sitesRes.data) ? sitesRes.data : [];
-        console.log(`✅ Sites loaded: ${sitesList.length}`);
+        console.log(`✅ Sites loaded: ${sitesList.length} `);
         setSites(sitesList);
 
         // ⭐ NEW: Auto-prefill if only 1 site is assigned
@@ -644,6 +647,18 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         alert('Please enter Contact Number (Issued To)');
         return;
       }
+      if (!isValidPhoneNumber(formData.issuedToContact)) {
+        alert('Please enter a valid Contact Number (Issued To). Must be 10 digits.');
+        return;
+      }
+
+      // Validate New Workers Phones
+      for (const [i, worker] of newWorkers.entries()) {
+        if (!worker.phone || !isValidPhoneNumber(worker.phone)) {
+          alert(`Please enter a valid phone number for worker: ${worker.name || 'Worker ' + (i + 1)}`);
+          return;
+        }
+      }
       if (formData.selectedWorkers.length === 0 && newWorkers.length === 0) {
         alert('Please assign at least one worker');
         return;
@@ -721,8 +736,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           alert(`Please enter a valid ${name}`);
           return false;
         }
-        if (!contact || !/^[0-9]{10}$/.test(contact)) {
-          alert(`Please enter a valid 10-digit contact number for ${name}`);
+        if (!contact || !isValidPhoneNumber(contact)) {
+          alert(`Please enter a valid contact number for ${name} (10 digits)`);
           return false;
         }
         return true;
@@ -855,7 +870,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
             worker_name: worker?.full_name || '',
             worker_role: 'Worker' as WorkerRole,
             badge_id: worker?.login_id || '',
-            contact_number: worker?.phone || '',
+            contact_number: worker?.contact || worker?.phone || '',
           };
         }),
         ...newWorkers.map(worker => ({

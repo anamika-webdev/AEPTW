@@ -1,11 +1,11 @@
 // frontend/src/types/index.ts - COMPLETE FIXED VERSION
 
 // User Types
-export type UserRole = 
-  | 'Admin' 
-  | 'Requester' 
-  | 'Approver_AreaManager' 
-  | 'Approver_Safety' 
+export type UserRole =
+  | 'Admin'
+  | 'Requester'
+  | 'Approver_AreaManager'
+  | 'Approver_Safety'
   | 'Approver_SiteLeader'
   | 'Worker'
   | 'Supervisor';
@@ -19,6 +19,7 @@ export interface User {
   department?: string | null;
   department_id?: number | null;
   contact?: string | null;
+  phone?: string | null; // Added for compatibility
   signature_url?: string | null;
   is_active?: boolean;
   created_at: string;
@@ -52,14 +53,14 @@ export interface Vendor {
 // Permit Types
 export type PermitType = 'General' | 'Height' | 'Hot_Work' | 'Electrical' | 'Confined_Space';
 
-export type PermitStatus = 
-  | 'Draft' 
-  | 'Pending_Approval' 
-  | 'Active' 
-  | 'Extension_Requested' 
-  | 'Suspended' 
-  | 'Closed' 
-  | 'Cancelled' 
+export type PermitStatus =
+  | 'Draft'
+  | 'Pending_Approval'
+  | 'Active'
+  | 'Extension_Requested'
+  | 'Suspended'
+  | 'Closed'
+  | 'Cancelled'
   | 'Rejected';
 
 export interface Permit {
@@ -83,7 +84,7 @@ export interface Permit {
   created_at: string;
   updated_at?: string;
   team_size?: number;
-  
+
   // Joined data (from backend joins)
   site_name?: string; // ADDED - from join
   site_code?: string;
@@ -155,7 +156,7 @@ export interface MasterChecklistQuestion {
   permit_type: PermitType | string;
   question_text: string;
   category?: string;
-   response_type?: 'yes_no' | 'text';
+  response_type?: 'yes_no' | 'text';
   is_mandatory?: boolean;
 }
 

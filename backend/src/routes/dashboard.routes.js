@@ -11,37 +11,37 @@ router.use(authenticateToken);
 router.get('/supervisor/stats', async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     // Total permits created by this supervisor
     const [totalPermits] = await pool.query(
       'SELECT COUNT(*) as count FROM permits WHERE created_by_user_id = ?',
       [userId]
     );
-    
+
     // Initiated permits (Draft status)
     const [initiatedPermits] = await pool.query(
       "SELECT COUNT(*) as count FROM permits WHERE created_by_user_id = ? AND status = 'Draft'",
       [userId]
     );
-    
+
     // Approved permits
     const [approvedPermits] = await pool.query(
       "SELECT COUNT(*) as count FROM permits WHERE created_by_user_id = ? AND status = 'Active'",
       [userId]
     );
-    
+
     // In progress permits
     const [inProgressPermits] = await pool.query(
       "SELECT COUNT(*) as count FROM permits WHERE created_by_user_id = ? AND status IN ('Active', 'Extension_Requested')",
       [userId]
     );
-    
+
     // Closed permits
     const [closedPermits] = await pool.query(
       "SELECT COUNT(*) as count FROM permits WHERE created_by_user_id = ? AND status = 'Closed'",
       [userId]
     );
-    
+
     // Total workers assigned to this supervisor's permits
     const [totalWorkers] = await pool.query(`
       SELECT COUNT(DISTINCT ptm.worker_name) as count 
@@ -49,7 +49,7 @@ router.get('/supervisor/stats', async (req, res) => {
       JOIN permits p ON ptm.permit_id = p.id
       WHERE p.created_by_user_id = ?
     `, [userId]);
-    
+
     res.json({
       success: true,
       data: {
@@ -78,13 +78,27 @@ router.get('/stats', async (req, res) => {
     const [totalPermits] = await pool.query('SELECT COUNT(*) as count FROM permits');
     const [totalSites] = await pool.query('SELECT COUNT(*) as count FROM sites');
     const [totalUsers] = await pool.query('SELECT COUNT(*) as count FROM users');
-    
+
+    // Role-based stats
+    const [supervisors] = await pool.query("SELECT COUNT(*) as count FROM users WHERE role = 'Supervisor'");
+    const [workers] = await pool.query("SELECT COUNT(*) as count FROM users WHERE role = 'Worker'");
+
+    // Task/Permit status
+    const [active] = await pool.query("SELECT COUNT(*) as count FROM permits WHERE status IN ('Active', 'Extension_Requested')");
+    const [completed] = await pool.query("SELECT COUNT(*) as count FROM permits WHERE status = 'Closed'");
+
     res.json({
       success: true,
       data: {
-        total_permits: totalPermits[0].count,
-        total_sites: totalSites[0].count,
-        total_users: totalUsers[0].count
+        totalPermits: totalPermits[0].count,
+        totalSites: totalSites[0].count,
+        totalUsers: totalUsers[0].count,
+        totalSupervisors: supervisors[0].count,
+        totalWorkers: workers[0].count,
+        activeTasks: active[0].count,
+        completedTasks: completed[0].count,
+        totalTasks: totalPermits[0].count,
+        activePermits: active[0].count
       }
     });
   } catch (error) {

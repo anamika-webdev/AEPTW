@@ -216,7 +216,8 @@ export const ClosePTWModal: React.FC<ClosePTWModalProps> = ({
       const signatureData = canvas.toDataURL('image/png');
       const dataToSubmit = {
         ...closureData,
-        supervisor_signature: signatureData
+        supervisor_signature: signatureData,
+        closureEvidences: closureEvidences // Include the evidences from separate state
       };
       onSubmit(dataToSubmit);
     }

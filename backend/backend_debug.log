@@ -1,0 +1,121 @@
+
+    [2025-12-15T12:30:25.961Z] POST /close request:
+    - User ID: 17
+    - Files: 0
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks
+    - Housekeeping: true
+    
+    [2025-12-15T13:11:17.951Z] POST /close request:
+    - User ID: 17
+    - Files: 0
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks
+    - Housekeeping: true
+    
+    [2025-12-15T13:16:34.726Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryvh2cLPRb10SDTgc8
+    - User ID: 17
+    - Files: 0
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks
+    
+    [2025-12-15T13:17:20.798Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundarylLf8PDI4Ojk5jD4n
+    - User ID: 17
+    - Files: 0
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks
+    
+    [2025-12-15T13:21:44.343Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundary2PEpBqjpfPREWzYB
+    - User ID: 17
+    - Files: 0
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks
+    
+    [2025-12-15T13:26:31.794Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryVhKRwJHSAJSSaGHv
+    - User ID: 17
+    - Files: 0
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks
+    
+    [2025-12-15T13:32:10.773Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryhDmiwfX2BCiAZwJP
+    - User ID: 17
+    - Files: 0
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks
+    
+    [2025-12-15T13:34:41.132Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryLfHMPel99zeQCeBf
+    - User ID: 17
+    - Files: 0
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks
+    
+    [2025-12-15T13:36:04.019Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryzafDZCqKVv2ZHqdA
+    - User ID: 17
+    - Files: 1
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, test_submission, images_base64, descriptions, categories, timestamps, latitudes, longitudes
+    
+    [2025-12-15T13:46:49.376Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundarygt5qH1KhWuB5pqDC
+    - User ID: 17
+    - Files: 1
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, test_submission, images_base64, descriptions, categories, timestamps, latitudes, longitudes
+    
+    [2025-12-15T13:46:49.464Z] ❌ ERROR /close:
+    - Message: Incorrect datetime value: '2025-12-15T13:46:36.566Z' for column 'timestamp' at row 1
+    - SQL: INSERT INTO permit_closure_evidence (
+            closure_id, 
+            permit_id, 
+            file_path, 
+            category,
+            description, 
+            timestamp, 
+            latitude, 
+            longitude,
+            captured_by_user_id
+          ) VALUES (33, '102', '/uploads/closure/closure-1765806409351-82986679.jpg', 'area_organization', 'vcbfcbfdbfd', '2025-12-15T13:46:36.566Z', 28.617506176321886, 77.44134723017667, 17)
+    - Stack: Error: Incorrect datetime value: '2025-12-15T13:46:36.566Z' for column 'timestamp' at row 1
+    at PromisePoolConnection.query (C:\Users\anami\Desktop\Amazon EPTW UI\backend\node_modules\mysql2\lib\promise\connection.js:29:22)
+    at C:\Users\anami\Desktop\Amazon EPTW UI\backend\src\routes\permits.routes.js:2140:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    
+    [2025-12-15T13:49:13.921Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryVSRj8zLrEo2qT2mP
+    - User ID: 17
+    - Files: 1
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, test_submission, images_base64, descriptions, categories, timestamps, latitudes, longitudes
+    
+    [2025-12-15T13:53:17.493Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundarykMgAAbd5WAtQgmMK
+    - User ID: 17
+    - Files: 0
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks
+    
+    [2025-12-15T13:58:28.645Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryAE5Aalrdh0nZOXZ6
+    - User ID: 17
+    - Files: 1
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, images_base64, descriptions, categories, timestamps, latitudes, longitudes
+    
+    [2025-12-15T14:11:06.240Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryLrAT1L2B4hsFmFCY
+    - User ID: 17
+    - Files: 1
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, test_submission, images_base64, descriptions, categories, timestamps, latitudes, longitudes
+    
+    [2025-12-15T14:11:54.682Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryrriHOREtxS0NYoxO
+    - User ID: 17
+    - Files: 1
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, images_base64, descriptions, categories, timestamps, latitudes, longitudes
+    
+    [2025-12-15T15:14:21.499Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundary3l78XGFrvexWZoW0
+    - User ID: 17
+    - Files: 1
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, images_base64, descriptions, categories, timestamps, latitudes, longitudes
+    
+    [2025-12-15T16:13:51.108Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryyjBKs19c38bhvI7Z
+    - User ID: 17
+    - Files: 1
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, images_base64, descriptions, categories, timestamps, latitudes, longitudes
+    

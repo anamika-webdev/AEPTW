@@ -15,6 +15,7 @@ import {
   MoreVertical,
   X
 } from 'lucide-react';
+import { isValidPhoneNumber } from '../../utils/validation';
 
 interface Worker {
   id: number;
@@ -145,6 +146,11 @@ export default function WorkerList() {
   const handleAddWorker = () => {
     if (!newWorker.name || !newWorker.email || !newWorker.phone || !newWorker.department || !newWorker.position) {
       alert('Please fill in all required fields');
+      return;
+    }
+
+    if (!isValidPhoneNumber(newWorker.phone)) {
+      alert('Please enter a valid phone number (10 digits)');
       return;
     }
 

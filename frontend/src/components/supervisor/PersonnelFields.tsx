@@ -5,6 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Check, X, AlertTriangle } from 'lucide-react';
 import type { PermitType } from '../../types';
+import { isValidPhoneNumber } from '../../utils/validation';
 
 interface PersonnelFieldsProps {
     selectedCategories: PermitType[];
@@ -108,16 +109,15 @@ export default function PersonnelFields({ selectedCategories, formData, setFormD
                         onChange={(e) => handleTextChange(contactId, e.target.value)}
                         placeholder="Enter contact number"
                         required={required}
-                        pattern="[0-9]{10}"
-                        maxLength={10}
+                        required={required}
                         autoComplete="off"
                         className="bg-white"
                     />
                     {contactValue !== '' && (
                         <>
-                            {!/^[0-9]{10}$/.test(contactValue) ? (
+                            {!isValidPhoneNumber(contactValue) ? (
                                 <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                    <X className="w-3 h-3" /> Must be 10 digits
+                                    <X className="w-3 h-3" /> Invalid (10 digits)
                                 </p>
                             ) : (
                                 <p className="mt-1 text-xs text-green-600 flex items-center gap-1">

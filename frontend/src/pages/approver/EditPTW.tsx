@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { permitsAPI, masterDataAPI, sitesAPI, uploadAPI } from '../../services/api';
 import SignatureCanvas from 'react-signature-canvas';
+import { isValidPhoneNumber } from '../../utils/validation';
 
 type PermitType = 'General' | 'Hot_Work' | 'Electrical' | 'Height' | 'Confined_Space';
 type ChecklistResponse = 'Yes' | 'No' | 'NA';
@@ -332,6 +333,22 @@ export default function EditPTW({ permitId, onBack, onSave }: EditPTWProps) {
         if (!formData.start_time || !formData.end_time) {
             alert('Start and end times are required');
             return;
+        }
+
+        // Validate Contacts
+        if (formData.permit_initiator_contact && !isValidPhoneNumber(formData.permit_initiator_contact)) {
+            alert('Invalid Initiator Contact (10 digits)');
+            return;
+        }
+        if (formData.receiver_contact && !isValidPhoneNumber(formData.receiver_contact)) {
+            alert('Invalid Receiver Contact (10 digits)');
+            return;
+        }
+        for (const member of formData.teamMembers) {
+            if (member.contact && !isValidPhoneNumber(member.contact)) {
+                alert(`Invalid contact number for team member: ${member.name}`);
+                return;
+            }
         }
 
         setIsSaving(true);

@@ -258,6 +258,16 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
     setCloseModalOpen(true);
   };
 
+  // Helper for Base64 (define inside or outside)
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const handleCloseSubmit = async (permitId: number, closureData: ClosureData) => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -277,15 +287,31 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
         const timestamps: string[] = [];
         const latitudes: (number | null)[] = [];
         const longitudes: (number | null)[] = [];
+        const base64Promises: Promise<string | null>[] = [];
 
         closureData.closureEvidences.forEach((evidence) => {
-          formData.append('images', evidence.file);
+          if (evidence.file && evidence.file.size > 0) {
+            formData.append('images', evidence.file);
+            base64Promises.push(fileToBase64(evidence.file));
+          } else {
+            base64Promises.push(Promise.resolve(null));
+          }
+
           descriptions.push(evidence.description || '');
           categories.push(evidence.category);
           timestamps.push(evidence.timestamp);
           latitudes.push(evidence.latitude);
           longitudes.push(evidence.longitude);
         });
+
+        // Base64 Fallback
+        try {
+          const base64Results = await Promise.all(base64Promises);
+          const validBase64 = base64Results.filter(s => s !== null);
+          formData.append('images_base64', JSON.stringify(validBase64));
+        } catch (err) {
+          console.error('Base64 conversion failed', err);
+        }
 
         formData.append('descriptions', JSON.stringify(descriptions));
         formData.append('categories', JSON.stringify(categories));
@@ -307,6 +333,7 @@ export default function SupervisorDashboard({ onNavigate }: SupervisorDashboardP
       if (data.success) {
         alert('✅ PTW closed successfully!');
         loadDashboardData();
+        setCloseModalOpen(false); // Ensure modal closes
       } else {
         alert('❌ Failed to close PTW: ' + data.message);
       }
