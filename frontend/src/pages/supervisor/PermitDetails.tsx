@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { evidenceAPI, Evidence } from '../../services/evidenceAPI';
 import { closureEvidenceAPI, ClosureEvidence } from '../../services/closureEvidenceAPI';
+import { workerTrainingEvidenceAPI, WorkerTrainingEvidence } from '../../services/workerTrainingEvidenceAPI';
 import { CameraModal } from '../../components/shared/CameraModal';
 interface PermitDetailsProps {
   ptwId: number;
@@ -156,6 +157,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
   const [evidences, setEvidences] = useState<Evidence[]>([]);
   const [closureEvidences, setClosureEvidences] = useState<ClosureEvidence[]>([]);
   const [savedClosureEvidences, setSavedClosureEvidences] = useState<ClosureEvidence[]>([]);
+  const [workerTrainingEvidences, setWorkerTrainingEvidences] = useState<WorkerTrainingEvidence[]>([]);
   const [isUploadingClosure, setIsUploadingClosure] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
 
@@ -195,6 +197,16 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
         }
       } catch (err) {
         console.warn('Failed to load closure evidences:', err);
+      }
+
+      // Load Worker Training Evidences
+      try {
+        const trainingRes = await workerTrainingEvidenceAPI.getByPermit(ptwId);
+        if (trainingRes.success && trainingRes.data) {
+          setWorkerTrainingEvidences(trainingRes.data);
+        }
+      } catch (err) {
+        console.warn('Failed to load worker training evidences:', err);
       }
 
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -775,6 +787,42 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                       )}
                       {member.badge_id && (
                         <p className="text-xs text-indigo-600">Badge: {member.badge_id}</p>
+                      )}
+
+                      {/* Training Evidence */}
+                      {workerTrainingEvidences.filter(e => e.team_member_id === member.id).length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-indigo-200">
+                          <p className="text-xs font-semibold text-indigo-900 mb-2 flex items-center gap-1">
+                            <ImageIcon className="w-3 h-3" />
+                            Training Evidence ({workerTrainingEvidences.filter(e => e.team_member_id === member.id).length})
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {workerTrainingEvidences
+                              .filter(e => e.team_member_id === member.id)
+                              .map((evidence, idx) => (
+                                <a
+                                  key={evidence.id || idx}
+                                  href={workerTrainingEvidenceAPI.getFileUrl(evidence.file_path)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group relative"
+                                  title={evidence.file_name}
+                                >
+                                  <img
+                                    src={workerTrainingEvidenceAPI.getFileUrl(evidence.file_path)}
+                                    alt={`Training evidence ${idx + 1}`}
+                                    className="w-16 h-16 object-cover rounded border-2 border-indigo-300 group-hover:border-indigo-500 transition-all"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64?text=Doc';
+                                    }}
+                                  />
+                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded transition-all flex items-center justify-center">
+                                    <ImageIcon className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                </a>
+                              ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>

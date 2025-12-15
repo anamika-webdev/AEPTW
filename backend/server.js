@@ -10,22 +10,60 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ============= PERFORMANCE OPTIMIZATIONS =============
+const compression = require('compression');
+
+// Enable gzip compression for all responses
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  level: 6 // Balance between compression ratio and CPU usage
+}));
+
+// Security and performance headers
+app.use((req, res, next) => {
+  // Security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+
+  // Performance headers
+  res.setHeader('X-Powered-By', 'Amazon EPTW');
+
+  next();
+});
+
 // Middleware
+app.use((req, res, next) => {
+  console.log(`🌐 INCOMING: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' })); // Limit payload size
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files (uploads)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static files with caching
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '1d', // Cache for 1 day
+  etag: true,
+  lastModified: true
+}));
 
-// Request logging
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
+// Request logging (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    next();
+  });
+}
 
 // ============= IMPORT ALL ROUTES =============
 const authRoutes = require('./src/routes/auth.routes');
@@ -43,6 +81,7 @@ const approverSitesRoutes = require('./src/routes/approverSites.routes');
 const uploadsRoutes = require('./src/routes/uploads.routes');
 const evidenceRoutes = require('./src/routes/evidence.routes');
 const extensionApprovalsRoutes = require('./src/routes/extension-approvals.routes');
+const workerTrainingEvidenceRoutes = require('./src/routes/workerTrainingEvidence.routes');
 
 const { initScheduler } = require('./src/services/cronService');
 
@@ -62,6 +101,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/requester-assignments', requesterAssignmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/approvers', approverSitesRoutes);
+app.use('/api/training-evidence', workerTrainingEvidenceRoutes); // Renamed for simplicity & conflict avoidance
 app.use('/api', evidenceRoutes); // Checked before /api/uploads to handle /uploads/evidence
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/extension-approvals', extensionApprovalsRoutes);
@@ -131,6 +171,7 @@ app.listen(PORT, () => {
   console.log('   /api/requester-assignments');
   console.log('   /api/notifications');
   console.log('   /api/approvers          ⭐ FIXED!');
+  console.log('   /api/worker-training-evidence');
   console.log('   /api/vendors');
   console.log('============================================================\n');
   console.log('✅ Server is ready!\n');

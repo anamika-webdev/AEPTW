@@ -79,26 +79,7 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
       // Handle different response formats
       const sitesData = result.data || result.sites || [];
 
-      // Get permit counts for each site
-      const sitesWithCounts = await Promise.all(
-        sitesData.map(async (site: Site) => {
-          try {
-            const countRes = await fetch(`${API_BASE_URL}/permits?site_id=${site.id}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (countRes.ok) {
-              const permits = await countRes.json();
-              const permitList = permits.data || permits.permits || [];
-              return { ...site, permit_count: permitList.length };
-            }
-          } catch (err) {
-            console.error('Error fetching permit count:', err);
-          }
-          return { ...site, permit_count: 0 };
-        })
-      );
-
-      setSites(sitesWithCounts);
+      setSites(sitesData);
       setLoading(false);
       setRefreshing(false);
     } catch (error: any) {
@@ -355,96 +336,119 @@ export default function SiteManagement({ onBack }: SiteManagementProps) {
           </div >
         </div >
 
-        {/* Sites Grid */}
-        < div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" >
-          {
-            sites.length > 0 ? (
-              sites
-                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                .map((site) => (
-                  <div key={site.id} className="p-6 transition-shadow bg-white rounded-lg shadow-md hover:shadow-lg">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Building className="w-5 h-5 text-orange-600" />
-                          <h3 className="text-lg font-semibold text-gray-900">{site.name}</h3>
-                        </div>
-                        <p className="mb-2 text-xs text-gray-500">Code: {site.site_code}</p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${site.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                        }`}>
-                        {site.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-
-                    <div className="mb-4 space-y-2">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-900">{site.location || 'No location specified'}</p>
-                          {site.address && (
-                            <p className="mt-1 text-xs text-gray-500">{site.address}</p>
-                          )}
-                          {(site.city || site.state) && (
-                            <p className="mt-1 text-xs text-gray-500">
-                              {[site.city, site.state].filter(Boolean).join(', ')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* {site.permit_count !== undefined && (
-                      <div className="p-2 mb-4 rounded bg-orange-50">
-                        <p className="text-xs text-orange-800">
-                          {site.permit_count} active permit{site.permit_count !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    )}*/}
-
-                    <div className="flex gap-2">
-                      {/* ✅ ADD THIS VIEW BUTTON FIRST: */}
-                      <button
-                        onClick={() => handleViewSite(site)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 bg-green-50 rounded hover:bg-green-100"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View
-                      </button>
-
-                      <button
-                        onClick={() => openEditModal(site)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-orange-600 bg-orange-50 rounded hover:bg-orange-100"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSite(site)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm rounded text-red-600 bg-red-50 hover:bg-red-100"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))
-            ) : (
-              <div className="py-12 text-center col-span-full">
-                <Building className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p className="mb-4 text-gray-500">No sites found</p>
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="text-orange-600 hover:text-orange-700"
-                >
-                  + Add your first site
-                </button>
+        {/* Sites Table */}
+        <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow">
+          {sites.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Site Name
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Code
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Location
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        City/State
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Status
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {sites
+                      .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                      .map((site) => (
+                        <tr key={site.id} className="transition-colors hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Building className="w-5 h-5 mr-3 text-orange-600" />
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{site.name}</div>
+                                {site.address && (
+                                  <div className="text-xs text-gray-500">{site.address}</div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{site.site_code}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-start">
+                              <MapPin className="w-4 h-4 mr-2 text-gray-400 mt-0.5" />
+                              <div className="text-sm text-gray-900">{site.location || 'Not specified'}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {[site.city, site.state].filter(Boolean).join(', ') || 'Not specified'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold leading-5 rounded-full ${site.is_active
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                              }`}>
+                              {site.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleViewSite(site)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 bg-green-50 rounded hover:bg-green-100 transition-colors"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                                View
+                              </button>
+                              <button
+                                onClick={() => openEditModal(site)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-orange-600 bg-orange-50 rounded hover:bg-orange-100 transition-colors"
+                                title="Edit Site"
+                              >
+                                <Edit className="w-4 h-4" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSite(site)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors"
+                                title="Delete Site"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
-            )
-          }
-        </div >
+            </>
+          ) : (
+            <div className="py-12 text-center">
+              <Building className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <p className="mb-4 text-gray-500">No sites found</p>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="text-orange-600 hover:text-orange-700"
+              >
+                + Add your first site
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Pagination Controls */}
         {

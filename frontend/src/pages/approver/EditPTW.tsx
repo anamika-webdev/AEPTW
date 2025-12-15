@@ -148,7 +148,15 @@ export default function EditPTW({ permitId, onBack, onSave }: EditPTWProps) {
                     control_measures: p.control_measures || '',
                     other_hazards: p.other_hazards || '',
                     selectedPPE: p.ppe?.map((pp: any) => pp.ppe_id) || [],
-                    teamMembers: p.team_members || [],
+                    teamMembers: p.team_members?.map((tm: any) => ({
+                        id: tm.id,
+                        name: tm.worker_name || tm.name || '',
+                        designation: tm.worker_role || tm.designation || '',
+                        contact: tm.contact_number || tm.contact || '',
+                        worker_id: tm.worker_id || null,
+                        company_name: tm.company_name || '',
+                        badge_id: tm.badge_id || ''
+                    })) || [],
                     swms_file_url: p.swms_file_url || '',
                     swms_text: p.swms_text || '',
                     swmsMode: p.swms_file_url ? 'file' : 'text',
@@ -344,6 +352,16 @@ export default function EditPTW({ permitId, onBack, onSave }: EditPTWProps) {
                 remarks: formData.checklistRemarks[parseInt(questionId)] || formData.checklistTextResponses[parseInt(questionId)] || undefined,
             }));
 
+            // Transform team members to backend format
+            const teamMembersForBackend = formData.teamMembers.map(member => ({
+                worker_name: member.name,
+                worker_role: member.designation,
+                contact_number: member.contact,
+                company_name: member.company_name || null,
+                badge_id: member.badge_id || null,
+                worker_id: member.worker_id || null
+            }));
+
             const updateData = {
                 permit_type: formData.categories[0],
                 permit_types: formData.categories,
@@ -361,7 +379,7 @@ export default function EditPTW({ permitId, onBack, onSave }: EditPTWProps) {
                 other_hazards: formData.other_hazards,
                 hazard_ids: formData.selectedHazards,
                 ppe_ids: formData.selectedPPE,
-                team_members: formData.teamMembers,
+                team_members: teamMembersForBackend,
                 swms_file_url: swmsUrl,
                 swms_text: formData.swms_text,
                 checklist_responses: checklistResponses,
@@ -371,7 +389,9 @@ export default function EditPTW({ permitId, onBack, onSave }: EditPTWProps) {
                 site_leader_signature: formData.site_leader_signature,
             };
 
-            const response = await permitsAPI.update(permitId, updateData);
+
+            console.log('📤 Sending update data:', updateData);
+            const response = await permitsAPI.update(permitId, updateData as any);
 
             if (response.success) {
                 alert('PTW updated successfully!');
@@ -385,7 +405,10 @@ export default function EditPTW({ permitId, onBack, onSave }: EditPTWProps) {
             }
         } catch (error: any) {
             console.error('Error updating PTW:', error);
-            alert(error.response?.data?.message || 'Failed to update PTW. Please try again.');
+            console.error('Error response data:', error.response?.data);
+            console.error('Error message:', error.response?.data?.message);
+            console.error('Error details:', error.response?.data?.error);
+            alert(error.response?.data?.message || error.response?.data?.error || 'Failed to update PTW. Please try again.');
         } finally {
             setIsSaving(false);
         }
@@ -644,21 +667,21 @@ export default function EditPTW({ permitId, onBack, onSave }: EditPTWProps) {
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                             <input
                                                 type="text"
-                                                value={member.name}
+                                                value={member.name || ''}
                                                 onChange={(e) => updateTeamMember(member.id, 'name', e.target.value)}
                                                 placeholder="Name"
                                                 className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             />
                                             <input
                                                 type="text"
-                                                value={member.designation}
+                                                value={member.designation || ''}
                                                 onChange={(e) => updateTeamMember(member.id, 'designation', e.target.value)}
                                                 placeholder="Designation"
                                                 className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             />
                                             <input
                                                 type="text"
-                                                value={member.contact}
+                                                value={member.contact || ''}
                                                 onChange={(e) => updateTeamMember(member.id, 'contact', e.target.value)}
                                                 placeholder="Contact"
                                                 className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

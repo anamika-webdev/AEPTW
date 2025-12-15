@@ -47,7 +47,11 @@ api.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    console.error(`❌ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.response?.data || error.message);
+    console.error(`❌ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+    console.error('Full error object:', error);
+    console.error('Response data:', error.response?.data);
+    console.error('Response status:', error.response?.status);
+    console.error('Error message:', error.message);
 
     if (error.response?.status === 401) {
       console.error('🔒 Unauthorized - token may be invalid');

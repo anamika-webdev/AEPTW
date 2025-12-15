@@ -597,13 +597,10 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // At least one approver required
-    if (!area_manager_id && !safety_officer_id) {
-      await connection.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'At least Area Manager or Safety Officer must be assigned'
-      });
+
+    // Warn if no approvers (permit will be auto-approved)
+    if (!area_manager_id && !safety_officer_id && !site_leader_id) {
+      console.log('⚠️ WARNING: No approvers assigned. Permit will be auto-approved.');
     }
 
     // Generate permit serial
@@ -623,6 +620,39 @@ router.post('/', async (req, res) => {
     const initialStatus = hasApprovers ? 'Initiated' : 'Active';
 
     console.log(`✅ Creating PTW: ${permit_serial}, Status: ${initialStatus}`);
+
+    // Prepare values for INSERT
+    const insertValues = [
+      permit_serial,
+      site_id,
+      Array.isArray(permit_types) ? permit_types.join(',') : permit_types,
+      work_description,
+      work_location,
+      start_time,
+      end_time,
+      receiver_name || null,
+      receiver_contact || null,
+      permit_initiator || null,
+      permit_initiator_contact || null,
+      issue_department || null,
+      issuer_signature || null,
+      control_measures || null,
+      other_hazards || null,
+      swms_file_url || null,
+      swms_text || null,
+      userId,
+      area_manager_id || null,
+      safety_officer_id || null,
+      site_leader_id || null,
+      area_manager_id ? 'Pending' : null,
+      safety_officer_id ? 'Pending' : null,
+      site_leader_id ? 'Pending' : null,
+      initialStatus
+    ];
+
+    console.log('📊 INSERT VALUES:', JSON.stringify(insertValues, null, 2));
+    console.log('📊 VALUES COUNT:', insertValues.length);
+    console.log('📊 COLUMNS COUNT: 27 (including created_at and updated_at)');
 
     // Insert permit
     const [result] = await connection.query(`
@@ -655,33 +685,7 @@ router.post('/', async (req, res) => {
         created_at,
         updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `, [
-      permit_serial,
-      site_id,
-      Array.isArray(permit_types) ? permit_types.join(',') : permit_types,
-      work_description,
-      work_location,
-      start_time,
-      end_time,
-      receiver_name || null,
-      receiver_contact || null,
-      permit_initiator || null,
-      permit_initiator_contact || null,
-      issue_department || null,
-      issuer_signature || null,
-      control_measures || null,
-      other_hazards || null,
-      swms_file_url || null,
-      swms_text || null,
-      userId,
-      area_manager_id || null,
-      safety_officer_id || null,
-      site_leader_id || null,
-      area_manager_id ? 'Pending' : null,
-      safety_officer_id ? 'Pending' : null,
-      site_leader_id ? 'Pending' : null,
-      initialStatus
-    ]);
+    `, insertValues);
 
     const permitId = result.insertId;
     console.log(`✅ Permit created with ID: ${permitId}`);
@@ -730,7 +734,31 @@ router.post('/', async (req, res) => {
 
     // Insert checklist responses
     if (checklist_responses && checklist_responses.length > 0) {
-      for (const response of checklist_responses) {
+      console.log(`📋 Processing ${checklist_responses.length} checklist responses...`);
+
+      // Validate question IDs first
+      const questionIds = checklist_responses.map(r => r.question_id);
+      console.log('Question IDs to insert:', questionIds);
+
+      const [validQuestions] = await connection.query(
+        `SELECT id FROM master_checklist_questions WHERE id IN (?)`,
+        [questionIds]
+      );
+
+      const validQuestionIds = validQuestions.map((q) => q.id);
+      console.log('Valid question IDs in database:', validQuestionIds);
+
+      const invalidQuestionIds = questionIds.filter(id => !validQuestionIds.includes(id));
+
+      if (invalidQuestionIds.length > 0) {
+        console.warn(`⚠️ WARNING: Found ${invalidQuestionIds.length} invalid question IDs:`, invalidQuestionIds);
+        console.warn('These responses will be skipped.');
+      }
+
+      // Only insert responses with valid question IDs
+      const validResponses = checklist_responses.filter(r => validQuestionIds.includes(r.question_id));
+
+      for (const response of validResponses) {
         await connection.query(`
           INSERT INTO permit_checklist_responses (
             permit_id, question_id, response, remarks
@@ -742,7 +770,7 @@ router.post('/', async (req, res) => {
           response.remarks || null
         ]);
       }
-      console.log(`✅ Inserted ${checklist_responses.length} checklist responses`);
+      console.log(`✅ Inserted ${validResponses.length} checklist responses (skipped ${invalidQuestionIds.length} invalid)`);
     }
 
     // Create notifications for approvers
@@ -801,9 +829,217 @@ router.post('/', async (req, res) => {
     if (connection) await connection.rollback();
     console.error('❌ Error creating PTW:', error);
     console.error('Error stack:', error.stack);
+
+    // Write to log file for debugging
+    const fs = require('fs');
+    const logMessage = `
+=== PTW Creation Error ===
+Time: ${new Date().toISOString()}
+Error Message: ${error.message}
+Error Code: ${error.code}
+SQL State: ${error.sqlState}
+Stack Trace:
+${error.stack}
+Request Body:
+${JSON.stringify(req.body, null, 2)}
+========================
+`;
+    fs.appendFileSync('permit_errors.log', logMessage);
+
     res.status(500).json({
       success: false,
       message: 'Error creating permit',
+      error: error.message,
+      details: error.stack
+    });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// ============================================================================
+// UPDATE PERMIT
+// ============================================================================
+
+// PUT /api/permits/:id - Update existing permit
+router.put('/:id', async (req, res) => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const { id } = req.params;
+    const userId = req.user.id;
+    console.log(`📥 Updating PTW ID: ${id}...`);
+
+    const {
+      site_id,
+      permit_type,
+      permit_types,
+      work_description,
+      work_location,
+      start_time,
+      end_time,
+      receiver_name,
+      receiver_contact,
+      permit_initiator,
+      permit_initiator_contact,
+      issue_department,
+      issuer_signature,
+      team_members,
+      hazard_ids,
+      ppe_ids,
+      control_measures,
+      other_hazards,
+      checklist_responses,
+      swms_file_url,
+      swms_text,
+    } = req.body;
+
+    // Check if permit exists
+    const [existingPermit] = await connection.query(
+      'SELECT * FROM permits WHERE id = ?',
+      [id]
+    );
+
+    if (existingPermit.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Permit not found'
+      });
+    }
+
+    // Convert ISO datetime to MySQL format (remove timezone info)
+    const formatDateTimeForMySQL = (isoString) => {
+      if (!isoString) return null;
+      // Convert ISO string to MySQL datetime format: YYYY-MM-DD HH:MM:SS
+      return new Date(isoString).toISOString().slice(0, 19).replace('T', ' ');
+    };
+
+    // Update main permit record
+    await connection.query(`
+      UPDATE permits SET
+        site_id = ?,
+        permit_type = ?,
+        work_description = ?,
+        work_location = ?,
+        start_time = ?,
+        end_time = ?,
+        receiver_name = ?,
+        receiver_contact = ?,
+        permit_initiator = ?,
+        permit_initiator_contact = ?,
+        issue_department = ?,
+        issuer_signature = ?,
+        control_measures = ?,
+        other_hazards = ?,
+        swms_file_url = ?,
+        swms_text = ?,
+        updated_at = NOW()
+      WHERE id = ?
+    `, [
+      site_id,
+      Array.isArray(permit_types) ? permit_types.join(',') : (permit_type || ''),
+      work_description,
+      work_location,
+      formatDateTimeForMySQL(start_time),
+      formatDateTimeForMySQL(end_time),
+      receiver_name || null,
+      receiver_contact || null,
+      permit_initiator || null,
+      permit_initiator_contact || null,
+      issue_department || null,
+      issuer_signature || null,
+      control_measures || null,
+      other_hazards || null,
+      swms_file_url || null,
+      swms_text || null,
+      id
+    ]);
+
+    console.log(`✅ Permit ${id} main record updated`);
+
+    // Update team members - delete and re-insert
+    await connection.query('DELETE FROM permit_team_members WHERE permit_id = ?', [id]);
+    if (team_members && team_members.length > 0) {
+      for (const member of team_members) {
+        await connection.query(`
+          INSERT INTO permit_team_members (
+            permit_id, worker_name, company_name, badge_id,
+            worker_role, contact_number
+          ) VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+          id,
+          member.worker_name || member.name,
+          member.company_name || null,
+          member.badge_id || null,
+          member.worker_role || member.designation || null,
+          member.contact_number || member.contact || null
+        ]);
+      }
+      console.log(`✅ Updated ${team_members.length} team members`);
+    }
+
+    // Update hazards - delete and re-insert
+    await connection.query('DELETE FROM permit_hazards WHERE permit_id = ?', [id]);
+    if (hazard_ids && hazard_ids.length > 0) {
+      for (const hazardId of hazard_ids) {
+        await connection.query(
+          'INSERT INTO permit_hazards (permit_id, hazard_id) VALUES (?, ?)',
+          [id, hazardId]
+        );
+      }
+      console.log(`✅ Updated ${hazard_ids.length} hazards`);
+    }
+
+    // Update PPE - delete and re-insert
+    await connection.query('DELETE FROM permit_ppe WHERE permit_id = ?', [id]);
+    if (ppe_ids && ppe_ids.length > 0) {
+      for (const ppeId of ppe_ids) {
+        await connection.query(
+          'INSERT INTO permit_ppe (permit_id, ppe_id) VALUES (?, ?)',
+          [id, ppeId]
+        );
+      }
+      console.log(`✅ Updated ${ppe_ids.length} PPE items`);
+    }
+
+    // Update checklist responses - delete and re-insert
+    await connection.query('DELETE FROM permit_checklist_responses WHERE permit_id = ?', [id]);
+    if (checklist_responses && checklist_responses.length > 0) {
+      for (const response of checklist_responses) {
+        await connection.query(`
+          INSERT INTO permit_checklist_responses (
+            permit_id, question_id, response, remarks
+          ) VALUES (?, ?, ?, ?)
+        `, [
+          id,
+          response.question_id,
+          response.response,
+          response.remarks || null
+        ]);
+      }
+      console.log(`✅ Updated ${checklist_responses.length} checklist responses`);
+    }
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: 'Permit updated successfully',
+      data: { id }
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error('❌ Error updating permit:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error message:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating permit',
       error: error.message,
       details: error.stack
     });

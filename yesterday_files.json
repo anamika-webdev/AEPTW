@@ -1,0 +1,65 @@
+﻿[
+    {
+        "File":  "C:\\Users\\anami\\Desktop\\Amazon EPTW UI\\DB.sql",
+        "Modified":  {
+                         "value":  "\/Date(1765692883086)\/",
+                         "DateTime":  "14 December 2025 11:44:43"
+                     }
+    },
+    {
+        "File":  "C:\\Users\\anami\\Desktop\\Amazon EPTW UI\\EPTW.zip",
+        "Modified":  {
+                         "value":  "\/Date(1765704952122)\/",
+                         "DateTime":  "14 December 2025 15:05:52"
+                     }
+    },
+    {
+        "File":  "C:\\Users\\anami\\Desktop\\Amazon EPTW UI\\main_uploads_folder.zip",
+        "Modified":  {
+                         "value":  "\/Date(1765692447858)\/",
+                         "DateTime":  "14 December 2025 11:37:27"
+                     }
+    },
+    {
+        "File":  "C:\\Users\\anami\\Desktop\\Amazon EPTW UI\\backend\\permit_errors.log",
+        "Modified":  {
+                         "value":  "\/Date(1765722786454)\/",
+                         "DateTime":  "14 December 2025 20:03:06"
+                     }
+    },
+    {
+        "File":  "C:\\Users\\anami\\Desktop\\Amazon EPTW UI\\backend\\test_output.txt",
+        "Modified":  {
+                         "value":  "\/Date(1765722316984)\/",
+                         "DateTime":  "14 December 2025 19:55:16"
+                     }
+    },
+    {
+        "File":  "C:\\Users\\anami\\Desktop\\Amazon EPTW UI\\backend\\scripts\\check_permits_columns.js",
+        "Modified":  {
+                         "value":  "\/Date(1765722184644)\/",
+                         "DateTime":  "14 December 2025 19:53:04"
+                     }
+    },
+    {
+        "File":  "C:\\Users\\anami\\Desktop\\Amazon EPTW UI\\backend\\scripts\\test_permit_insert.js",
+        "Modified":  {
+                         "value":  "\/Date(1765722290046)\/",
+                         "DateTime":  "14 December 2025 19:54:50"
+                     }
+    },
+    {
+        "File":  "C:\\Users\\anami\\Desktop\\Amazon EPTW UI\\backend\\src\\routes\\permits.routes.js",
+        "Modified":  {
+                         "value":  "\/Date(1765722931364)\/",
+                         "DateTime":  "14 December 2025 20:05:31"
+                     }
+    },
+    {
+        "File":  "C:\\Users\\anami\\Desktop\\Amazon EPTW UI\\frontend\\src\\services\\api.ts",
+        "Modified":  {
+                         "value":  "\/Date(1765722635060)\/",
+                         "DateTime":  "14 December 2025 20:00:35"
+                     }
+    }
+]

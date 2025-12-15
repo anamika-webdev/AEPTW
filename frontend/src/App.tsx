@@ -58,6 +58,7 @@ function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [selectedPermitId, setSelectedPermitId] = useState<number | null>(null);
   const [approverTab, setApproverTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [refreshKey, setRefreshKey] = useState(0); // Add refresh trigger
 
   useEffect(() => {
     const initializeAuth = () => {
@@ -183,10 +184,10 @@ function App() {
           {/* Admin Pages */}
           {isAdmin && (
             <>
-              {currentPage === 'dashboard' && <AdminDashboard onNavigate={handleNavigate} />}
+              {currentPage === 'dashboard' && <AdminDashboard key={refreshKey} onNavigate={handleNavigate} />}
               {currentPage === 'site-management' && <SiteManagement onBack={() => handleNavigate('dashboard')} />}
               {currentPage === 'user-management' && <UserManagement onBack={() => handleNavigate('dashboard')} />}
-              {currentPage === 'all-permits' && <AllPermits onNavigate={handleNavigate} />}
+              {currentPage === 'all-permits' && <AllPermits key={refreshKey} onNavigate={handleNavigate} />}
               {currentPage === 'reports' && <Reports onBack={() => handleNavigate('dashboard')} />}
               {currentPage === 'permit-detail' && selectedPermitId && (
                 <PermitDetails
@@ -201,7 +202,7 @@ function App() {
           {isSupervisor && (
             <>
               {currentPage === 'dashboard' && (
-                <SupervisorDashboard onNavigate={handleNavigate} />
+                <SupervisorDashboard key={refreshKey} onNavigate={handleNavigate} />
               )}
               {currentPage === 'create-permit' && (
                 <CreatePTW onBack={() => handleNavigate('dashboard')} />
@@ -223,6 +224,7 @@ function App() {
             <>
               {currentPage === 'dashboard' && (
                 <ApproverDashboard
+                  key={refreshKey}
                   onNavigate={handleNavigate}
                   initialTab={approverTab}
                 />
@@ -238,8 +240,8 @@ function App() {
                   permitId={selectedPermitId}
                   onBack={() => handleNavigate('dashboard')}
                   onSave={() => {
+                    setRefreshKey(prev => prev + 1); // Trigger dashboard refresh
                     handleNavigate('dashboard');
-                    // Optionally refresh the dashboard
                   }}
                 />
               )}

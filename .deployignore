@@ -1,0 +1,54 @@
+# .deployignore
+# Files and folders to exclude from production deployment
+
+# Development
+.git/
+.history/
+.vscode/
+node_modules/
+*.log
+
+# Documentation
+*.md
+!README.md
+
+# Configuration
+.env
+.env.local
+.env.development
+*.ps1
+quick-start.sh
+
+# Database
+*.sql
+*.zip
+AEPTW.sql
+AEPTW.zip
+
+# Tests
+backend/tests/
+backend/email-notification-system/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Build artifacts
+frontend/dist/
+*.tmp
+
+# Scripts (one-time use)
+backend/scripts/check_team_schema.js
+backend/scripts/create_evidence_table.js
+backend/scripts/add_personnel_contact_fields.js
+Fix types.ps1
+role mapping.ps1
+update-*.ps1
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Optimization files (optional configs)
+vite.config.optimized.ts
+database.optimized.js

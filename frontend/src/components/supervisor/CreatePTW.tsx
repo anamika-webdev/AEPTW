@@ -941,6 +941,69 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           }
         }
 
+        // ✅ Upload Worker Training Evidence if available
+        if (response.data && response.data.id) {
+          console.log('📋 Checking for worker training evidence...');
+          console.log('📋 New workers count:', newWorkers.length);
+
+          // First, we need to get the team member IDs that were just created
+          // The team members are created in the same order as newWorkers array
+          try {
+            const permitId = response.data.id;
+
+            // Upload training evidence for each new worker
+            for (let i = 0; i < newWorkers.length; i++) {
+              const worker = newWorkers[i];
+              console.log(`📋 Worker ${i + 1}:`, worker.name);
+              console.log(`📋 Training evidences:`, worker.trainingEvidences?.length || 0);
+
+              if (worker.trainingEvidences && worker.trainingEvidences.length > 0) {
+                console.log(`📸 Uploading ${worker.trainingEvidences.length} training evidence(s) for ${worker.name}`);
+
+                // Get the team member ID - it's the (selectedWorkers.length + i + 1)th member
+                // We need to fetch the permit to get team member IDs
+                const permitResponse = await permitsAPI.getById(permitId);
+
+                if (permitResponse.success && permitResponse.data) {
+                  const teamMembers = permitResponse.data.team_members || [];
+                  console.log('📋 Team members from permit:', teamMembers.length);
+
+                  // Find the team member by name (since we just created them)
+                  const teamMember = teamMembers.find((tm: any) =>
+                    tm.worker_name === worker.name
+                  );
+
+                  if (teamMember) {
+                    console.log(`✅ Found team member ID: ${teamMember.id} for ${worker.name}`);
+                    const trainingFiles = worker.trainingEvidences.map(e => e.file);
+
+                    // Import the API at the top of the file
+                    const { workerTrainingEvidenceAPI } = await import('../../services/workerTrainingEvidenceAPI');
+
+                    console.log(`📤 Uploading ${trainingFiles.length} files...`);
+                    await workerTrainingEvidenceAPI.upload(
+                      teamMember.id,
+                      permitId,
+                      trainingFiles
+                    );
+
+                    console.log(`✅ Training evidence uploaded for ${worker.name}`);
+                  } else {
+                    console.warn(`⚠️ Team member not found for ${worker.name}`);
+                  }
+                } else {
+                  console.error('❌ Failed to fetch permit details');
+                }
+              }
+            }
+          } catch (trainingError) {
+            console.error('❌ Failed to upload training evidence:', trainingError);
+            console.error('❌ Error details:', trainingError);
+            // Don't fail the whole process, just warn
+            console.warn('Some training evidence could not be uploaded');
+          }
+        }
+
         alert('✅ PTW Created Successfully! Redirecting to dashboard...');
         if (onSuccess) {
           onSuccess();

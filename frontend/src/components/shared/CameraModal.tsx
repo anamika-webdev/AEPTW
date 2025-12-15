@@ -14,17 +14,23 @@ export const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCap
     const [isCameraReady, setIsCameraReady] = useState(false);
 
     useEffect(() => {
+        let mounted = true;
+
         if (isOpen) {
-            startCamera();
-        } else {
-            stopCamera();
+            startCamera(mounted);
         }
 
-        return () => stopCamera();
+        return () => {
+            mounted = false;
+            stopCamera();
+        };
     }, [isOpen]);
 
-    const startCamera = async () => {
+    const startCamera = async (mounted: boolean) => {
         try {
+            // Stop any existing stream first
+            stopCamera();
+
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: 'environment', // Back camera on mobile
@@ -33,12 +39,32 @@ export const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCap
                 }
             });
 
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                streamRef.current = stream;
-                await videoRef.current.play();
-                setIsCameraReady(true);
+            // Check if component is still mounted
+            if (!mounted || !videoRef.current) {
+                stream.getTracks().forEach(track => track.stop());
+                return;
             }
+
+            streamRef.current = stream;
+            videoRef.current.srcObject = stream;
+
+            // Wait for video to be ready before playing
+            videoRef.current.onloadedmetadata = () => {
+                if (videoRef.current && mounted) {
+                    videoRef.current.play()
+                        .then(() => {
+                            if (mounted) {
+                                setIsCameraReady(true);
+                            }
+                        })
+                        .catch((error) => {
+                            // Ignore AbortError - it's expected when component unmounts
+                            if (error.name !== 'AbortError') {
+                                console.error('Video play error:', error);
+                            }
+                        });
+                }
+            };
         } catch (error) {
             console.error('Camera error:', error);
             alert('Unable to access camera. Please check permissions.');
@@ -50,6 +76,9 @@ export const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCap
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
             streamRef.current = null;
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
         }
         setIsCameraReady(false);
     };

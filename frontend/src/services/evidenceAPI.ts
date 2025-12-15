@@ -187,12 +187,23 @@ export const evidenceAPI = {
 
     /**
      * Get full URL for evidence file
-     * @param filePath - Relative file path
+     * @param filePath - Relative file path (e.g., /uploads/evidences/filename.jpg)
      * @returns Full URL
      */
     getFileUrl: (filePath: string): string => {
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        return `${baseUrl}${filePath}`;
+        // If filePath is already a full URL, return it
+        if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+            return filePath;
+        }
+
+        // Get base URL without /api suffix
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const baseUrl = apiUrl.replace('/api', '');
+
+        // Ensure filePath starts with /
+        const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+
+        return `${baseUrl}${normalizedPath}`;
     },
 };
 

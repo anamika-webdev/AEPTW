@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { permitService } from '@/services/permit.service';
+import { permitsAPI } from '@/services/api';
 import { userService } from '@/services/user.service';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { FileText, Users, Clock, CheckCircle, Plus, AlertCircle } from 'lucide-react';
@@ -34,16 +34,14 @@ export default function SupervisorDashboard({ onNavigate, onPTWSelect }: any) {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      
+
       // Fetch permits created by this supervisor
       const [permitsRes, workersRes] = await Promise.all([
-        permitService.getAll({ created_by: currentUser.id }),
+        permitsAPI.getMySupervisorPermits(),
         userService.getByRole('Worker'),
       ]);
 
-      const permits = permitsRes.permits || [];
+      const permits = permitsRes.data || [];
       const workers = workersRes.users || [];
 
       // Calculate stats
@@ -192,14 +190,14 @@ export default function SupervisorDashboard({ onNavigate, onPTWSelect }: any) {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-indigo-600">{stats.assignedWorkers}</div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="h-auto p-0 mt-2 text-xs"
               onClick={() => onNavigate('worker-list')}
             >
               View Workers →
             </Button>
-            
+
           </CardContent>
         </Card>
       </div>
@@ -317,8 +315,8 @@ export default function SupervisorDashboard({ onNavigate, onPTWSelect }: any) {
               <div className="py-8 text-center text-slate-500">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No permits created yet</p>
-                <Button 
-                  className="mt-4" 
+                <Button
+                  className="mt-4"
                   onClick={() => onNavigate('create-permit')}
                 >
                   Create Your First Permit
