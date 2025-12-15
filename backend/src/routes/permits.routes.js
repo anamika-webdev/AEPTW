@@ -1685,17 +1685,60 @@ router.get('/:id', async (req, res) => {
     console.log(`✅ Found permit: ${permit.permit_serial}`);
 
     // Get team members
+    // Get team members WITH training evidence
     let teamMembers = [];
     try {
+      // First, get all team members with all their fields
       const [members] = await pool.query(
-        `SELECT id, worker_name as name, worker_role as role, contact_number 
-         FROM permit_team_members 
-         WHERE permit_id = ? 
-         ORDER BY id`,
+        `SELECT 
+      id, 
+      worker_name as name, 
+      worker_role as role, 
+      contact_number,
+      company_name,
+      badge_id,
+      worker_id
+    FROM permit_team_members 
+    WHERE permit_id = ? 
+    ORDER BY id`,
         [id]
       );
+
       teamMembers = members;
       console.log(`📋 Found ${teamMembers.length} team members`);
+
+      // Then, fetch training evidence for this permit's team members
+      if (teamMembers.length > 0) {
+        try {
+          const [trainingEvidence] = await pool.query(
+            `SELECT 
+          id,
+          team_member_id,
+          permit_id,
+          file_path,
+          file_name,
+          uploaded_at
+        FROM worker_training_evidence 
+        WHERE permit_id = ?
+        ORDER BY team_member_id, uploaded_at DESC`,
+            [id]
+          );
+
+          // Attach training evidence to corresponding team members
+          teamMembers = teamMembers.map(member => ({
+            ...member,
+            training_evidence: trainingEvidence.filter(
+              evidence => evidence.team_member_id === member.id
+            )
+          }));
+
+          console.log(`📸 Loaded ${trainingEvidence.length} training evidence records for team members`);
+        } catch (evidenceErr) {
+          console.log('⚠️ Error fetching training evidence:', evidenceErr.message);
+          console.log('⚠️ This is OK for old permits or if table does not exist yet');
+          // Continue without training evidence - this won't break the app
+        }
+      }
     } catch (err) {
       console.log('⚠️ Error fetching team members (table may not exist):', err.message);
     }

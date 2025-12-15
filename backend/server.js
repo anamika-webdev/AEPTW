@@ -102,10 +102,9 @@ app.use('/api/requester-assignments', requesterAssignmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/approvers', approverSitesRoutes);
 app.use('/api/training-evidence', workerTrainingEvidenceRoutes); // Renamed for simplicity & conflict avoidance
-app.use('/api', evidenceRoutes); // Checked before /api/uploads to handle /uploads/evidence
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/extension-approvals', extensionApprovalsRoutes);
-
+app.use('/api', evidenceRoutes);
 console.log('✅ Approver sites, Uploads, Evidence, and Extension Approval routes loaded successfully');
 
 // Vendors route (if separate file exists)
