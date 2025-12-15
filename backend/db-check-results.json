@@ -1,0 +1,30 @@
+{
+  "training_evidence": [
+    {
+      "id": 1,
+      "team_member_id": 125,
+      "permit_id": 110,
+      "file_path": "/uploads/training_evidence/training-1765796607137-292216861.jpg",
+      "file_name": "training-evidence-1765796539323.jpg",
+      "uploaded_at": "2025-12-15T11:03:27.000Z"
+    }
+  ],
+  "closure_evidence": [],
+  "team_members": [
+    {
+      "id": 121,
+      "permit_id": 108,
+      "worker_name": "Meena Rao"
+    },
+    {
+      "id": 122,
+      "permit_id": 108,
+      "worker_name": "fdvbkldgm"
+    },
+    {
+      "id": 123,
+      "permit_id": 109,
+      "worker_name": "vbgcbgfb"
+    }
+  ]
+}

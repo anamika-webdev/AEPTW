@@ -1,4 +1,4 @@
-// backend/server.js - FIXED VERSION WITH APPROVER SITES ROUTES ENABLED
+// backend/server.js - COMPLETE WORKING VERSION
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -21,25 +21,21 @@ app.use(compression({
     }
     return compression.filter(req, res);
   },
-  level: 6 // Balance between compression ratio and CPU usage
+  level: 6
 }));
 
 // Security and performance headers
 app.use((req, res, next) => {
-  // Security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
-
-  // Performance headers
   res.setHeader('X-Powered-By', 'Amazon EPTW');
-
   next();
 });
 
 // Middleware
 app.use((req, res, next) => {
-  console.log(`🌐 INCOMING: ${req.method} ${req.originalUrl}`);
+  console.log(`🌐 ${req.method} ${req.originalUrl}`);
   next();
 });
 
@@ -47,23 +43,16 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }));
-app.use(express.json({ limit: '10mb' })); // Limit payload size
+
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static files with caching
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-  maxAge: '1d', // Cache for 1 day
+  maxAge: '1d',
   etag: true,
   lastModified: true
 }));
-
-// Request logging (only in development)
-if (process.env.NODE_ENV !== 'production') {
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
-  });
-}
 
 // ============= IMPORT ALL ROUTES =============
 const authRoutes = require('./src/routes/auth.routes');
@@ -88,36 +77,65 @@ const { initScheduler } = require('./src/services/cronService');
 // Initialize Scheduler
 initScheduler();
 
-// ============= REGISTER ALL ROUTES =============
+// ============= REGISTER ALL ROUTES IN CORRECT ORDER =============
+// CRITICAL: Specific routes MUST come BEFORE catch-all routes!
+
+console.log('📋 Registering routes...');
+
+// Core routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+console.log('✅ Auth & Admin routes registered');
+
+// Master data
 app.use('/api/sites', sitesRoutes);
 app.use('/api/departments', departmentsRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/approvals', approvalsRoutes);
-app.use('/api/permits', permitsRoutes);
 app.use('/api/master', masterRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/requester-assignments', requesterAssignmentsRoutes);
-app.use('/api/notifications', notificationsRoutes);
-app.use('/api/approvers', approverSitesRoutes);
-app.use('/api/training-evidence', workerTrainingEvidenceRoutes); // Renamed for simplicity & conflict avoidance
-app.use('/api/uploads', uploadsRoutes);
-app.use('/api/extension-approvals', extensionApprovalsRoutes);
-app.use('/api', evidenceRoutes);
-console.log('✅ Approver sites, Uploads, Evidence, and Extension Approval routes loaded successfully');
+console.log('✅ Master data routes registered');
 
-// Vendors route (if separate file exists)
+// User management
+app.use('/api/users', usersRoutes);
+app.use('/api/requester-assignments', requesterAssignmentsRoutes);
+console.log('✅ User management routes registered');
+
+// PTW and approvals
+app.use('/api/permits', permitsRoutes);
+app.use('/api/approvals', approvalsRoutes);
+app.use('/api/extension-approvals', extensionApprovalsRoutes);
+app.use('/api/approvers', approverSitesRoutes);
+console.log('✅ PTW & Approval routes registered');
+
+// File uploads - MUST be before evidenceRoutes
+app.use('/api/uploads', uploadsRoutes);
+console.log('✅ /api/uploads registered');
+
+app.use('/api/training-evidence', workerTrainingEvidenceRoutes);
+console.log('✅ /api/training-evidence registered (Worker Training)');
+
+console.log('✅ File upload routes registered');
+
+// Dashboard and notifications
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/notifications', notificationsRoutes);
+console.log('✅ Dashboard & Notification routes registered');
+
+// Evidence routes with /api catch-all - MUST BE LAST
+app.use('/api', evidenceRoutes);
+console.log('✅ Evidence routes registered (with /api catch-all)');
+
+// Vendors (optional)
 try {
   const vendorsRoutes = require('./src/routes/vendors.routes');
   app.use('/api/vendors', vendorsRoutes);
+  console.log('✅ Vendors routes registered');
 } catch (err) {
-  console.warn('⚠️ Vendors routes not found, using fallback');
-  // Fallback vendors endpoint
+  console.log('ℹ️  Vendors routes not found, using fallback');
   app.get('/api/vendors', (req, res) => {
     res.json({ success: true, data: [] });
   });
 }
+
+console.log('✅ All routes registered successfully\n');
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -150,30 +168,32 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log('\n============================================================');
-  console.log('🚀 Amazon EPTW Backend Server Started');
-  console.log('============================================================');
-  console.log(`📍 Server: http://localhost:${PORT}`);
+  console.log('\n' + '='.repeat(60));
+  console.log('🚀 Amazon EPTW Backend Server');
+  console.log('='.repeat(60));
+  console.log(`📍 URL: http://localhost:${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📊 Database: ${process.env.DB_NAME || 'amazon_eptw_db'}`);
-  console.log('============================================================\n');
-  console.log('✅ Registered Routes:');
+  console.log('='.repeat(60));
+  console.log('\n🔗 Available Routes:');
   console.log('   /api/auth');
   console.log('   /api/admin');
   console.log('   /api/sites');
   console.log('   /api/departments');
+  console.log('   /api/master');
   console.log('   /api/users');
+  console.log('   /api/requester-assignments');
   console.log('   /api/permits');
   console.log('   /api/approvals');
-  console.log('   /api/master');
+  console.log('   /api/extension-approvals');
+  console.log('   /api/approvers');
+  console.log('   /api/uploads');
+  console.log('   /api/training-evidence ⭐');
   console.log('   /api/dashboard');
-  console.log('   /api/requester-assignments');
   console.log('   /api/notifications');
-  console.log('   /api/approvers          ⭐ FIXED!');
-  console.log('   /api/worker-training-evidence');
   console.log('   /api/vendors');
-  console.log('============================================================\n');
-  console.log('✅ Server is ready!\n');
+  console.log('='.repeat(60));
+  console.log('\n✅ Server ready! Training evidence route is active.\n');
 });
 
 module.exports = app;

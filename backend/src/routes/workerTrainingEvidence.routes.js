@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const pool = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth.middleware');
 
 // Configure multer for training evidence uploads
 const storage = multer.diskStorage({

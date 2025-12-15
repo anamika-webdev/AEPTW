@@ -1684,11 +1684,10 @@ router.get('/:id', async (req, res) => {
     const permit = permits[0];
     console.log(`✅ Found permit: ${permit.permit_serial}`);
 
-    // Get team members
     // Get team members WITH training evidence
     let teamMembers = [];
     try {
-      // First, get all team members with all their fields
+      // First, get all team members with complete information
       const [members] = await pool.query(
         `SELECT 
       id, 
@@ -1732,15 +1731,14 @@ router.get('/:id', async (req, res) => {
             )
           }));
 
-          console.log(`📸 Loaded ${trainingEvidence.length} training evidence records for team members`);
+          console.log(`📸 Loaded ${trainingEvidence.length} training evidence records`);
         } catch (evidenceErr) {
           console.log('⚠️ Error fetching training evidence:', evidenceErr.message);
-          console.log('⚠️ This is OK for old permits or if table does not exist yet');
-          // Continue without training evidence - this won't break the app
+          // Continue without training evidence - won't break existing functionality
         }
       }
     } catch (err) {
-      console.log('⚠️ Error fetching team members (table may not exist):', err.message);
+      console.log('⚠️ Error fetching team members:', err.message);
     }
 
     // Get hazards
@@ -1953,7 +1951,7 @@ router.post('/:id/request-extension', async (req, res) => {
 // ============================================================================
 // POST /api/permits/:id/close - Close PTW
 // ============================================================================
-router.post('/:id/close', upload.array('images', 10), async (req, res) => {
+router.post('/:id/close', authenticateToken, upload.array('images', 10), async (req, res) => {
   let connection;
 
   try {
@@ -1974,7 +1972,9 @@ router.post('/:id/close', upload.array('images', 10), async (req, res) => {
     const { descriptions, categories, timestamps, latitudes, longitudes } = req.body;
 
     console.log(`📥 POST /api/permits/${id}/close - User: ${userId}`);
-    console.log('Closure data:', { housekeeping_done, tools_removed, locks_removed, area_restored, remarks });
+    console.log('Raw body:', req.body);
+    console.log('Parsed closure data:', { housekeeping_done, tools_removed, locks_removed, area_restored, remarks });
+    console.log('Files received:', req.files ? req.files.length : 0);
 
     // Validate required fields
     if (
@@ -1984,6 +1984,7 @@ router.post('/:id/close', upload.array('images', 10), async (req, res) => {
       req.body.area_restored === undefined
     ) {
       await connection.rollback();
+      console.error('❌ Missing checklist items');
       return res.status(400).json({
         success: false,
         message: 'All checklist items are required: housekeeping_done, tools_removed, locks_removed, area_restored'
@@ -1993,6 +1994,7 @@ router.post('/:id/close', upload.array('images', 10), async (req, res) => {
     // Check if all items are true
     if (!housekeeping_done || !tools_removed || !locks_removed || !area_restored) {
       await connection.rollback();
+      console.error('❌ Not all checklist items are true:', { housekeeping_done, tools_removed, locks_removed, area_restored });
       return res.status(400).json({
         success: false,
         message: 'All checklist items must be completed before closing the permit'
@@ -2211,7 +2213,7 @@ router.post('/:id/closure/evidence', authenticateToken, upload.array('images', 1
     console.error('❌ Error uploading closure evidence:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to upload closure evidence',
+      message: 'Error uploading closure evidence',
       error: error.message
     });
   } finally {
@@ -2219,21 +2221,33 @@ router.post('/:id/closure/evidence', authenticateToken, upload.array('images', 1
   }
 });
 
-// ⭐ NEW: Get closure evidence for a permit
+// ⭐ NEW: GET Closure Evidence
 router.get('/:id/closure/evidence', authenticateToken, async (req, res) => {
+  let connection;
   try {
+    connection = await pool.getConnection();
     const { id } = req.params;
+    console.log(`📸 GET /api/permits/${id}/closure/evidence`);
 
-    const [evidence] = await pool.query(
-      `SELECT 
-        pce.*,
+    const [evidence] = await connection.query(`
+      SELECT 
+        pce.id,
+        pce.closure_id,
+        pce.permit_id,
+        pce.file_path,
+        pce.category,
+        pce.description,
+        pce.timestamp,
+        pce.latitude,
+        pce.longitude,
         u.full_name as captured_by_name
       FROM permit_closure_evidence pce
       LEFT JOIN users u ON pce.captured_by_user_id = u.id
       WHERE pce.permit_id = ?
-      ORDER BY pce.timestamp DESC`,
-      [id]
-    );
+      ORDER BY pce.timestamp DESC
+    `, [id]);
+
+    console.log(`✅ Found ${evidence.length} closure evidence items`);
 
     res.json({
       success: true,
@@ -2244,8 +2258,12 @@ router.get('/:id/closure/evidence', authenticateToken, async (req, res) => {
     console.error('❌ Error fetching closure evidence:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch closure evidence'
+      message: 'Error fetching closure evidence',
+      error: error.message
     });
+  } finally {
+    if (connection) connection.release();
   }
 });
+
 module.exports = router;
