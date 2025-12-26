@@ -160,7 +160,7 @@ export const usersAPI = {
   },
 
   // Get users by specific role for approvers
-  getApprovers: async (approverRole: 'Approver_AreaManager' | 'Approver_Safety' | 'Approver_SiteLeader'): Promise<ApiResponse<User[]>> => {
+  getApprovers: async (approverRole: 'Approver_AreaOwner' | 'Approver_Safety' | 'Approver_SiteLeader'): Promise<ApiResponse<User[]>> => {
     const response = await api.get(`/users?role=${approverRole}`);
     return response.data;
   },

@@ -1,13 +1,13 @@
 // src/utils/roleMapper.ts
 // Maps database roles to frontend roles WITHOUT changing the database
 
-export type DatabaseRole = 
-  | 'Admin' 
-  | 'Approver_Safety' 
-  | 'Approver_AreaManager' 
+export type DatabaseRole =
+  | 'Admin'
+  | 'Approver_Safety'
+  | 'Approver_AreaOwner'
   | 'Requester'
-  | 'Supervisor'  // In case database already has this
-  | 'Worker';     // In case database already has this
+  | 'Supervisor'
+  | 'Worker';
 
 export type FrontendRole = 'Admin' | 'Supervisor' | 'Worker';
 
@@ -17,20 +17,20 @@ export type FrontendRole = 'Admin' | 'Supervisor' | 'Worker';
  * Mapping:
  * - Admin → Admin
  * - Approver_Safety → Supervisor
- * - Approver_AreaManager → Supervisor
+ * - Approver_AreaOwner → Supervisor
  * - Requester → Supervisor
  */
 export function mapDatabaseRoleToFrontend(dbRole: string): FrontendRole {
   switch (dbRole) {
     case 'Admin':
       return 'Admin';
-    
+
     case 'Approver_Safety':
-    case 'Approver_AreaManager':
+    case 'Approver_AreaOwner':
     case 'Requester':
     case 'Supervisor':  // Already correct
       return 'Supervisor';
-    
+
     case 'Worker':
     default:
       return 'Worker';
@@ -46,8 +46,8 @@ export function getRoleDisplayName(role: string): string {
       return 'Administrator';
     case 'Approver_Safety':
       return 'Safety Officer';
-    case 'Approver_AreaManager':
-      return 'Area Manager';
+    case 'Approver_AreaOwner':
+      return 'Area Owner';
     case 'Requester':
       return 'Requester';
     case 'Supervisor':
@@ -64,7 +64,7 @@ export function getRoleDisplayName(role: string): string {
  */
 export function hasPermission(role: string, permission: string): boolean {
   const frontendRole = mapDatabaseRoleToFrontend(role);
-  
+
   const permissions: Record<FrontendRole, string[]> = {
     'Admin': [
       'view_all_permits',
@@ -87,6 +87,6 @@ export function hasPermission(role: string, permission: string): boolean {
       'view_own_permits'
     ]
   };
-  
+
   return permissions[frontendRole]?.includes(permission) || false;
 }

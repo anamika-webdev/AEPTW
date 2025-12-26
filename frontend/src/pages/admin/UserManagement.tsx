@@ -93,10 +93,9 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   };
 
   useEffect(() => {
-    if (showBulkEditModal) {
-      fetchSites();
-    }
-  }, [showBulkEditModal]);
+    fetchUsers();
+    fetchSites(); // Fetch sites on mount
+  }, []);
 
   // Form states
   const [newUser, setNewUser] = useState({
@@ -105,9 +104,10 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     email: '',
     password: '',
     confirmPassword: '',
-    role: ['Worker'], // Default as array
+    role: ['Worker'],
     department: '',
-    job_role: ''
+    job_role: '',
+    site_id: '' // Added site_id
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -116,12 +116,9 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     password: '',
     role: '',
     department: '',
-    job_role: ''
+    job_role: '',
+    site_id: '' // Added site_id
   });
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const fetchUsers = async (showMessage = false) => {
     try {
@@ -211,9 +208,10 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           full_name: newUser.full_name,
           email: newUser.email,
           password: newUser.password,
-          role: Array.isArray(newUser.role) ? newUser.role.join(',') : newUser.role, // Join array to string
+          role: Array.isArray(newUser.role) ? newUser.role.join(',') : newUser.role,
           department: newUser.department,
-          job_role: newUser.job_role
+          job_role: newUser.job_role,
+          site_id: newUser.site_id // Send site_id
         })
       });
 
@@ -228,9 +226,10 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           email: '',
           password: '',
           confirmPassword: '',
-          role: [], // Changed to array
+          role: [],
           department: '',
-          job_role: ''
+          job_role: '',
+          site_id: ''
         });
         await fetchUsers(true);
       } else {
@@ -309,9 +308,10 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       full_name: user.full_name,
       email: user.email,
       password: '',
-      role: user.role, // This will be "Role1, Role2" string from backend
+      role: user.role,
       department: user.department_name || '',
-      job_role: user.job_role || ''
+      job_role: user.job_role || '',
+      site_id: user.site_id?.toString() || ''
     });
     setShowEditModal(true);
   };
@@ -395,7 +395,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       'Admin': 'Administrator',
       'Administrator': 'Administrator',
       'Approver_Safety': 'Safety Officer',
-      'Approver_AreaManager': 'Area Manager',
+      'Approver_AreaOwner': 'Area Owner',
       'Approver_SiteLeader': 'Site Leader',
       'Requester': 'Supervisor',
       'Supervisor': 'Supervisor',
@@ -583,10 +583,13 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 setAssigningUser(user);
                 setShowAssignModal(true);
               }}
-              className="mr-3 text-purple-600 hover:text-purple-900"
+              className="mr-3 p-1.5 text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors"
               title="Assign sites and workers"
             >
-              <Building2 className="w-4 h-4" />
+              <div className="flex items-center gap-1.5">
+                <Building2 className="w-4 h-4" />
+                <span className="text-xs font-semibold">Assign</span>
+              </div>
             </button>
           )}
 
@@ -847,7 +850,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   <option value="Worker">Worker</option>
                   <option value="Requester">Supervisor</option>
                   <option value="Approver_Safety">Safety Officer</option>
-                  <option value="Approver_AreaManager">Area Manager</option>
+                  <option value="Approver_AreaOwner">Area Owner</option>
                   <option value="Approver_SiteLeader">Site Leader</option>
                   <option value="Admin">Administrator</option>
                 </select>
@@ -1130,7 +1133,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   <option value="Worker">Worker</option>
                   <option value="Requester">Supervisor</option>
                   <option value="Approver_Safety">Safety Officer</option>
-                  <option value="Approver_AreaManager">Area Manager</option>
+                  <option value="Approver_AreaOwner">Area Owner</option>
                   <option value="Approver_SiteLeader">Site Leader</option>
                   <option value="Admin">Administrator</option>
                 </select>
@@ -1139,20 +1142,21 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Department
+                  Primary Site Assignment
                 </label>
                 <select
-                  value={newUser.department}
-                  onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                  value={newUser.site_id}
+                  onChange={(e) => setNewUser({ ...newUser, site_id: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 >
-                  <option value="">Select Department</option>
-                  {DEPARTMENTS.map((dept) => (
-                    <option key={dept} value={dept}>
-                      {dept}
+                  <option value="">Select Site</option>
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.id}>
+                      {site.name} ({site.site_code})
                     </option>
                   ))}
                 </select>
+                <p className="mt-1 text-xs text-gray-500">For Supervisors/Approvers, you can assign multiple sites using the assignment button in the table.</p>
               </div>
             </div>
 
@@ -1242,7 +1246,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     <option value="Worker">Worker</option>
                     <option value="Requester">Supervisor</option>
                     <option value="Approver_Safety">Safety Officer</option>
-                    <option value="Approver_AreaManager">Area Manager</option>
+                    <option value="Approver_AreaOwner">Area Owner</option>
                     <option value="Approver_SiteLeader">Site Leader</option>
                     <option value="Admin">Administrator</option>
                   </select>
@@ -1251,17 +1255,17 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Department
+                    Primary Site Assignment
                   </label>
                   <select
-                    value={editFormData.department}
-                    onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                    value={editFormData.site_id}
+                    onChange={(e) => setEditFormData({ ...editFormData, site_id: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   >
-                    <option value="">Select Department</option>
-                    {DEPARTMENTS.map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
+                    <option value="">Select Site</option>
+                    {sites.map((site) => (
+                      <option key={site.id} value={site.id}>
+                        {site.name} ({site.site_code})
                       </option>
                     ))}
                   </select>
@@ -1284,12 +1288,40 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 >
                   Cancel
                 </button>
-                <button
-                  onClick={handleEditUser}
-                  className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
-                >
-                  Save Changes
-                </button>
+                <div className="flex gap-3">
+                  {(editingUser.role === 'Requester' || editingUser.role === 'Supervisor') && (
+                    <button
+                      onClick={() => {
+                        setShowEditModal(false);
+                        setAssigningUser(editingUser);
+                        setShowAssignModal(true);
+                      }}
+                      className="px-4 py-2 text-purple-600 border border-purple-200 bg-purple-50 rounded-lg hover:bg-purple-100 flex items-center gap-2"
+                    >
+                      <Building2 className="w-4 h-4" />
+                      Manage Assignments
+                    </button>
+                  )}
+                  {editingUser.role.includes('Approver') && (
+                    <button
+                      onClick={() => {
+                        setShowEditModal(false);
+                        setSelectedApprover(editingUser);
+                        setShowSiteAssignment(true);
+                      }}
+                      className="px-4 py-2 text-blue-600 border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center gap-2"
+                    >
+                      <Building2 className="w-4 h-4" />
+                      Manage Sites
+                    </button>
+                  )}
+                  <button
+                    onClick={handleEditUser}
+                    className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </div>
           </div>

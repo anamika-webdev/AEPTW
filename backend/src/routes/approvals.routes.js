@@ -15,12 +15,12 @@ router.use(authenticateToken);
 // ============================================================================
 const getApprovalFields = (userRole) => {
   const roleMap = {
-    'Approver_AreaManager': {
+    'Approver_AreaOwner': {
       idField: 'area_manager_id',
       statusField: 'area_manager_status',
       approvedAtField: 'area_manager_approved_at',
       signatureField: 'area_manager_signature',
-      roleName: 'Area Manager'
+      roleName: 'Area Owner'
     },
     'Approver_Safety': {
       idField: 'safety_officer_id',
@@ -92,7 +92,7 @@ router.get('/pending', async (req, res) => {
         p.area_manager_status,
         p.safety_officer_status,
         p.site_leader_status,
-        am.full_name as area_manager_name,
+        am.full_name as area_owner_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name,
         p.${fields.signatureField} as my_signature,  
@@ -169,7 +169,7 @@ router.get('/approved', async (req, res) => {
         p.area_manager_status,
         p.safety_officer_status,
         p.site_leader_status,
-        am.full_name as area_manager_name,
+        am.full_name as area_owner_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -241,7 +241,7 @@ router.get('/rejected', async (req, res) => {
         p.area_manager_status,
         p.safety_officer_status,
         p.site_leader_status,
-        am.full_name as area_manager_name,
+        am.full_name as area_owner_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -369,12 +369,12 @@ router.post('/:ptwId/approve', async (req, res) => {
 
     let allApproved = true;
 
-    // Check Area Manager (Always required, but safe to check ID)
+    // Check Area Owner (Always required, but safe to check ID)
     if (p.area_manager_id && p.area_manager_status !== 'Approved') {
-      console.log(`❌ Area Manager not approved: ${p.area_manager_status}`);
+      console.log(`❌ Area Owner not approved: ${p.area_manager_status}`);
       allApproved = false;
     } else if (p.area_manager_id) {
-      console.log(`✅ Area Manager approved`);
+      console.log(`✅ Area Owner approved`);
     }
 
     // Check Safety Officer (Optional)

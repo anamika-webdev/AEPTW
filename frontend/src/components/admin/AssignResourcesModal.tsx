@@ -27,23 +27,21 @@ interface WorkerData {
   department_name?: string;
 }
 
-interface Assignments {
-  sites: Array<SiteData & { assignment_id: number; assigned_at: string }>;
-  workers: Array<WorkerData & { assignment_id: number; assigned_at: string }>;
-}
+
 
 export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignResourcesModalProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'sites' | 'workers'>('sites');
-  
+
   // Available resources
   const [availableSites, setAvailableSites] = useState<SiteData[]>([]);
   const [availableWorkers, setAvailableWorkers] = useState<WorkerData[]>([]);
-  
+
   // Selected IDs
   const [selectedSiteIds, setSelectedSiteIds] = useState<number[]>([]);
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState(''); // Added search query state
 
   useEffect(() => {
     fetchData();
@@ -52,7 +50,7 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch available sites
       const sitesRes = await fetch('/api/requester-assignments/available/sites', {
         headers: {
@@ -63,7 +61,7 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
       if (sitesData.success) {
         setAvailableSites(sitesData.data);
       }
-      
+
       // Fetch available workers
       const workersRes = await fetch('/api/requester-assignments/available/workers', {
         headers: {
@@ -74,7 +72,7 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
       if (workersData.success) {
         setAvailableWorkers(workersData.data);
       }
-      
+
       // Fetch current assignments
       const assignmentsRes = await fetch(`/api/requester-assignments/${requester.id}`, {
         headers: {
@@ -98,7 +96,7 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
   const handleSaveSites = async () => {
     try {
       setSaving(true);
-      
+
       const response = await fetch(`/api/requester-assignments/${requester.id}/sites`, {
         method: 'POST',
         headers: {
@@ -107,9 +105,9 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
         },
         body: JSON.stringify({ site_ids: selectedSiteIds })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         alert('Sites assigned successfully!');
         onSuccess();
@@ -127,7 +125,7 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
   const handleSaveWorkers = async () => {
     try {
       setSaving(true);
-      
+
       const response = await fetch(`/api/requester-assignments/${requester.id}/workers`, {
         method: 'POST',
         headers: {
@@ -136,9 +134,9 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
         },
         body: JSON.stringify({ worker_ids: selectedWorkerIds })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         alert('Workers assigned successfully!');
         onSuccess();
@@ -154,15 +152,15 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
   };
 
   const toggleSite = (siteId: number) => {
-    setSelectedSiteIds(prev => 
-      prev.includes(siteId) 
+    setSelectedSiteIds(prev =>
+      prev.includes(siteId)
         ? prev.filter(id => id !== siteId)
         : [...prev, siteId]
     );
   };
 
   const toggleWorker = (workerId: number) => {
-    setSelectedWorkerIds(prev => 
+    setSelectedWorkerIds(prev =>
       prev.includes(workerId)
         ? prev.filter(id => id !== workerId)
         : [...prev, workerId]
@@ -177,6 +175,17 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
     };
     return roleMap[role] || role;
   };
+
+  const filteredSites = availableSites.filter(site =>
+    site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    site.site_code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredWorkers = availableWorkers.filter(worker =>
+    worker.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    worker.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    worker.login_id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -201,26 +210,38 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab('sites')}
-            className={`px-6 py-3 text-sm font-medium transition-colors ${
-              activeTab === 'sites'
-                ? 'border-b-2 border-orange-600 text-orange-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'sites'
+              ? 'border-b-2 border-orange-600 text-orange-600'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
           >
             <Building2 className="inline-block w-4 h-4 mr-2" />
             Sites ({selectedSiteIds.length})
           </button>
           <button
             onClick={() => setActiveTab('workers')}
-            className={`px-6 py-3 text-sm font-medium transition-colors ${
-              activeTab === 'workers'
-                ? 'border-b-2 border-orange-600 text-orange-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'workers'
+              ? 'border-b-2 border-orange-600 text-orange-600'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
           >
             <Users className="inline-block w-4 h-4 mr-2" />
             Workers ({selectedWorkerIds.length})
           </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`Search ${activeTab === 'sites' ? 'sites' : 'workers'}...`}
+              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+            />
+            <Users className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+          </div>
         </div>
 
         {/* Content */}
@@ -235,15 +256,15 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
               {activeTab === 'sites' && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600">
-                    Select which sites this {getRoleDisplay(requester.role).toLowerCase()} can access. 
+                    Select which sites this {getRoleDisplay(requester.role).toLowerCase()} can access.
                     They will only be able to create permits for their assigned sites.
                   </p>
-                  {availableSites.length === 0 ? (
+                  {filteredSites.length === 0 ? (
                     <p className="py-8 text-center text-gray-500">
-                      No sites available. Please create sites first in the Sites Management section.
+                      {searchQuery ? 'No sites match your search' : 'No sites available. Please create sites first in the Sites Management section.'}
                     </p>
                   ) : (
-                    availableSites.map(site => (
+                    filteredSites.map(site => (
                       <label
                         key={site.id}
                         className="flex items-start gap-3 p-4 transition-colors border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
@@ -275,12 +296,12 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
                     Select which workers this {getRoleDisplay(requester.role).toLowerCase()} can assign to permits.
                     They will only see their assigned workers when creating permits.
                   </p>
-                  {availableWorkers.length === 0 ? (
+                  {filteredWorkers.length === 0 ? (
                     <p className="py-8 text-center text-gray-500">
-                      No workers available. Please create worker accounts first in the User Management section.
+                      {searchQuery ? 'No workers match your search' : 'No workers available. Please create worker accounts first in the User Management section.'}
                     </p>
                   ) : (
-                    availableWorkers.map(worker => (
+                    filteredWorkers.map(worker => (
                       <label
                         key={worker.id}
                         className="flex items-start gap-3 p-4 transition-colors border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"

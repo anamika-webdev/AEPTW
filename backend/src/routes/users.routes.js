@@ -141,7 +141,7 @@ router.get('/approvers', authenticateToken, async (req, res) => {
         d.name as department_name
        FROM users u
        LEFT JOIN departments d ON u.department_id = d.id
-       WHERE u.role IN ('Approver_AreaManager', 'Approver_Safety', 'Approver_SiteLeader') 
+       WHERE u.role IN ('Approver_AreaOwner', 'Approver_Safety', 'Approver_SiteLeader') 
          AND u.is_active = TRUE
        ORDER BY u.role, u.full_name`
     );
@@ -164,19 +164,19 @@ router.get('/approvers', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/users/approvers/area-managers - Get area managers
-router.get('/approvers/area-managers', authenticateToken, async (req, res) => {
+// GET /api/users/approvers/area-owners - Get area owners
+router.get('/approvers/area-owners', authenticateToken, async (req, res) => {
   try {
     const [approvers] = await pool.query(
       `SELECT u.id, u.login_id, u.full_name, u.email, u.role,
               u.department_id, d.name as department_name
        FROM users u
        LEFT JOIN departments d ON u.department_id = d.id
-       WHERE u.role LIKE '%Approver_AreaManager%' AND u.is_active = TRUE
+       WHERE u.role LIKE '%Approver_AreaOwner%' AND u.is_active = TRUE
        ORDER BY u.full_name`
     );
 
-    console.log(`✅ Fetched ${approvers.length} area managers`);
+    console.log(`✅ Fetched ${approvers.length} area owners`);
 
     res.json({
       success: true,
@@ -184,10 +184,10 @@ router.get('/approvers/area-managers', authenticateToken, async (req, res) => {
       data: approvers
     });
   } catch (error) {
-    console.error('❌ Error fetching area managers:', error);
+    console.error('❌ Error fetching area owners:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching area managers',
+      message: 'Error fetching area owners',
       error: error.message
     });
   }
@@ -698,21 +698,70 @@ router.post('/bulk-import', authorizeAdmin, async (req, res) => {
 
           const existingUser = existing[0];
 
+          // Get site_id if site name provided
+          let site_id = null;
+          if (user.site) {
+            const [siteResult] = await pool.query('SELECT id FROM sites WHERE name = ?', [user.site]);
+            if (siteResult.length > 0) {
+              site_id = siteResult[0].id;
+            }
+          }
+
+          // MERGE ROLES: Split existing and new roles, merge them, and remove duplicates
+          let mergedRoles = role; // Default to new role
+          if (existingUser.role) {
+            const existingRolesList = existingUser.role.split(',').map(r => r.trim());
+            const newRolesList = role.split(',').map(r => r.trim());
+            const uniqueRoles = new Set([...existingRolesList, ...newRolesList]);
+            mergedRoles = Array.from(uniqueRoles).join(',');
+          }
+
           // UPDATE existing user (Active or Inactive)
           await pool.query(
             `UPDATE users 
-               SET full_name = ?, email = ?, password_hash = ?, role = ?, department_id = ?, job_role = ?, is_active = TRUE, updated_at = NOW()
+               SET full_name = ?, email = ?, password_hash = ?, role = ?, department_id = ?, site_id = ?, job_role = ?, is_active = TRUE, updated_at = NOW()
                WHERE id = ?`,
-            [full_name, email, password_hash, role, department_id, job_role || null, existingUser.id]
+            [full_name, email, password_hash, mergedRoles, department_id, site_id, job_role || null, existingUser.id]
           );
 
+          // If supervisor/requester, also add to requester_sites
+          if (site_id && (role.includes('Supervisor') || role.includes('Requester'))) {
+            const [existingAssig] = await pool.query(
+              'SELECT id FROM requester_sites WHERE requester_user_id = ? AND site_id = ?',
+              [existingUser.id, site_id]
+            );
+            if (existingAssig.length === 0) {
+              await pool.query(
+                'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
+                [existingUser.id, site_id]
+              );
+            }
+          }
+
         } else {
+          // Get site_id if site name provided
+          let site_id = null;
+          if (user.site) {
+            const [siteResult] = await pool.query('SELECT id FROM sites WHERE name = ?', [user.site]);
+            if (siteResult.length > 0) {
+              site_id = siteResult[0].id;
+            }
+          }
+
           // Insert new user
-          await pool.query(
-            `INSERT INTO users (login_id, full_name, email, password_hash, role, department_id, job_role, is_active, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
-            [login_id, full_name, email, password_hash, role, department_id, job_role || null]
+          const [result] = await pool.query(
+            `INSERT INTO users (login_id, full_name, email, password_hash, role, department_id, site_id, job_role, is_active, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
+            [login_id, full_name, email, password_hash, role, department_id, site_id, job_role || null]
           );
+
+          // If supervisor/requester, also add to requester_sites
+          if (site_id && (role.includes('Supervisor') || role.includes('Requester'))) {
+            await pool.query(
+              'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
+              [result.insertId, site_id]
+            );
+          }
         }
 
         results.successful++;

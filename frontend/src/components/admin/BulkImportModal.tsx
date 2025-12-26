@@ -1,6 +1,9 @@
 import React, { useState, useRef } from 'react';
 import Papa from 'papaparse';
-import { Upload, X, FileText, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { Upload, X, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { JOB_ROLES } from '../../utils/jobRoles';
+import { DEPARTMENTS } from '../../utils/departments';
 
 interface BulkImportModalProps {
     onClose: () => void;
@@ -17,13 +20,86 @@ export function BulkImportModal({ onClose, onSuccess }: BulkImportModalProps) {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
-            if (selectedFile.type !== 'text/csv' && !selectedFile.name.endsWith('.csv')) {
-                alert('Please upload a valid CSV file');
+            const isExcel = selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || selectedFile.name.endsWith('.xlsx');
+            const isCSV = selectedFile.type === 'text/csv' || selectedFile.name.endsWith('.csv');
+
+            if (!isExcel && !isCSV) {
+                alert('Please upload a valid CSV or Excel file');
                 return;
             }
             setFile(selectedFile);
-            parseFile(selectedFile);
+            if (isExcel) {
+                parseExcelFile(selectedFile);
+            } else {
+                parseFile(selectedFile);
+            }
         }
+    };
+
+    const processImportData = (data: any[]) => {
+        // Clean and validate data
+        const cleanData = data
+            .filter((row: any) => {
+                // Check if row has at least one non-empty required field
+                return row.login_id || row.email || row.full_name;
+            })
+            .map((row: any) => {
+                // Normalize Role aliases (supports comma separated)
+                const roleInput = (row.role || '').toString();
+                const roles = roleInput.split(',').map((r: string) => r.trim());
+                const mappedRoles = roles.map((r: string) => {
+                    const lowerRole = r.toLowerCase();
+                    if (lowerRole.includes('supervisor')) return 'Requester';
+                    if (lowerRole.includes('safety')) return 'Approver_Safety';
+                    if (lowerRole.includes('owner') || lowerRole.includes('area')) return 'Approver_AreaOwner';
+                    if (lowerRole.includes('site') && lowerRole.includes('lead')) return 'Approver_SiteLeader';
+                    if (lowerRole.includes('worker')) return 'Worker';
+                    if (lowerRole.includes('admin')) return 'Admin';
+                    return r; // Fallback to original if no match
+                });
+
+                // Remove duplicates after mapping
+                const uniqueRoles = Array.from(new Set(mappedRoles));
+                const role = uniqueRoles.join(',');
+
+                return {
+                    ...row,
+                    role,
+                    // Ensure login_id matches constraints (simple cleanup)
+                    login_id: row.login_id?.toString().replace(/[^a-zA-Z0-9_]/g, '_')
+                };
+            });
+
+        setParsedData(cleanData);
+    };
+
+    const parseExcelFile = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                // SheetJS might not lowercase headers by default, let's normalize them
+                const normalizedData = jsonData.map((row: any) => {
+                    const newRow: any = {};
+                    Object.keys(row).forEach(key => {
+                        newRow[key.trim().toLowerCase()] = row[key];
+                    });
+                    return newRow;
+                });
+
+                processImportData(normalizedData);
+            } catch (error) {
+                console.error('Excel Parsing Error:', error);
+                alert('Failed to parse Excel file. Please ensure it is a valid .xlsx file.');
+            }
+        };
+        reader.onerror = () => alert('Failed to read file');
+        reader.readAsArrayBuffer(file);
     };
 
     const parseFile = (file: File) => {
@@ -33,32 +109,7 @@ export function BulkImportModal({ onClose, onSuccess }: BulkImportModalProps) {
             transformHeader: (header) => header.trim().toLowerCase(), // Normalize headers
             transform: (value) => value.trim(), // Trim all values
             complete: (results) => {
-                // Clean and validate data
-                const cleanData = results.data
-                    .filter((row: any) => {
-                        // Check if row has at least one non-empty required field
-                        return row.login_id || row.email || row.full_name;
-                    })
-                    .map((row: any) => {
-                        // Normalize Role aliases
-                        let role = row.role || '';
-                        const lowerRole = role.toLowerCase();
-                        if (lowerRole.includes('supervisor')) role = 'Requester';
-                        else if (lowerRole.includes('safety')) role = 'Approver_Safety';
-                        else if (lowerRole.includes('area')) role = 'Approver_AreaManager';
-                        else if (lowerRole.includes('site') && lowerRole.includes('lead')) role = 'Approver_SiteLeader';
-                        else if (lowerRole.includes('worker')) role = 'Worker';
-                        else if (lowerRole.includes('admin')) role = 'Admin';
-
-                        return {
-                            ...row,
-                            role,
-                            // Ensure login_id matches constraints (simple cleanup)
-                            login_id: row.login_id?.replace(/[^a-zA-Z0-9_]/g, '_')
-                        };
-                    });
-
-                setParsedData(cleanData);
+                processImportData(results.data);
             },
             error: (error) => {
                 console.error('CSV Parsing Error:', error);
@@ -102,18 +153,39 @@ export function BulkImportModal({ onClose, onSuccess }: BulkImportModalProps) {
     };
 
     const downloadTemplate = () => {
-        const csvContent = "login_id,full_name,email,password,role,department,job_role\njohn_doe,John Doe,john@example.com,Password123!,Worker,Operations,Packer\nJaneSmith,Jane Smith,jane@example.com,SecurePass!1,Requester,Safety,Supervisor";
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'user_import_template.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+        // Data for Sheet 1: Import Template
+        const templateData = [
+            ["login_id", "full_name", "email", "password", "role", "department", "job_role", "site"],
+            ["john_doe", "John Doe", "john@example.com", "Password123!", "Worker", "Operations", "Process Assistant", "Bangalore-1"],
+            ["jane_smith", "Jane Smith", "jane@example.com", "SecurePass!1", "Supervisor", "WHS", "WHS Supervisor", "Mumbai-2"],
+            ["safety_approver", "Safety Officer", "safety@example.com", "Safety123!", "Approver_Safety", "SLP", "SLP Manager", "Chennai-1"]
+        ];
+
+        // Data for Sheet 2: Reference Section
+        const referenceData = [
+            ["CATEGORY", "VALID OPTIONS / NOTES"],
+            ["Valid Roles", "Worker, Requester, Approver_Safety, Approver_AreaOwner, Approver_SiteLeader, Admin"],
+            ["Role Note", "\"Supervisor\" maps to \"Requester\""],
+            ["Valid Departments", DEPARTMENTS.join(', ')],
+            ["Valid Job Roles", JOB_ROLES.join(', ')]
+        ];
+
+        const wb = XLSX.utils.book_new();
+        const wsTemplate = XLSX.utils.aoa_to_sheet(templateData);
+        const wsReference = XLSX.utils.aoa_to_sheet(referenceData);
+
+        // Adjust column widths for better readability
+        const wscols = [
+            { wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 15 },
+            { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 15 }
+        ];
+        wsTemplate['!cols'] = wscols;
+        wsReference['!cols'] = [{ wch: 20 }, { wch: 80 }];
+
+        XLSX.utils.book_append_sheet(wb, wsTemplate, "Import Template");
+        XLSX.utils.book_append_sheet(wb, wsReference, "Reference Section");
+
+        XLSX.writeFile(wb, "user_import_template.xlsx");
     };
 
     return (
@@ -136,7 +208,7 @@ export function BulkImportModal({ onClose, onSuccess }: BulkImportModalProps) {
                                     <h4 className="font-medium text-blue-900">Instructions</h4>
                                     <p className="mt-1 text-sm text-blue-700">
                                         Upload a CSV file with the following headers: <br />
-                                        <code className="bg-blue-100 px-1 rounded">login_id, full_name, email, password, role, department, job_role</code>
+                                        <code className="bg-blue-100 px-1 rounded">login_id, full_name, email, password, role, department, job_role, site</code>
                                     </p>
                                     <button
                                         onClick={downloadTemplate}
@@ -148,6 +220,8 @@ export function BulkImportModal({ onClose, onSuccess }: BulkImportModalProps) {
                                 </div>
                             </div>
                         </div>
+
+
 
                         {/* File Upload */}
                         <div
@@ -193,9 +267,9 @@ export function BulkImportModal({ onClose, onSuccess }: BulkImportModalProps) {
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
-                                            {parsedData.slice(0, 5).map((row, i) => (
+                                            {parsedData.slice(0, 5).map((row: any, i: number) => (
                                                 <tr key={i}>
-                                                    {Object.values(row).slice(0, 5).map((cell: any, j) => (
+                                                    {Object.values(row).slice(0, 5).map((cell: any, j: number) => (
                                                         <td key={j} className="px-3 py-2 text-sm text-gray-900 whitespace-nowrap">
                                                             {cell}
                                                         </td>
@@ -252,7 +326,7 @@ export function BulkImportModal({ onClose, onSuccess }: BulkImportModalProps) {
                                     {report.failed} Failed Records
                                 </h4>
                                 <ul className="pl-5 space-y-1 text-sm text-red-700 list-disc max-h-48 overflow-y-auto">
-                                    {report.errors.map((err, i) => (
+                                    {report.errors.map((err: string, i: number) => (
                                         <li key={i}>{err}</li>
                                     ))}
                                 </ul>

@@ -73,7 +73,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   const [workers, setWorkers] = useState<User[]>([]);
   const [checklistQuestions, setChecklistQuestions] = useState<MasterChecklistQuestion[]>([]);
   // Approvers
-  const [areaManagers, setAreaManagers] = useState<User[]>([]);
+  const [areaOwners, setAreaOwners] = useState<User[]>([]);
   const [safetyOfficers, setSafetyOfficers] = useState<User[]>([]);
   const [siteLeaders, setSiteLeaders] = useState<User[]>([]);
   const [showCameraModal, setShowCameraModal] = useState(false);
@@ -120,7 +120,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     checklistTextResponses: {} as Record<number, string>,
 
     // Approver IDs
-    area_manager_id: 0 as number | string,
+    area_owner_id: 0 as number | string,
     safety_officer_id: 0 as number | string,
     site_leader_id: 0 as number | string,
 
@@ -373,15 +373,15 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       console.log('📊 [APPROVERS] Response:', data);
 
       if (data.success && data.data) {
-        const am = data.data.filter((a: User) => a.role === 'Approver_AreaManager');
+        const am = data.data.filter((a: User) => a.role === 'Approver_AreaOwner');
         const so = data.data.filter((a: User) => a.role === 'Approver_Safety');
         const sl = data.data.filter((a: User) => a.role === 'Approver_SiteLeader');
 
-        console.log('✅ Area Managers:', am.length, am.map((a: User) => a.full_name));
+        console.log('✅ Area Owners:', am.length, am.map((a: User) => a.full_name));
         console.log('✅ Safety Officers:', so.length, so.map((a: User) => a.full_name));
         console.log('✅ Site Leaders:', sl.length, sl.map((a: User) => a.full_name));
 
-        setAreaManagers(am);
+        setAreaOwners(am);
         setSafetyOfficers(so);
         setSiteLeaders(sl);
 
@@ -415,7 +415,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         // Auto-fill approver fields
         setFormData(prev => ({
           ...prev,
-          area_manager_id: siteApprovers.area_manager_id || 0,
+          area_owner_id: siteApprovers.area_manager_id || 0,
           safety_officer_id: siteApprovers.safety_officer_id || 0,
           site_leader_id: siteApprovers.site_leader_id || 0
         }));
@@ -430,7 +430,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         // Clear approver fields if no approvers found
         setFormData(prev => ({
           ...prev,
-          area_manager_id: 0,
+          area_owner_id: 0,
           safety_officer_id: 0,
           site_leader_id: 0
         }));
@@ -2481,27 +2481,27 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               {/* Area Manager - REQUIRED */}
               <div>
                 <label className="block text-sm font-medium text-slate-900 mb-2">
-                  Area Manager <span className="text-red-500">*</span>
+                  Area Owner <span className="text-red-500">*</span>
                   {/* ⭐ ADD THIS INDICATOR */}
-                  {formData.area_manager_id && (
+                  {formData.area_owner_id && (
                     <span className="ml-2 text-xs text-green-600 font-normal">
                       ✓ Pre-selected
                     </span>
                   )}
                 </label>
                 <select
-                  value={formData.area_manager_id}
+                  value={formData.area_owner_id}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
-                    area_manager_id: parseInt(e.target.value) || ''
+                    area_owner_id: parseInt(e.target.value) || ''
                   }))}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
-                  <option value="">-- Select Area Manager --</option>
-                  {areaManagers.map((am) => (
-                    <option key={am.id} value={am.id}>
-                      {am.full_name} ({am.email})
+                  <option value="">-- Select Area Owner --</option>
+                  {areaOwners.map((ao) => (
+                    <option key={ao.id} value={ao.id}>
+                      {ao.full_name} ({ao.email})
                     </option>
                   ))}
                 </select>

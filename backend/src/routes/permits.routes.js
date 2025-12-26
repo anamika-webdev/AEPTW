@@ -207,7 +207,7 @@ router.get('/my-initiated', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_manager_name,
+        am.full_name as area_owner_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -252,7 +252,7 @@ router.get('/my-approved', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_manager_name,
+        am.full_name as area_owner_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -336,7 +336,7 @@ router.get('/my-ready-to-start', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_manager_name,
+        am.full_name as area_owner_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -381,7 +381,7 @@ router.get('/my-active', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_manager_name,
+        am.full_name as area_owner_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -465,7 +465,7 @@ router.get('/my-extended', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_manager_name,
+        am.full_name as area_owner_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -513,7 +513,7 @@ router.get('/', async (req, res) => {
         s.name as site_name,
         s.site_code,
         u.full_name as created_by_name,
-        am.full_name as area_manager_name,
+        am.full_name as area_owner_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name,
         COUNT(DISTINCT ptm.id) as team_member_count
@@ -780,7 +780,7 @@ router.post('/', async (req, res) => {
       if (area_manager_id) {
         approverNotifications.push({
           user_id: area_manager_id,
-          role: 'Area Manager'
+          role: 'Area Owner'
         });
       }
 
