@@ -38,7 +38,19 @@ const getApprovalFields = (userRole) => {
     }
   };
 
-  return roleMap[userRole] || null;
+  // ✅ FIXED for Multi-Role: Check if userRole string includes any of the approver roles
+  // Prioritize if user has multiple (though unlikely for approvals usually?)
+  // Iterate keys and find first match
+  const userRoles = (userRole || '').split(',');
+
+  for (const key of Object.keys(roleMap)) {
+    // Check if any of the user's roles trim to match the key
+    if (userRoles.some(r => r.trim() === key)) {
+      return roleMap[key];
+    }
+  }
+
+  return null;
 };
 
 // ============================================================================

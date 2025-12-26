@@ -2,8 +2,11 @@
 // Enhanced version with assigned sites and workers display in View modal
 
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Building2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Building2, Eye, X, ChevronLeft, ChevronRight, Briefcase } from 'lucide-react';
 import { AssignResourcesModal } from '../../components/admin/AssignResourcesModal';
+import { BulkImportModal } from '../../components/admin/BulkImportModal';
+import { JOB_ROLES } from '../../utils/jobRoles';
+import { DEPARTMENTS } from '../../utils/departments';
 
 interface Site {
   id: number;
@@ -12,6 +15,8 @@ interface Site {
   location: string;
 }
 
+// ... existing code ...
+
 interface User {
   id: number;
   login_id: string;
@@ -19,6 +24,9 @@ interface User {
   email: string;
   role: string;
   department_name?: string;
+  site_id?: number;
+  site_name?: string;
+  job_role?: string;
   created_at: string;
   permit_count?: number;
   is_active: boolean;
@@ -56,6 +64,40 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     loading: boolean;
   }>({ sites: [], workers: [], loading: false });
 
+  // Bulk Selection States
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkUpdates, setBulkUpdates] = useState({
+    role: '',
+    department: '',
+    site: '',
+    job_role: '',
+    is_active: ''
+  });
+
+  const [sites, setSites] = useState<Site[]>([]); // New state for sites
+
+  const fetchSites = async () => {
+    try {
+      const response = await fetch('/api/sites', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSites(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching sites:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (showBulkEditModal) {
+      fetchSites();
+    }
+  }, [showBulkEditModal]);
+
   // Form states
   const [newUser, setNewUser] = useState({
     login_id: '',
@@ -63,8 +105,9 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'Worker',
-    department: ''
+    role: ['Worker'], // Default as array
+    department: '',
+    job_role: ''
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -72,7 +115,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     email: '',
     password: '',
     role: '',
-    department: ''
+    department: '',
+    job_role: ''
   });
 
   useEffect(() => {
@@ -167,8 +211,9 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           full_name: newUser.full_name,
           email: newUser.email,
           password: newUser.password,
-          role: newUser.role,
-          department: newUser.department
+          role: Array.isArray(newUser.role) ? newUser.role.join(',') : newUser.role, // Join array to string
+          department: newUser.department,
+          job_role: newUser.job_role
         })
       });
 
@@ -183,8 +228,9 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           email: '',
           password: '',
           confirmPassword: '',
-          role: 'Worker',
-          department: ''
+          role: [], // Changed to array
+          department: '',
+          job_role: ''
         });
         await fetchUsers(true);
       } else {
@@ -263,17 +309,85 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       full_name: user.full_name,
       email: user.email,
       password: '',
-      role: user.role,
-      department: user.department_name || ''
+      role: user.role, // This will be "Role1, Role2" string from backend
+      department: user.department_name || '',
+      job_role: user.job_role || ''
     });
     setShowEditModal(true);
   };
 
+  // Bulk Actions
+  const handleSelectUser = (id: number) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedUsers(newSelected);
+  };
+
+  const handleSelectAll = (filteredList: User[]) => {
+    if (selectedUsers.size === filteredList.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(filteredList.map(u => u.id)));
+    }
+  };
+
+  const handleBulkUpdate = async () => {
+    if (selectedUsers.size === 0) return;
+
+    try {
+      const updates: any = {};
+      if (bulkUpdates.role) updates.role = bulkUpdates.role;
+      if (bulkUpdates.department) updates.department = bulkUpdates.department;
+      if (bulkUpdates.site) updates.site = bulkUpdates.site; // Add site to updates
+      if (bulkUpdates.job_role) updates.job_role = bulkUpdates.job_role;
+      if (bulkUpdates.is_active) updates.is_active = bulkUpdates.is_active === 'true';
+
+      if (Object.keys(updates).length === 0) {
+        alert('Please select at least one field to update');
+        return;
+      }
+
+      const response = await fetch('/api/users/bulk-update', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUsers),
+          updates
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`Successfully updated ${selectedUsers.size} users`);
+        setShowBulkEditModal(false);
+        setSelectedUsers(new Set());
+        setBulkUpdates({ role: '', department: '', site: '', job_role: '', is_active: '' }); // Fixed reset
+        await fetchUsers(true);
+      } else {
+        alert(data.message || 'Failed to update users');
+      }
+    } catch (error) {
+      console.error('Error updating users:', error);
+      alert('Failed to update users');
+    }
+  };
+
   // ✅ UPDATED: Now fetches assignments when viewing user
   const handleViewUser = (user: User) => {
-    setViewingUser(user);
+    // Find the latest user data from state to ensure we have fresh data
+    const latestUser = users.find(u => u.id === user.id) || user;
+
+    setViewingUser(latestUser);
     setShowViewModal(true);
-    fetchUserAssignments(user.id);
+    fetchUserAssignments(latestUser.id);
   };
 
   const getRoleDisplay = (role: string): string => {
@@ -287,35 +401,42 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       'Supervisor': 'Supervisor',
       'Worker': 'Worker'
     };
-    return roleMap[role] || role;
+    const roles = role.split(',').map(r => r.trim());
+    return roles.map(r => roleMap[r] || r).join(', ');
   };
 
   const getRoleBadgeColor = (role: string): string => {
-    if (role === 'Admin' || role === 'Administrator') return 'bg-red-100 text-red-800 border-red-200';
-    if (role === 'Requester' || role === 'Supervisor') return 'bg-purple-100 text-purple-800 border-purple-200';
-    if (role === 'Worker') return 'bg-green-100 text-green-800 border-green-200';
-    if (role.includes('Approver')) return 'bg-orange-100 text-orange-800 border-orange-200';
-    return 'bg-gray-100 text-gray-800 border-gray-200';
+    const roles = role.split(',').map(r => r.trim());
+    // Prioritize highest privilege color
+    if (roles.includes('Admin') || roles.includes('Administrator')) return 'bg-red-100 text-red-800 border-red-200';
+    if (roles.includes('Requester') || roles.includes('Supervisor')) return 'bg-purple-100 text-purple-800 border-purple-200';
+    if (roles.some(r => r.includes('Approver'))) return 'bg-orange-100 text-orange-800 border-orange-200';
+    return 'bg-green-100 text-green-800 border-green-200';
   };
 
   // ============================================
-  // PROPER FILTERING LOGIC - FIXED
+  // PROPER FILTERING LOGIC - FIXED FOR MULTI-ROLE
   // ============================================
 
+  const hasRole = (user: User, roleToCheck: string) => {
+    const roles = (user.role || '').split(',').map(r => r.trim());
+    return roles.includes(roleToCheck);
+  };
+
   const adminUsers = users.filter(u =>
-    u.role === 'Admin' || u.role === 'Administrator'
+    hasRole(u, 'Admin') || hasRole(u, 'Administrator')
   );
 
   const supervisorUsers = users.filter(u =>
-    u.role === 'Requester' || u.role === 'Supervisor'
+    hasRole(u, 'Requester') || hasRole(u, 'Supervisor')
   );
 
   const workerUsers = users.filter(u =>
-    u.role === 'Worker'
+    hasRole(u, 'Worker')
   );
 
   const approverUsers = users.filter(u =>
-    u.role.includes('Approver')
+    (u.role || '').includes('Approver') // Simple includes works for Approver check
   );
 
   // Apply search filter
@@ -398,6 +519,14 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
     return userList.map((user) => (
       <tr key={user.id} className="hover:bg-gray-50">
+        <td className="px-6 py-4">
+          <input
+            type="checkbox"
+            checked={selectedUsers.has(user.id)}
+            onChange={() => handleSelectUser(user.id)}
+            className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+          />
+        </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="flex items-center">
             <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 bg-orange-100 rounded-full">
@@ -414,6 +543,12 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm text-gray-900">{user.login_id}</div>
+          {user.job_role && (
+            <div className="text-xs text-gray-500 mt-1 flex items-center">
+              <Briefcase className="w-3 h-3 mr-1" />
+              {user.job_role}
+            </div>
+          )}
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getRoleBadgeColor(user.role)}`}>
@@ -422,6 +557,9 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm text-gray-900">{user.department_name || '-'}</div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="text-sm text-gray-900">{user.site_name || '-'}</div>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm text-gray-500">
@@ -453,7 +591,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           )}
 
           {/* Assignment Button for Approvers */}
-          {user.role.includes('Approver') && (
+          {(user.role || '').includes('Approver') && (
             <button
               onClick={() => {
                 setSelectedApprover(user);
@@ -529,6 +667,13 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           <UserPlus className="w-5 h-5" />
           Create New User
         </button>
+        <button
+          onClick={() => setShowBulkImportModal(true)}
+          className="flex items-center gap-2 px-4 py-2 text-orange-700 bg-orange-100 border border-orange-200 rounded-lg hover:bg-orange-200"
+        >
+          <Building2 className="w-5 h-5" />
+          Bulk Import
+        </button>
       </div>
 
       {/* Search Bar */}
@@ -548,6 +693,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       {/* Tabs */}
       <div className="mb-6">
         <div className="flex gap-2 border-b border-gray-200">
+          {/* ... existing tabs code will be maintained ... */}
           <button
             onClick={() => setActiveTab('all')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
@@ -630,15 +776,46 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         )}
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedUsers.size > 0 && (
+        <div className="flex items-center justify-between p-4 mb-6 text-orange-800 bg-orange-100 border border-orange-200 rounded-lg">
+          <span className="font-medium">{selectedUsers.size} users selected</span>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setSelectedUsers(new Set())}
+              className="px-3 py-1.5 text-sm font-medium text-orange-700 bg-white border border-orange-300 rounded hover:bg-orange-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => setShowBulkEditModal(true)}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-orange-600 rounded hover:bg-orange-700 flex items-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Bulk Edit
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* User Table */}
       <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 w-4">
+                <input
+                  type="checkbox"
+                  checked={paginatedUsers.length > 0 && selectedUsers.size === paginatedUsers.length}
+                  onChange={() => handleSelectAll(paginatedUsers)}
+                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                />
+              </th>
               <th className="px-6 py-3 text-xs font-medium text-left text-gray-600 uppercase">User</th>
               <th className="px-6 py-3 text-xs font-medium text-left text-gray-600 uppercase">Login ID</th>
               <th className="px-6 py-3 text-xs font-medium text-left text-gray-600 uppercase">Role</th>
               <th className="px-6 py-3 text-xs font-medium text-left text-gray-600 uppercase">Department</th>
+              <th className="px-6 py-3 text-xs font-medium text-left text-gray-600 uppercase">Site</th>
               <th className="px-6 py-3 text-xs font-medium text-left text-gray-600 uppercase">Created</th>
               <th className="px-6 py-3 text-xs font-medium text-right text-gray-600 uppercase">Actions</th>
             </tr>
@@ -648,6 +825,113 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Bulk Edit Modal */}
+      {showBulkEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-lg p-6 mx-4 bg-white rounded-lg shadow-xl">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">Bulk Update Users</h2>
+            <p className="mb-6 text-sm text-gray-600">
+              Updating {selectedUsers.size} users. Only selected fields will be changed.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Role</label>
+                <select
+                  value={bulkUpdates.role}
+                  onChange={(e) => setBulkUpdates({ ...bulkUpdates, role: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">No Change</option>
+                  <option value="Worker">Worker</option>
+                  <option value="Requester">Supervisor</option>
+                  <option value="Approver_Safety">Safety Officer</option>
+                  <option value="Approver_AreaManager">Area Manager</option>
+                  <option value="Approver_SiteLeader">Site Leader</option>
+                  <option value="Admin">Administrator</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Department</label>
+                <select
+                  value={bulkUpdates.department}
+                  onChange={(e) => setBulkUpdates({ ...bulkUpdates, department: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">No Change</option>
+                  {DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Site Assignment</label>
+                <select
+                  value={bulkUpdates.site}
+                  onChange={(e) => setBulkUpdates({ ...bulkUpdates, site: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">No Change</option>
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.name}>
+                      {site.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Job Role</label>
+                <select
+                  value={bulkUpdates.job_role}
+                  onChange={(e) => setBulkUpdates({ ...bulkUpdates, job_role: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">No Change</option>
+                  {JOB_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Status</label>
+                <select
+                  value={bulkUpdates.is_active}
+                  onChange={(e) => setBulkUpdates({ ...bulkUpdates, is_active: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">No Change</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
+              <button
+                onClick={() => setShowBulkEditModal(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkUpdate}
+                className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
+              >
+                Update Users
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pagination Controls */}
       <div className="flex items-center justify-between px-4 py-3 bg-white border border-t-0 border-gray-200 rounded-b-lg sm:px-6">
@@ -780,82 +1064,111 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Password <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
+            {/* Job Role Dropdown */}
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Job Role
+              </label>
+              <select
+                value={newUser.job_role}
+                onChange={(e) => setNewUser({ ...newUser, job_role: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">Select Job Role</option>
+                {JOB_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Confirm Password <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={newUser.confirmPassword}
-                    onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                />
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Role <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={newUser.role}
-                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="Worker">Worker</option>
-                    <option value="Requester">Supervisor</option>
-                    <option value="Approver_Safety">Safety Officer</option>
-                    <option value="Approver_AreaManager">Area Manager</option>
-                    <option value="Approver_SiteLeader">Site Leader</option>
-                    <option value="Admin">Administrator</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Department
-                  </label>
-                  <input
-                    type="text"
-                    value={newUser.department}
-                    onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
-                    placeholder="Operations, IT, etc."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={newUser.confirmPassword}
+                  onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                />
               </div>
+            </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">
+                  Roles (Ctrl+Click to select multiple) <span className="text-red-500">*</span>
+                </label>
+                <select
+                  multiple
+                  value={Array.isArray(newUser.role) ? newUser.role : []}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, option => option.value);
+                    setNewUser({ ...newUser, role: selected });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 h-32"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateUser}
-                  className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
-                >
-                  Create User
-                </button>
+                  <option value="Worker">Worker</option>
+                  <option value="Requester">Supervisor</option>
+                  <option value="Approver_Safety">Safety Officer</option>
+                  <option value="Approver_AreaManager">Area Manager</option>
+                  <option value="Approver_SiteLeader">Site Leader</option>
+                  <option value="Admin">Administrator</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-500">Hold Ctrl (Windows) or Cmd (Mac) to select multiple roles.</p>
               </div>
+
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">
+                  Department
+                </label>
+                <select
+                  value={newUser.department}
+                  onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Select Department</option>
+                  {DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateUser}
+                className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
+              >
+                Create User
+              </button>
             </div>
           </div>
         </div>
@@ -910,12 +1223,21 @@ export default function UserManagement({ onBack }: UserManagementProps) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Role <span className="text-red-500">*</span>
+                    Roles (Ctrl+Click to select multiple) <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={editFormData.role}
-                    onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    multiple
+                    value={
+                      Array.isArray(editFormData.role)
+                        ? editFormData.role
+                        : (typeof editFormData.role === 'string' ? (editFormData.role as string || '').split(',').map((r: string) => r.trim()) : [])
+                    }
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, option => option.value);
+                      // Store as comma-separated string for edit form compatible with backend
+                      setEditFormData({ ...editFormData, role: selected.join(',') });
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 h-32"
                   >
                     <option value="Worker">Worker</option>
                     <option value="Requester">Supervisor</option>
@@ -924,18 +1246,25 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     <option value="Approver_SiteLeader">Site Leader</option>
                     <option value="Admin">Administrator</option>
                   </select>
+                  <p className="mt-1 text-xs text-gray-500">Hold Ctrl (Windows) or Cmd (Mac) to select multiple roles.</p>
                 </div>
 
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">
                     Department
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={editFormData.department}
                     onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
+                  >
+                    <option value="">Select Department</option>
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -965,219 +1294,245 @@ export default function UserManagement({ onBack }: UserManagementProps) {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* Assignment Modal */}
-      {showAssignModal && assigningUser && (
-        <AssignResourcesModal
-          requester={assigningUser}
-          onClose={() => {
-            setShowAssignModal(false);
-            setAssigningUser(null);
-          }}
+      {
+        showAssignModal && assigningUser && (
+          <AssignResourcesModal
+            requester={assigningUser}
+            onClose={() => {
+              setShowAssignModal(false);
+              setAssigningUser(null);
+            }}
+            onSuccess={() => {
+              setShowAssignModal(false);
+              setAssigningUser(null);
+              fetchUsers(true);
+            }}
+          />
+        )
+      }
+
+      {/* ✅ ENHANCED VIEW USER MODAL - WITH ASSIGNMENTS */}
+      {
+        showViewModal && viewingUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="w-full max-w-3xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">User Details</h3>
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* User Info Card */}
+                <div className="p-4 rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full">
+                      <User className="w-8 h-8 text-orange-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900">{viewingUser.full_name}</h4>
+                      <p className="text-sm text-gray-600">{getRoleDisplay(viewingUser.role)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Basic Details Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Login ID</label>
+                    <p className="mt-1 text-sm text-gray-900">{viewingUser.login_id}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <p className="mt-1 text-sm text-gray-900">{viewingUser.email}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Role</label>
+                    <span className={`inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full border ${getRoleBadgeColor(viewingUser.role)}`}>
+                      {getRoleDisplay(viewingUser.role)}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Department</label>
+                    <p className="mt-1 text-sm text-gray-900">{viewingUser.department_name || 'Not assigned'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Site Assignment</label>
+                    <p className="mt-1 text-sm text-gray-900">{viewingUser.site_name || 'Not assigned'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Job Role</label>
+                    <p className="mt-1 text-sm text-gray-900">{viewingUser.job_role || 'Not assigned'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                    <span className={`inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full ${viewingUser.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                      {viewingUser.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Created</label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {new Date(viewingUser.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {viewingUser.permit_count !== undefined && (
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700">Associated Permits</label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {viewingUser.permit_count} permit{viewingUser.permit_count !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* ✅ NEW: Assignments Section (for Supervisors/Requesters) */}
+                {(viewingUser.role === 'Requester' || viewingUser.role === 'Supervisor') && (
+                  <div className="pt-4 border-t">
+                    {userAssignments.loading ? (
+                      <div className="p-4 text-center rounded-lg bg-gray-50">
+                        <Loader2 className="w-6 h-6 mx-auto mb-2 text-orange-600 animate-spin" />
+                        <p className="text-sm text-gray-600">Loading assignments...</p>
+                      </div>
+                    ) : (userAssignments.sites.length > 0 || userAssignments.workers.length > 0) ? (
+                      <div className="space-y-4">
+                        {/* Assigned Sites */}
+                        {userAssignments.sites.length > 0 && (
+                          <div>
+                            <h5 className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-900">
+                              <Building2 className="w-4 h-4 text-orange-600" />
+                              Assigned Sites ({userAssignments.sites.length})
+                            </h5>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              {userAssignments.sites.map((site: any) => (
+                                <div
+                                  key={site.assignment_id}
+                                  className="p-3 border border-gray-200 rounded-lg bg-orange-50"
+                                >
+                                  <p className="text-sm font-medium text-gray-900">{site.name}</p>
+                                  <p className="text-xs text-gray-600">Code: {site.site_code}</p>
+                                  {site.location && (
+                                    <p className="mt-1 text-xs text-gray-500">{site.location}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Assigned Workers */}
+                        {userAssignments.workers.length > 0 && (
+                          <div>
+                            <h5 className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-900">
+                              <User className="w-4 h-4 text-green-600" />
+                              Assigned Workers ({userAssignments.workers.length})
+                            </h5>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              {userAssignments.workers.map((worker: any) => (
+                                <div
+                                  key={worker.assignment_id}
+                                  className="p-3 border border-gray-200 rounded-lg bg-green-50"
+                                >
+                                  <p className="text-sm font-medium text-gray-900">{worker.full_name}</p>
+                                  <p className="text-xs text-gray-600">{worker.email}</p>
+                                  <p className="text-xs text-gray-500">ID: {worker.login_id}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center rounded-lg bg-gray-50">
+                        <p className="text-sm text-gray-600">No sites or workers assigned</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
+                <button
+                  onClick={() => {
+                    setShowViewModal(false);
+                    openEditModal(viewingUser);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700"
+                >
+                  Edit User
+                </button>
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Bulk Import Modal */}
+      {showBulkImportModal && (
+        <BulkImportModal
+          onClose={() => setShowBulkImportModal(false)}
           onSuccess={() => {
-            setShowAssignModal(false);
-            setAssigningUser(null);
+            setShowBulkImportModal(false);
             fetchUsers(true);
           }}
         />
       )}
 
-      {/* ✅ ENHANCED VIEW USER MODAL - WITH ASSIGNMENTS */}
-      {showViewModal && viewingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">User Details</h3>
-              <button
-                onClick={() => setShowViewModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              {/* User Info Card */}
-              <div className="p-4 rounded-lg bg-gray-50">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full">
-                    <User className="w-8 h-8 text-orange-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900">{viewingUser.full_name}</h4>
-                    <p className="text-sm text-gray-600">{getRoleDisplay(viewingUser.role)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Basic Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Login ID</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingUser.login_id}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingUser.email}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Role</label>
-                  <span className={`inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full border ${getRoleBadgeColor(viewingUser.role)}`}>
-                    {getRoleDisplay(viewingUser.role)}
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Department</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingUser.department_name || 'Not assigned'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <span className={`inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full ${viewingUser.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                    {viewingUser.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Created</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {new Date(viewingUser.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                {viewingUser.permit_count !== undefined && (
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Associated Permits</label>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {viewingUser.permit_count} permit{viewingUser.permit_count !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* ✅ NEW: Assignments Section (for Supervisors/Requesters) */}
-              {(viewingUser.role === 'Requester' || viewingUser.role === 'Supervisor') && (
-                <div className="pt-4 border-t">
-                  {userAssignments.loading ? (
-                    <div className="p-4 text-center rounded-lg bg-gray-50">
-                      <Loader2 className="w-6 h-6 mx-auto mb-2 text-orange-600 animate-spin" />
-                      <p className="text-sm text-gray-600">Loading assignments...</p>
-                    </div>
-                  ) : (userAssignments.sites.length > 0 || userAssignments.workers.length > 0) ? (
-                    <div className="space-y-4">
-                      {/* Assigned Sites */}
-                      {userAssignments.sites.length > 0 && (
-                        <div>
-                          <h5 className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-900">
-                            <Building2 className="w-4 h-4 text-orange-600" />
-                            Assigned Sites ({userAssignments.sites.length})
-                          </h5>
-                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            {userAssignments.sites.map((site: any) => (
-                              <div
-                                key={site.assignment_id}
-                                className="p-3 border border-gray-200 rounded-lg bg-orange-50"
-                              >
-                                <p className="text-sm font-medium text-gray-900">{site.name}</p>
-                                <p className="text-xs text-gray-600">Code: {site.site_code}</p>
-                                {site.location && (
-                                  <p className="mt-1 text-xs text-gray-500">{site.location}</p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Assigned Workers */}
-                      {userAssignments.workers.length > 0 && (
-                        <div>
-                          <h5 className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-900">
-                            <User className="w-4 h-4 text-green-600" />
-                            Assigned Workers ({userAssignments.workers.length})
-                          </h5>
-                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            {userAssignments.workers.map((worker: any) => (
-                              <div
-                                key={worker.assignment_id}
-                                className="p-3 border border-gray-200 rounded-lg bg-green-50"
-                              >
-                                <p className="text-sm font-medium text-gray-900">{worker.full_name}</p>
-                                <p className="text-xs text-gray-600">{worker.email}</p>
-                                <p className="text-xs text-gray-500">ID: {worker.login_id}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-4 text-center rounded-lg bg-gray-50">
-                      <p className="text-sm text-gray-600">No sites or workers assigned</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
-              <button
-                onClick={() => {
-                  setShowViewModal(false);
-                  openEditModal(viewingUser);
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700"
-              >
-                Edit User
-              </button>
-              <button
-                onClick={() => setShowViewModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Site Assignment Modal for Approvers */}
-      {showSiteAssignment && selectedApprover && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Assign Sites to {selectedApprover.full_name}
-              </h2>
-              <button
-                onClick={() => {
+      {
+        showSiteAssignment && selectedApprover && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Assign Sites to {selectedApprover.full_name}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowSiteAssignment(false);
+                    setSelectedApprover(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="mb-4 text-sm text-gray-600">
+                Select sites where this approver will be available for permit approvals
+              </p>
+
+              <SiteAssignmentContent
+                approverId={selectedApprover.id}
+                approverRole={selectedApprover.role}
+                onClose={() => {
                   setShowSiteAssignment(false);
                   setSelectedApprover(null);
                 }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                onSuccess={() => {
+                  fetchUsers(true);
+                }}
+              />
             </div>
-
-            <p className="mb-4 text-sm text-gray-600">
-              Select sites where this approver will be available for permit approvals
-            </p>
-
-            <SiteAssignmentContent
-              approverId={selectedApprover.id}
-              approverRole={selectedApprover.role}
-              onClose={() => {
-                setShowSiteAssignment(false);
-                setSelectedApprover(null);
-              }}
-              onSuccess={() => {
-                fetchUsers(true);
-              }}
-            />
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }
 

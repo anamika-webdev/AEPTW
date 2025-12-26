@@ -92,15 +92,43 @@ export const workerTrainingEvidenceAPI = {
      * Get full URL for training evidence file
      */
     getFileUrl: (filePath: string): string => {
+        if (!filePath) return '';
         if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
             return filePath;
         }
 
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const baseUrl = apiUrl.replace('/api', '');
+        // Get base API URL
+        let apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+        // Remove trailing slash
+        apiUrl = apiUrl.replace(/\/+$/, '');
+
+        // Ensure filePath starts with /
         const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
 
-        return `${baseUrl}${normalizedPath}`;
+        // If the API URL doesn't end with /api, and the path doesn't start with /api,
+        // we might need to adjust. But usually VITE_API_URL should include /api.
+
+        // CRITICAL FIX: The backend serves static files at /api/uploads
+        // If the stored path is just /uploads/..., we ensure the final URL includes /api/uploads
+
+        // Case 1: apiUrl includes /api (e.g. https://domain.com/api)
+        // normalizedPath is /uploads/...
+        // Result: https://domain.com/api/uploads/... (CORRECT)
+
+        // Case 2: apiUrl is root (e.g. https://domain.com)
+        // normalizedPath is /uploads/...
+        // Result: https://domain.com/uploads/... (WRONG - this hits frontend router)
+
+        // Force check: if we are building a URL that points to /uploads, it SHOULD probably be /api/uploads
+        if (!apiUrl.endsWith('/api') && !normalizedPath.startsWith('/api')) {
+            // If normalized path starts with /uploads, prepend /api
+            if (normalizedPath.startsWith('/uploads')) {
+                return `${apiUrl}/api${normalizedPath}`;
+            }
+        }
+
+        return `${apiUrl}${normalizedPath}`;
     },
 };
 

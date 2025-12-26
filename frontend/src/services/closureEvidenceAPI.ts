@@ -76,9 +76,26 @@ class ClosureEvidenceAPI {
 
     getFileUrl(filePath: string): string {
         if (!filePath) return '';
-        if (filePath.startsWith('http')) return filePath;
-        const baseUrl = API_BASE_URL.replace('/api', '');
-        return `${baseUrl}${filePath}`;
+        if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+            return filePath;
+        }
+
+        // Use API URL as base (works with /api/uploads static mount)
+        let apiUrl = API_BASE_URL;
+
+        // Remove trailing slash
+        apiUrl = apiUrl.replace(/\/+$/, '');
+
+        // Ensure filePath starts with /
+        const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+
+        // CRITICAL FIX: Ensure URL points to /api/uploads
+        // If API URL is root (e.g. https://domain.com) and path is /uploads/..., prepend /api
+        if (!apiUrl.endsWith('/api') && !normalizedPath.startsWith('/api') && normalizedPath.startsWith('/uploads')) {
+            return `${apiUrl}/api${normalizedPath}`;
+        }
+
+        return `${apiUrl}${normalizedPath}`;
     }
 }
 

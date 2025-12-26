@@ -190,20 +190,34 @@ export const evidenceAPI = {
      * @param filePath - Relative file path (e.g., /uploads/evidences/filename.jpg)
      * @returns Full URL
      */
+    /**
+     * Get full URL for evidence file
+     * @param filePath - Relative file path (e.g., /uploads/evidences/filename.jpg)
+     * @returns Full URL
+     */
     getFileUrl: (filePath: string): string => {
+        if (!filePath) return '';
         // If filePath is already a full URL, return it
         if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
             return filePath;
         }
 
-        // Get base URL without /api suffix
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const baseUrl = apiUrl.replace('/api', '');
+        // Use API URL as base (works with /api/uploads static mount)
+        let apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+        // Remove trailing slash
+        apiUrl = apiUrl.replace(/\/+$/, '');
 
         // Ensure filePath starts with /
         const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
 
-        return `${baseUrl}${normalizedPath}`;
+        // CRITICAL FIX: Ensure URL points to /api/uploads
+        // If API URL is root (e.g. https://domain.com) and path is /uploads/..., prepend /api
+        if (!apiUrl.endsWith('/api') && !normalizedPath.startsWith('/api') && normalizedPath.startsWith('/uploads')) {
+            return `${apiUrl}/api${normalizedPath}`;
+        }
+
+        return `${apiUrl}${normalizedPath}`;
     },
 };
 

@@ -105,6 +105,26 @@ app.use('/api/extension-approvals', extensionApprovalsRoutes);
 app.use('/api/approvers', approverSitesRoutes);
 console.log('✅ PTW & Approval routes registered');
 
+// File uploads - serve static files via API path as well for production proxy compatibility
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// 404 Handler for MISSING static files in /api/uploads
+// This prevents missing files from falling through to other routes or global 404 and returning confusing errors.
+// Since we have served static files above, if execution reaches here for a GET /api/uploads/*, the file is missing.
+app.use('/api/uploads', (req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/swms') && !req.path.startsWith('/signature')) {
+    // Specifically for image requests that failed finding a static file
+    // Excluding /swms and /signature because those might be POST endpoints handled below
+    // Actually, uploadsRoutes handles /swms and /signature POSTs, so GETs to them shouldn't exist or are effectively 404s.
+    return res.status(404).json({
+      success: false,
+      message: 'File not found',
+      path: req.originalUrl
+    });
+  }
+  next();
+});
+
 // File uploads - MUST be before evidenceRoutes
 app.use('/api/uploads', uploadsRoutes);
 console.log('✅ /api/uploads registered');

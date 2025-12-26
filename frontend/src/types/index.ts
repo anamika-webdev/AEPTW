@@ -18,6 +18,7 @@ export interface User {
   role: UserRole | string; // Allow string for database flexibility
   department?: string | null;
   department_id?: number | null;
+  job_role?: string | null;
   contact?: string | null;
   phone?: string | null; // Added for compatibility
   signature_url?: string | null;

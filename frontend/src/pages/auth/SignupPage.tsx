@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { JOB_ROLES } from '../../utils/jobRoles';
+import { DEPARTMENTS } from '../../utils/departments';
 
 const SignupPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,7 +13,8 @@ const SignupPage: React.FC = () => {
     password: '',
     confirmPassword: '',
     role: 'Requester',
-    department: ''
+    department: '',
+    job_role: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -112,7 +115,8 @@ const SignupPage: React.FC = () => {
         email: formData.email,
         full_name: formData.full_name,
         role: formData.role,
-        department: formData.department || null
+        department: formData.department || null,
+        job_role: formData.job_role || null
       });
 
       const response = await axios.post(`${API_BASE_URL}/auth/register`, {
@@ -121,7 +125,8 @@ const SignupPage: React.FC = () => {
         email: formData.email,
         password: formData.password,
         role: formData.role,
-        department: formData.department || null
+        department: formData.department || null,
+        job_role: formData.job_role || null
       }, {
         headers: {
           'Content-Type': 'application/json'
@@ -329,6 +334,39 @@ const SignupPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Job Role Selection */}
+            <div>
+              <label htmlFor="job_role" className="block mb-2 text-sm font-semibold text-gray-700">
+                Job Role <span className="text-xs font-normal text-gray-500">(Optional)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <select
+                  id="job_role"
+                  name="job_role"
+                  value={formData.job_role}
+                  onChange={handleChange}
+                  className="block w-full pl-12 pr-4 py-3.5 text-gray-900 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 sm:text-sm appearance-none"
+                >
+                  <option value="">Select Job Role</option>
+                  {JOB_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
             {/* Department (Optional) */}
             <div>
               <label htmlFor="department" className="block mb-2 text-sm font-semibold text-gray-700">
@@ -340,16 +378,25 @@ const SignupPage: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
-                <input
+                <select
                   id="department"
                   name="department"
-                  type="text"
                   value={formData.department}
                   onChange={handleChange}
-                  className="block w-full pl-12 pr-4 py-3.5 text-gray-900 placeholder-gray-400 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 sm:text-sm"
-                  placeholder="Enter your department"
-                  autoComplete="organization"
-                />
+                  className="block w-full pl-12 pr-4 py-3.5 text-gray-900 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 sm:text-sm appearance-none"
+                >
+                  <option value="">Select Department</option>
+                  {DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
 

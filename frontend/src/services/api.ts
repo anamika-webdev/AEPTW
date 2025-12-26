@@ -54,7 +54,17 @@ api.interceptors.response.use(
     console.error('Error message:', error.message);
 
     if (error.response?.status === 401) {
-      console.error('🔒 Unauthorized - token may be invalid');
+      console.error('🔒 Unauthorized - token may be invalid or expired');
+      // Clear any stored tokens
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+
+      // Redirect to login only if we're not already there
+      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/auth/')) {
+        window.location.href = '/login?expired=true';
+      }
     }
 
     return Promise.reject(error);

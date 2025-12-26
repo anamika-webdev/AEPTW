@@ -1001,7 +1001,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                                     alt={`Training evidence ${idx + 1}`}
                                     className="w-16 h-16 object-cover rounded border-2 border-indigo-300 group-hover:border-indigo-500 transition-all"
                                     onError={(e) => {
-                                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64?text=Doc';
+                                      (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%23e0e0e0' rx='4'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-size='12' fill='%23666'%3EDoc%3C/text%3E%3C/svg%3E";
                                     }}
                                   />
                                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded transition-all flex items-center justify-center">
@@ -1345,7 +1345,7 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
             {permit.swms_file_url && (
               <div className="mb-4">
                 <a
-                  href={permit.swms_file_url}
+                  href={evidenceAPI.getFileUrl(permit.swms_file_url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3 font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
@@ -1376,18 +1376,28 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                 <div key={evidence.id || index} className="overflow-hidden border-2 rounded-lg border-slate-200">
                   <div className="relative aspect-video bg-slate-100">
                     {evidence.file_path ? (
-                      <img
-                        src={evidenceAPI.getFileUrl(evidence.file_path)}
-                        alt={evidence.category}
-                        className="object-cover w-full h-full"
-                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300?text=Image+Error'; }}
-                      />
+                      <a
+                        href={evidenceAPI.getFileUrl(evidence.file_path)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full h-full cursor-zoom-in"
+                        title="Click to view full image"
+                      >
+                        <img
+                          src={evidenceAPI.getFileUrl(evidence.file_path)}
+                          alt={evidence.category}
+                          className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-size='16' fill='%23999'%3EImage Error%3C/text%3E%3C/svg%3E";
+                          }}
+                        />
+                      </a>
                     ) : (
                       <div className="flex items-center justify-center w-full h-full text-slate-400">
                         <ImageIcon className="w-10 h-10" />
                       </div>
                     )}
-                    <div className="absolute top-2 left-2 px-2 py-1 text-xs font-bold text-white bg-black bg-opacity-60 rounded capitalize">
+                    <div className="absolute pointer-events-none top-2 left-2 px-2 py-1 text-xs font-bold text-white bg-black bg-opacity-60 rounded capitalize">
                       {evidence.category.replace('_', ' ')}
                     </div>
                   </div>
@@ -1503,18 +1513,28 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                   <div key={`saved-${evidence.id || index}`} className="overflow-hidden border-2 rounded-lg border-teal-100 bg-teal-50/30">
                     <div className="relative aspect-video bg-slate-100 group">
                       {evidence.file_path ? (
-                        <img
-                          src={closureEvidenceAPI.getFileUrl(evidence.file_path)}
-                          alt={evidence.category}
-                          className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                          onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300?text=Image+Error'; }}
-                        />
+                        <a
+                          href={closureEvidenceAPI.getFileUrl(evidence.file_path)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full h-full cursor-zoom-in"
+                          title="Click to view full image"
+                        >
+                          <img
+                            src={closureEvidenceAPI.getFileUrl(evidence.file_path)}
+                            alt={evidence.category}
+                            className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-size='16' fill='%23999'%3EImage Error%3C/text%3E%3C/svg%3E";
+                            }}
+                          />
+                        </a>
                       ) : (
                         <div className="flex items-center justify-center w-full h-full text-slate-400">
                           <ImageIcon className="w-10 h-10" />
                         </div>
                       )}
-                      <div className="absolute top-2 left-2 px-2 py-1 text-xs font-bold text-white bg-teal-900/80 rounded capitalize backdrop-blur-sm">
+                      <div className="absolute pointer-events-none top-2 left-2 px-2 py-1 text-xs font-bold text-white bg-teal-900/80 rounded capitalize backdrop-blur-sm">
                         {evidence.category.replace('_', ' ')}
                       </div>
                     </div>

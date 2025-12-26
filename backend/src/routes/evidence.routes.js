@@ -5,8 +5,8 @@ const router = express.Router();
 const evidenceController = require('../controllers/evidence.controller');
 const { authenticateToken } = require('../middleware/auth.middleware');
 
-// Apply authentication middleware to all routes
-router.use(authenticateToken);
+// REMOVED: Global authentication middleware to prevent 401s on non-matching routes (like missing static files)
+// router.use(authenticateToken);
 
 /**
  * @route   POST /api/uploads/evidence
@@ -15,6 +15,7 @@ router.use(authenticateToken);
  */
 router.post(
     '/uploads/evidence',
+    authenticateToken,
     evidenceController.upload.array('evidences', 10),
     evidenceController.uploadEvidence
 );
@@ -26,6 +27,7 @@ router.post(
  */
 router.get(
     '/permits/:id/evidences',
+    authenticateToken,
     evidenceController.getPermitEvidences
 );
 
@@ -36,6 +38,7 @@ router.get(
  */
 router.get(
     '/uploads/evidence/:id',
+    authenticateToken,
     evidenceController.getEvidenceById
 );
 
@@ -46,6 +49,7 @@ router.get(
  */
 router.put(
     '/uploads/evidence/:id',
+    authenticateToken,
     evidenceController.updateEvidence
 );
 
@@ -56,6 +60,7 @@ router.put(
  */
 router.delete(
     '/uploads/evidence/:id',
+    authenticateToken,
     evidenceController.deleteEvidence
 );
 
@@ -66,6 +71,7 @@ router.delete(
  */
 router.get(
     '/uploads/evidence/category/:category',
+    authenticateToken,
     evidenceController.getEvidencesByCategory
 );
 
@@ -76,6 +82,7 @@ router.get(
  */
 router.get(
     '/permits/:id/evidences/stats',
+    authenticateToken,
     evidenceController.getEvidenceStats
 );
 

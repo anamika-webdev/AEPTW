@@ -26,7 +26,7 @@ const authenticateToken = async (req, res, next) => {
     jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret', async (err, decoded) => {
       if (err) {
         console.log('❌ Token verification failed:', err.message);
-        return res.status(403).json({
+        return res.status(401).json({
           success: false,
           message: 'Invalid or expired token'
         });
@@ -125,13 +125,13 @@ const authorizeAdmin = (req, res, next) => {
     });
   }
 
-  const userRole = (req.user.role || '').toLowerCase();
-  const isAdmin = userRole === 'admin' ||
-    userRole === 'administrator' ||
-    userRole === 'Admin' ||
-    userRole === 'Administrator';
+  const userRoles = (req.user.role || '').toLowerCase().split(',').map(r => r.trim());
+  const isAdmin = userRoles.some(r =>
+    r === 'admin' ||
+    r === 'administrator'
+  );
 
-  console.log('   Role (lowercase):', userRole);
+  console.log('   Roles (lowercase):', userRoles);
   console.log('   Is Admin:', isAdmin);
 
   if (!isAdmin) {
@@ -153,7 +153,7 @@ const authorizeAdmin = (req, res, next) => {
  * Middleware to authorize specific roles
  * Usage: router.use(authorize('Admin', 'Approver_Safety'))
  */
-const authorize = (...roles) => {
+const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -162,10 +162,16 @@ const authorize = (...roles) => {
       });
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Convert user roles to array
+    const userRoles = (req.user.role || '').split(',').map(r => r.trim());
+
+    // Check if ANY of the user's roles match ANY of the allowed roles
+    const hasPermission = userRoles.some(userRole => allowedRoles.includes(userRole));
+
+    if (!hasPermission) {
       return res.status(403).json({
         success: false,
-        message: `Access denied. Required roles: ${roles.join(', ')}. Your role: ${req.user.role}`
+        message: `Access denied. Required roles: ${allowedRoles.join(', ')}. Your roles: ${req.user.role}`
       });
     }
 

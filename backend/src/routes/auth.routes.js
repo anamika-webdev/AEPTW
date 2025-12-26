@@ -14,7 +14,8 @@ router.post('/register', async (req, res) => {
       full_name,
       password,
       role,
-      department
+      department,
+      job_role
     } = req.body;
 
     console.log('=== REGISTRATION ATTEMPT ===');
@@ -22,6 +23,7 @@ router.post('/register', async (req, res) => {
     console.log('Full name:', full_name);
     console.log('Role:', role);
     console.log('Department:', department);
+    console.log('Job Role:', job_role);
 
     // Validation
     if (!email || !full_name || !password) {
@@ -111,17 +113,17 @@ router.post('/register', async (req, res) => {
     // FIXED: Include Admin and Administrator in valid roles
     const validRoles = [
       'Admin',
-      'Administrator', 
-      'Requester', 
-      'Worker', 
-      'Approver_AreaManager', 
-      'Approver_Safety', 
+      'Administrator',
+      'Requester',
+      'Worker',
+      'Approver_AreaManager',
+      'Approver_Safety',
       'Approver_SiteLeader',
       'Supervisor'
     ];
-    
+
     const userRole = role && validRoles.includes(role) ? role : 'Requester';
-    
+
     console.log('Role validation:', {
       requestedRole: role,
       isValid: validRoles.includes(role),
@@ -135,7 +137,7 @@ router.post('/register', async (req, res) => {
         'SELECT id FROM departments WHERE name = ? AND is_active = TRUE',
         [department]
       );
-      
+
       if (deptResult.length > 0) {
         department_id = deptResult[0].id;
       }
@@ -150,15 +152,15 @@ router.post('/register', async (req, res) => {
     const [result] = await pool.query(
       `INSERT INTO users (
         login_id, full_name, email, password_hash, 
-        role, department_id, auth_provider, is_active
-      ) VALUES (?, ?, ?, ?, ?, ?, 'local', TRUE)`,
-      [finalLoginId, full_name, email, password_hash, userRole, department_id]
+        role, department_id, job_role, auth_provider, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'local', TRUE)`,
+      [finalLoginId, full_name, email, password_hash, userRole, department_id, job_role || null]
     );
 
     // Get created user
     const [newUser] = await pool.query(
       `SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
-              u.department_id, d.name as department_name, u.created_at
+              u.department_id, d.name as department_name, u.job_role, u.created_at
        FROM users u
        LEFT JOIN departments d ON u.department_id = d.id
        WHERE u.id = ?`,
@@ -181,7 +183,7 @@ router.post('/register', async (req, res) => {
     console.error('=== REGISTRATION ERROR ===');
     console.error('Error:', error.message);
     console.error('Stack:', error.stack);
-    
+
     res.status(500).json({
       success: false,
       message: 'Registration failed. Please try again later.',
@@ -268,7 +270,7 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('=== LOGIN ERROR ===');
     console.error('Error:', error.message);
-    
+
     res.status(500).json({
       success: false,
       message: 'Login failed. Please try again later.'
@@ -314,7 +316,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 router.post('/logout', authenticateToken, (req, res) => {
   // In a more advanced implementation, you might want to blacklist the token
   console.log('User logged out:', req.user.login_id);
-  
+
   res.json({
     success: true,
     message: 'Logout successful'
