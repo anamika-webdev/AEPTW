@@ -168,6 +168,7 @@ export function AssignResourcesModal({ requester, onClose, onSuccess }: AssignRe
   };
 
   const getRoleDisplay = (role: string): string => {
+    if (role.includes('Approver')) return 'Approver';
     const roleMap: Record<string, string> = {
       'Requester': 'Supervisor',
       'Supervisor': 'Supervisor',

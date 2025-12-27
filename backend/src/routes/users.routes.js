@@ -1,4 +1,4 @@
-// backend/src/routes/users.routes.js - UPDATED WITH REQUESTER FILTERING
+// backend/src/routes/users.routes.js - CLEANED UP VERSION (SIMPLIFIED SINGLE SITE)
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
@@ -27,7 +27,8 @@ router.get('/', authorizeAdmin, async (req, res) => {
       SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
              u.department_id, d.name as department_name, 
              u.site_id, s.name as site_name,
-             u.job_role, u.created_at, u.is_active
+             u.job_role, u.created_at, u.is_active,
+             (SELECT COUNT(*) FROM permits WHERE created_by_user_id = u.id) as permit_count
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN sites s ON u.site_id = s.id
@@ -36,7 +37,6 @@ router.get('/', authorizeAdmin, async (req, res) => {
     const params = [];
 
     if (role) {
-      // ✅ UPDATED: Use LIKE to matching roles in comma-separated list
       query += ' AND u.role LIKE ?';
       params.push(`%${role}%`);
     }
@@ -96,7 +96,7 @@ router.get('/workers', async (req, res) => {
       `;
       params = [userId];
     }
-    // Other roles see all workers (or you can restrict further)
+    // Other roles see all workers
     else {
       query = `
         SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
@@ -127,6 +127,7 @@ router.get('/workers', async (req, res) => {
     });
   }
 });
+
 // GET /api/users/approvers - Get all active approvers
 router.get('/approvers', authenticateToken, async (req, res) => {
   try {
@@ -251,7 +252,6 @@ router.get('/approvers/site-leaders', authenticateToken, async (req, res) => {
   }
 });
 
-
 // GET /api/users/:id - Get user by ID (Admin only)
 router.get('/:id', authorizeAdmin, async (req, res) => {
   try {
@@ -259,9 +259,12 @@ router.get('/:id', authorizeAdmin, async (req, res) => {
 
     const [users] = await pool.query(`
       SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
-             u.department_id, d.name as department_name, u.job_role, u.created_at, u.is_active
+             u.department_id, d.name as department_name, 
+             u.site_id, s.name as site_name,
+             u.job_role, u.created_at, u.is_active
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN sites s ON u.site_id = s.id
       WHERE u.id = ?
     `, [id]);
 
@@ -289,9 +292,9 @@ router.get('/:id', authorizeAdmin, async (req, res) => {
 // POST /api/users - Create user (Admin only)
 router.post('/', authorizeAdmin, async (req, res) => {
   try {
-    const { login_id, full_name, email, password, role, department, job_role } = req.body;
+    const { login_id, full_name, email, password, role, department, site_id, job_role } = req.body;
 
-    console.log('📥 POST /api/users - Creating user:', { login_id, role, job_role });
+    console.log('📥 POST /api/users - Creating user:', { login_id, role, site_id, job_role });
 
     // Validation
     if (!login_id || !full_name || !email || !password || !role) {
@@ -331,16 +334,19 @@ router.post('/', authorizeAdmin, async (req, res) => {
 
     // Insert user
     const [result] = await pool.query(
-      `INSERT INTO users (login_id, full_name, email, password_hash, role, department_id, job_role, is_active, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
-      [login_id, full_name, email, password_hash, role, department_id, job_role || null]
+      `INSERT INTO users (login_id, full_name, email, password_hash, role, department_id, site_id, job_role, is_active, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
+      [login_id, full_name, email, password_hash, role, department_id, site_id || null, job_role || null]
     );
 
     const [newUser] = await pool.query(`
       SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
-             u.department_id, d.name as department_name, u.job_role, u.created_at
+             u.department_id, d.name as department_name, 
+             u.site_id, s.name as site_name,
+             u.job_role, u.created_at
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN sites s ON u.site_id = s.id
       WHERE u.id = ?
     `, [result.insertId]);
 
@@ -365,7 +371,7 @@ router.post('/', authorizeAdmin, async (req, res) => {
 router.put('/:id', authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { full_name, email, password, role, department, job_role, is_active } = req.body;
+    const { full_name, email, password, role, department, site_id, job_role, is_active } = req.body;
 
     console.log('📥 PUT /api/users/:id - Updating user:', id);
 
@@ -415,6 +421,10 @@ router.put('/:id', authorizeAdmin, async (req, res) => {
       updateFields.push('department_id = ?');
       params.push(department_id);
     }
+    if (site_id !== undefined) {
+      updateFields.push('site_id = ?');
+      params.push(site_id || null);
+    }
     if (job_role !== undefined) {
       updateFields.push('job_role = ?');
       params.push(job_role || null);
@@ -434,9 +444,12 @@ router.put('/:id', authorizeAdmin, async (req, res) => {
 
     const [updated] = await pool.query(`
       SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
-             u.department_id, d.name as department_name, u.job_role, u.updated_at
+             u.department_id, d.name as department_name, 
+             u.site_id, s.name as site_name,
+             u.job_role, u.updated_at
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN sites s ON u.site_id = s.id
       WHERE u.id = ?
     `, [id]);
 
@@ -493,7 +506,7 @@ router.delete('/:id', authorizeAdmin, async (req, res) => {
 });
 
 // ============================================================================
-// FIXED: PATCH /api/users/bulk-update - Bulk update users (Admin only)
+// SIMPLIFIED: PATCH /api/users/bulk-update - Updates ONLY users.site_id
 // ============================================================================
 router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
   try {
@@ -515,21 +528,10 @@ router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
       });
     }
 
-    // Helper function to check if user has permit-creating roles
-    const hasPermitRole = (roleString) => {
-      if (!roleString) return false;
-      const userRoles = roleString.split(',').map(r => r.trim());
-      return userRoles.some(r =>
-        r === 'Supervisor' ||
-        r === 'Requester' ||
-        r.includes('Approver')
-      );
-    };
-
     const updateFields = [];
     const params = [];
 
-    // Handle department name to id conversion
+    // Handle department
     if (updates.department) {
       const [deptResult] = await pool.query(
         'SELECT id FROM departments WHERE name = ?',
@@ -544,25 +546,26 @@ router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
       params.push(updates.department_id);
     }
 
-    // ✅ FIXED: Handle site name to id conversion
-    let siteIdToAssign = null;
+    // ✅ SIMPLIFIED: Handle site - ONLY update users.site_id
     if (updates.site) {
       const [siteResult] = await pool.query(
-        'SELECT id FROM sites WHERE name = ?',
+        'SELECT id, name FROM sites WHERE name = ?',
         [updates.site]
       );
       if (siteResult.length > 0) {
-        siteIdToAssign = siteResult[0].id;
         updateFields.push('site_id = ?');
-        params.push(siteIdToAssign);
-        console.log(`✅ Found site: ${updates.site} -> ID: ${siteIdToAssign}`);
+        params.push(siteResult[0].id);
+        console.log(`✅ Site: "${updates.site}" -> ID ${siteResult[0].id}`);
       } else {
-        console.log(`⚠️ Site not found: ${updates.site}`);
+        console.log(`⚠️ Site not found: "${updates.site}"`);
+        return res.status(400).json({
+          success: false,
+          message: `Site "${updates.site}" not found`
+        });
       }
     } else if (updates.site_id !== undefined) {
-      siteIdToAssign = updates.site_id;
       updateFields.push('site_id = ?');
-      params.push(siteIdToAssign);
+      params.push(updates.site_id);
     }
 
     // Handle other fields
@@ -587,80 +590,21 @@ router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
     }
 
     updateFields.push('updated_at = NOW()');
-
-    // Add user IDs to params
     params.push(...userIds);
 
-    // ✅ Execute the UPDATE query
+    // ✅ SIMPLE: Just update users table
     const query = `
       UPDATE users 
       SET ${updateFields.join(', ')} 
       WHERE id IN (${userIds.map(() => '?').join(', ')})
     `;
 
-    await pool.query(query, params);
-    console.log(`✅ Updated ${userIds.length} user(s) in users table`);
-
-    // ============================================================================
-    // ✅ CRITICAL FIX: Handle requester_sites assignments
-    // ============================================================================
-
-    // Get updated users with their LATEST data after the update
-    const [updatedUsers] = await pool.query(
-      `SELECT id, role, site_id FROM users WHERE id IN (${userIds.map(() => '?').join(',')})`,
-      userIds
-    );
-
-    console.log('\n📊 Processing requester_sites assignments...');
-    let assignedCount = 0;
-
-    for (const user of updatedUsers) {
-      console.log(`\n👤 Processing user ID ${user.id}:`);
-      console.log(`   Role: ${user.role}`);
-      console.log(`   Site ID: ${user.site_id}`);
-
-      // Check if user has permit-creating roles
-      if (hasPermitRole(user.role)) {
-        console.log(`   ✓ Has permit-creating role`);
-
-        // Use the site from the update if provided, otherwise use user's existing site
-        const targetSiteId = siteIdToAssign || user.site_id;
-
-        if (targetSiteId) {
-          console.log(`   → Assigning to site ID: ${targetSiteId}`);
-
-          // Check if assignment already exists
-          const [existing] = await pool.query(
-            'SELECT id FROM requester_sites WHERE requester_user_id = ? AND site_id = ?',
-            [user.id, targetSiteId]
-          );
-
-          if (existing.length === 0) {
-            // Create assignment
-            await pool.query(
-              'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
-              [user.id, targetSiteId]
-            );
-            assignedCount++;
-            console.log(`   ✅ Created requester_sites assignment`);
-          } else {
-            console.log(`   ℹ️ Assignment already exists`);
-          }
-        } else {
-          console.log(`   ⚠️ No site to assign`);
-        }
-      } else {
-        console.log(`   ✗ No permit-creating role`);
-      }
-    }
-
-    if (assignedCount > 0) {
-      console.log(`\n✅ Created ${assignedCount} new requester_sites assignment(s)`);
-    }
+    const [result] = await pool.query(query, params);
+    console.log(`✅ Updated ${result.affectedRows} user(s)`);
 
     res.json({
       success: true,
-      message: `Successfully updated ${userIds.length} users`
+      message: `Successfully updated ${userIds.length} user(s)`
     });
 
   } catch (error) {
@@ -673,9 +617,8 @@ router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
   }
 });
 
-
 // ============================================================================
-// FIXED: POST /api/users/bulk-import - Bulk create users (Admin only)
+// SIMPLIFIED: POST /api/users/bulk-import - Sets ONLY users.site_id
 // ============================================================================
 router.post('/bulk-import', authorizeAdmin, async (req, res) => {
   try {
@@ -696,36 +639,21 @@ router.post('/bulk-import', authorizeAdmin, async (req, res) => {
       errors: []
     };
 
-    // Helper function to check if user has permit-creating roles
-    const hasPermitRole = (roleString) => {
-      if (!roleString) return false;
-      const userRoles = roleString.split(',').map(r => r.trim());
-      return userRoles.some(r =>
-        r === 'Supervisor' ||
-        r === 'Requester' ||
-        r.includes('Approver')
-      );
-    };
-
-    // Process each user
     for (const [index, user] of users.entries()) {
       try {
         const { login_id, full_name, email, password, role, department, job_role, site } = user;
 
-        console.log(`\n📝 Processing row ${index + 1}: ${login_id}`);
+        console.log(`\n📝 Row ${index + 1}: ${login_id}`);
 
-        // Basic validation
         if (!login_id || !full_name || !email || !password || !role) {
-          throw new Error(`Row ${index + 1}: Missing required fields (login_id, full_name, email, password, role)`);
+          throw new Error(`Missing required fields`);
         }
 
-        // Check duplicates
         const [existing] = await pool.query(
           'SELECT id, is_active, role FROM users WHERE login_id = ? OR email = ?',
           [login_id, email]
         );
 
-        // Get department_id
         let department_id = null;
         if (department) {
           const [deptResult] = await pool.query(
@@ -737,96 +665,68 @@ router.post('/bulk-import', authorizeAdmin, async (req, res) => {
           }
         }
 
-        // ✅ FIXED: Get site_id from site name
+        // ✅ SIMPLIFIED: Get site ID
         let site_id = null;
         if (site) {
           const [siteResult] = await pool.query('SELECT id FROM sites WHERE name = ?', [site]);
           if (siteResult.length > 0) {
             site_id = siteResult[0].id;
-            console.log(`   ✅ Found site: ${site} -> ID: ${site_id}`);
+            console.log(`   ✅ Site: ${site} -> ID ${site_id}`);
           } else {
             console.log(`   ⚠️ Site not found: ${site}`);
+            throw new Error(`Site "${site}" not found`);
           }
         }
 
         const password_hash = await bcrypt.hash(password, 10);
 
         if (existing.length > 0) {
-          // Conflict check
           if (existing.length > 1) {
-            throw new Error(`Row ${index + 1}: Ambiguous match - Login ID and Email match different existing users.`);
+            throw new Error('Ambiguous match');
           }
 
           const existingUser = existing[0];
 
-          // ✅ MERGE ROLES: Combine existing and new roles
+          // Merge roles
           let mergedRoles = role;
           if (existingUser.role) {
             const existingRolesList = existingUser.role.split(',').map(r => r.trim());
             const newRolesList = role.split(',').map(r => r.trim());
             const uniqueRoles = new Set([...existingRolesList, ...newRolesList]);
             mergedRoles = Array.from(uniqueRoles).join(',');
-            console.log(`   🔄 Merging roles: ${existingUser.role} + ${role} = ${mergedRoles}`);
           }
 
-          // UPDATE existing user
+          // ✅ SIMPLE: Just update users table
           await pool.query(
             `UPDATE users 
-               SET full_name = ?, email = ?, password_hash = ?, role = ?, department_id = ?, site_id = ?, job_role = ?, is_active = TRUE, updated_at = NOW()
-               WHERE id = ?`,
+             SET full_name = ?, email = ?, password_hash = ?, role = ?, department_id = ?, site_id = ?, job_role = ?, is_active = TRUE, updated_at = NOW()
+             WHERE id = ?`,
             [full_name, email, password_hash, mergedRoles, department_id, site_id, job_role || null, existingUser.id]
           );
 
-          console.log(`   ✅ Updated existing user ID: ${existingUser.id}`);
-
-          // ✅ FIXED: Add to requester_sites if has permit role and site
-          if (hasPermitRole(mergedRoles) && site_id) {
-            const [existingAssignment] = await pool.query(
-              'SELECT id FROM requester_sites WHERE requester_user_id = ? AND site_id = ?',
-              [existingUser.id, site_id]
-            );
-
-            if (existingAssignment.length === 0) {
-              await pool.query(
-                'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
-                [existingUser.id, site_id]
-              );
-              console.log(`   ✅ Added to requester_sites (site: ${site_id})`);
-            } else {
-              console.log(`   ℹ️ Already in requester_sites`);
-            }
-          }
+          console.log(`   ✅ Updated user ID ${existingUser.id}`);
 
         } else {
-          // ✅ INSERT new user
-          const [result] = await pool.query(
+          // ✅ SIMPLE: Just insert into users table
+          await pool.query(
             `INSERT INTO users (login_id, full_name, email, password_hash, role, department_id, site_id, job_role, is_active, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
             [login_id, full_name, email, password_hash, role, department_id, site_id, job_role || null]
           );
 
-          console.log(`   ✅ Created new user ID: ${result.insertId}`);
-
-          // ✅ FIXED: Add to requester_sites if has permit role and site
-          if (hasPermitRole(role) && site_id) {
-            await pool.query(
-              'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
-              [result.insertId, site_id]
-            );
-            console.log(`   ✅ Added to requester_sites (site: ${site_id})`);
-          }
+          console.log(`   ✅ Created new user`);
         }
 
         results.successful++;
 
       } catch (error) {
-        console.error(`   ❌ Error: ${error.message}`);
+        console.error(`   ❌ ${error.message}`);
         results.failed++;
         results.errors.push(`Row ${index + 1}: ${error.message}`);
       }
     }
 
-    console.log(`\n📊 Import Summary: ${results.successful} successful, ${results.failed} failed`);
+    console.log(`\n📊 Summary: ${results.successful} successful, ${results.failed} failed`);
 
     res.json({
       success: true,
@@ -843,157 +743,5 @@ router.post('/bulk-import', authorizeAdmin, async (req, res) => {
     });
   }
 });
-
-
-
-
-// POST /api/users/bulk-import - Bulk create users (Admin only)
-router.post('/bulk-import', authorizeAdmin, async (req, res) => {
-  try {
-    const { users } = req.body;
-
-    console.log('📥 POST /api/users/bulk-import', { count: users?.length });
-
-    if (!users || !Array.isArray(users) || users.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No users provided for import'
-      });
-    }
-
-    const results = {
-      successful: 0,
-      failed: 0,
-      errors: []
-    };
-
-    // Process each user
-    for (const [index, user] of users.entries()) {
-      try {
-        const { login_id, full_name, email, password, role, department, job_role } = user;
-
-        // Basic validation
-        if (!login_id || !full_name || !email || !password || !role) {
-          throw new Error(`Row ${index + 1}: Missing required fields (login_id, full_name, email, password, role)`);
-        }
-
-        // Check duplicates
-        const [existing] = await pool.query(
-          'SELECT id, is_active FROM users WHERE login_id = ? OR email = ?',
-          [login_id, email]
-        );
-
-        // Get department_id
-        let department_id = null;
-        if (department) {
-          const [deptResult] = await pool.query(
-            'SELECT id FROM departments WHERE name = ?',
-            [department]
-          );
-          if (deptResult.length > 0) {
-            department_id = deptResult[0].id;
-          }
-        }
-
-        const password_hash = await bcrypt.hash(password, 10);
-
-        if (existing.length > 0) {
-          // Conflict check: if multiple users found (e.g. one matches login, separate one matches email)
-          if (existing.length > 1) {
-            throw new Error(`Row ${index + 1}: Ambiguous match - Login ID and Email match different existing users.`);
-          }
-
-          const existingUser = existing[0];
-
-          // Get site_id if site name provided
-          let site_id = null;
-          if (user.site) {
-            const [siteResult] = await pool.query('SELECT id FROM sites WHERE name = ?', [user.site]);
-            if (siteResult.length > 0) {
-              site_id = siteResult[0].id;
-            }
-          }
-
-          // MERGE ROLES: Split existing and new roles, merge them, and remove duplicates
-          let mergedRoles = role; // Default to new role
-          if (existingUser.role) {
-            const existingRolesList = existingUser.role.split(',').map(r => r.trim());
-            const newRolesList = role.split(',').map(r => r.trim());
-            const uniqueRoles = new Set([...existingRolesList, ...newRolesList]);
-            mergedRoles = Array.from(uniqueRoles).join(',');
-          }
-
-          // UPDATE existing user (Active or Inactive)
-          await pool.query(
-            `UPDATE users 
-               SET full_name = ?, email = ?, password_hash = ?, role = ?, department_id = ?, site_id = ?, job_role = ?, is_active = TRUE, updated_at = NOW()
-               WHERE id = ?`,
-            [full_name, email, password_hash, mergedRoles, department_id, site_id, job_role || null, existingUser.id]
-          );
-
-          // If supervisor/requester, also add to requester_sites
-          if (site_id && (role.includes('Supervisor') || role.includes('Requester'))) {
-            const [existingAssig] = await pool.query(
-              'SELECT id FROM requester_sites WHERE requester_user_id = ? AND site_id = ?',
-              [existingUser.id, site_id]
-            );
-            if (existingAssig.length === 0) {
-              await pool.query(
-                'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
-                [existingUser.id, site_id]
-              );
-            }
-          }
-
-        } else {
-          // Get site_id if site name provided
-          let site_id = null;
-          if (user.site) {
-            const [siteResult] = await pool.query('SELECT id FROM sites WHERE name = ?', [user.site]);
-            if (siteResult.length > 0) {
-              site_id = siteResult[0].id;
-            }
-          }
-
-          // Insert new user
-          const [result] = await pool.query(
-            `INSERT INTO users (login_id, full_name, email, password_hash, role, department_id, site_id, job_role, is_active, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
-            [login_id, full_name, email, password_hash, role, department_id, site_id, job_role || null]
-          );
-
-          // If supervisor/requester, also add to requester_sites
-          if (site_id && (role.includes('Supervisor') || role.includes('Requester'))) {
-            await pool.query(
-              'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
-              [result.insertId, site_id]
-            );
-          }
-        }
-
-        results.successful++;
-
-      } catch (error) {
-        results.failed++;
-        results.errors.push(error.message);
-      }
-    }
-
-    res.json({
-      success: true,
-      message: `Import completed. Successful: ${results.successful}, Failed: ${results.failed}`,
-      data: results
-    });
-
-  } catch (error) {
-    console.error('❌ Error in bulk import:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error importing users',
-      error: error.message
-    });
-  }
-});
-
 
 module.exports = router;

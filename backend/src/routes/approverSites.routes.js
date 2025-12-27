@@ -38,6 +38,7 @@ router.get('/:approverId/sites', authorizeAdmin, async (req, res) => {
         // Determine which column to check based on role
         switch (approverRole) {
             case 'Approver_AreaManager':
+            case 'Approver_AreaOwner':
                 roleColumn = 'area_manager_id';
                 break;
             case 'Approver_Safety':
@@ -118,6 +119,7 @@ router.post('/:approverId/assign-sites', authorizeAdmin, async (req, res) => {
         let roleColumn = '';
         switch (approver_role) {
             case 'Approver_AreaManager':
+            case 'Approver_AreaOwner':
                 roleColumn = 'area_manager_id';
                 break;
             case 'Approver_Safety':

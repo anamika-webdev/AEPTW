@@ -1,21 +1,18 @@
-// frontend/src/pages/admin/UserManagement.tsx - COMPLETE WITH ASSIGNMENTS
-// Enhanced version with assigned sites and workers display in View modal
+// frontend/src/pages/admin/UserManagement.tsx - SIMPLIFIED SINGLE SITE VERSION
+// Shows only users.site_name - NO requester_sites complexity
 
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Building2, Eye, X, ChevronLeft, ChevronRight, Briefcase } from 'lucide-react';
-import { AssignResourcesModal } from '../../components/admin/AssignResourcesModal';
+import { UserPlus, Search, Edit, Trash2, Mail, UserIcon as User, Loader2, Eye, X, ChevronLeft, ChevronRight, Briefcase, Building2 } from 'lucide-react';
 import { BulkImportModal } from '../../components/admin/BulkImportModal';
 import { JOB_ROLES } from '../../utils/jobRoles';
 import { DEPARTMENTS } from '../../utils/departments';
-
+import { AssignResourcesModal } from '../../components/admin/AssignResourcesModal';
 interface Site {
   id: number;
   name: string;
   site_code: string;
   location: string;
 }
-
-// ... existing code ...
 
 interface User {
   id: number;
@@ -48,23 +45,15 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assigningUser, setAssigningUser] = useState<User | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [showSiteAssignment, setShowSiteAssignment] = useState(false);
-  const [selectedApprover, setSelectedApprover] = useState<User | null>(null);
 
-  // ✅ NEW: Assignment states
-  const [userAssignments, setUserAssignments] = useState<{
-    sites: any[];
-    workers: any[];
-    loading: boolean;
-  }>({ sites: [], workers: [], loading: false });
+  // ✅ ADD TO STATE VARIABLES
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assigningUser, setAssigningUser] = useState<User | null>(null);
 
-  // Bulk Selection States
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
@@ -76,7 +65,13 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     is_active: ''
   });
 
-  const [sites, setSites] = useState<Site[]>([]); // New state for sites
+  const [userAssignments, setUserAssignments] = useState<{
+    sites: any[];
+    workers: any[];
+    loading: boolean;
+  }>({ sites: [], workers: [], loading: false });
+
+  const [sites, setSites] = useState<Site[]>([]);
 
   const fetchSites = async () => {
     try {
@@ -94,7 +89,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
   useEffect(() => {
     fetchUsers();
-    fetchSites(); // Fetch sites on mount
+    fetchSites();
   }, []);
 
   // Form states
@@ -107,7 +102,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     role: ['Worker'],
     department: '',
     job_role: '',
-    site_id: '' // Added site_id
+    site_id: ''
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -117,7 +112,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     role: '',
     department: '',
     job_role: '',
-    site_id: '' // Added site_id
+    site_id: ''
   });
 
   const fetchUsers = async (showMessage = false) => {
@@ -146,35 +141,37 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       setLoading(false);
     }
   };
+  const handleViewUser = (user: User) => {
+    const latestUser = users.find(u => u.id === user.id) || user;
+    setViewingUser(latestUser);
+    setShowViewModal(true);
 
-  // ✅ NEW: Fetch user assignments
-  const fetchUserAssignments = async (userId: number) => {
-    // Only fetch for Supervisors/Requesters
-    const user = users.find(u => u.id === userId);
-    if (!user || (user.role !== 'Requester' && user.role !== 'Supervisor')) {
-      setUserAssignments({ sites: [], workers: [], loading: false });
-      return;
+    // Fetch assignments for Supervisors/Approvers
+    if (latestUser.role.includes('Supervisor') ||
+      latestUser.role.includes('Requester') ||
+      latestUser.role.includes('Approver')) {
+      fetchUserAssignments(latestUser.id);
     }
-
-    setUserAssignments({ sites: [], workers: [], loading: true });
-
+  };
+  // ✅ Fetch user assignments for Supervisors/Approvers
+  const fetchUserAssignments = async (userId: number) => {
     try {
-      const token = localStorage.getItem('token');
+      setUserAssignments({ sites: [], workers: [], loading: true });
+
       const response = await fetch(`/api/requester-assignments/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setUserAssignments({
-            sites: result.data.sites || [],
-            workers: result.data.workers || [],
-            loading: false
-          });
-        } else {
-          setUserAssignments({ sites: [], workers: [], loading: false });
-        }
+      const data = await response.json();
+
+      if (data.success) {
+        setUserAssignments({
+          sites: data.data.sites || [],
+          workers: data.data.workers || [],
+          loading: false
+        });
       } else {
         setUserAssignments({ sites: [], workers: [], loading: false });
       }
@@ -186,7 +183,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
   const handleCreateUser = async () => {
     try {
-      // Validation
       if (!newUser.login_id || !newUser.full_name || !newUser.email || !newUser.password) {
         alert('Please fill in all required fields');
         return;
@@ -211,7 +207,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           role: Array.isArray(newUser.role) ? newUser.role.join(',') : newUser.role,
           department: newUser.department,
           job_role: newUser.job_role,
-          site_id: newUser.site_id // Send site_id
+          site_id: newUser.site_id
         })
       });
 
@@ -342,7 +338,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       const updates: any = {};
       if (bulkUpdates.role) updates.role = bulkUpdates.role;
       if (bulkUpdates.department) updates.department = bulkUpdates.department;
-      if (bulkUpdates.site) updates.site = bulkUpdates.site; // Add site to updates
+      if (bulkUpdates.site) updates.site = bulkUpdates.site;
       if (bulkUpdates.job_role) updates.job_role = bulkUpdates.job_role;
       if (bulkUpdates.is_active) updates.is_active = bulkUpdates.is_active === 'true';
 
@@ -369,7 +365,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         alert(`Successfully updated ${selectedUsers.size} users`);
         setShowBulkEditModal(false);
         setSelectedUsers(new Set());
-        setBulkUpdates({ role: '', department: '', site: '', job_role: '', is_active: '' }); // Fixed reset
+        setBulkUpdates({ role: '', department: '', site: '', job_role: '', is_active: '' });
         await fetchUsers(true);
       } else {
         alert(data.message || 'Failed to update users');
@@ -380,15 +376,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     }
   };
 
-  // ✅ UPDATED: Now fetches assignments when viewing user
-  const handleViewUser = (user: User) => {
-    // Find the latest user data from state to ensure we have fresh data
-    const latestUser = users.find(u => u.id === user.id) || user;
-
-    setViewingUser(latestUser);
-    setShowViewModal(true);
-    fetchUserAssignments(latestUser.id);
-  };
 
   const getRoleDisplay = (role: string): string => {
     const roleMap: Record<string, string> = {
@@ -407,16 +394,11 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
   const getRoleBadgeColor = (role: string): string => {
     const roles = role.split(',').map(r => r.trim());
-    // Prioritize highest privilege color
     if (roles.includes('Admin') || roles.includes('Administrator')) return 'bg-red-100 text-red-800 border-red-200';
     if (roles.includes('Requester') || roles.includes('Supervisor')) return 'bg-purple-100 text-purple-800 border-purple-200';
     if (roles.some(r => r.includes('Approver'))) return 'bg-orange-100 text-orange-800 border-orange-200';
     return 'bg-green-100 text-green-800 border-green-200';
   };
-
-  // ============================================
-  // PROPER FILTERING LOGIC - FIXED FOR MULTI-ROLE
-  // ============================================
 
   const hasRole = (user: User, roleToCheck: string) => {
     const roles = (user.role || '').split(',').map(r => r.trim());
@@ -436,10 +418,9 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   );
 
   const approverUsers = users.filter(u =>
-    (u.role || '').includes('Approver') // Simple includes works for Approver check
+    (u.role || '').includes('Approver')
   );
 
-  // Apply search filter
   const filterBySearch = (userList: User[]) => {
     if (!searchQuery.trim()) return userList;
 
@@ -452,7 +433,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     );
   };
 
-  // Get filtered list based on active tab
   const getFilteredUsers = (): User[] => {
     let filtered: User[] = [];
 
@@ -478,23 +458,20 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
   const filteredUsers = getFilteredUsers();
 
-  // Pagination Logic
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, activeTab]);
 
-  // Render user table rows
   const renderUserRows = (userList: User[]) => {
     if (userList.length === 0) {
       return (
         <tr>
-          <td colSpan={6} className="px-6 py-8 text-center">
+          <td colSpan={7} className="px-6 py-8 text-center">
             <div className="flex flex-col items-center justify-center">
               <User className="w-12 h-12 mb-3 text-gray-300" />
               <p className="text-sm font-medium text-gray-500">
@@ -567,49 +544,34 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           </div>
         </td>
         <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-          {/* View Button */}
           <button
             onClick={() => handleViewUser(user)}
-            className="mr-3 text-green-600 hover:text-green-900"
+            className="mr-2 text-green-600 hover:text-green-900"
             title="View user details"
           >
             <Eye className="w-4 h-4" />
           </button>
 
-          {/* Assignment Button for Supervisors */}
-          {(user.role === 'Requester' || user.role === 'Supervisor') && (
+          {/* Assign Resources Button (for Requesters, Supervisors, and Approvers) */}
+          {(user.role.includes('Requester') || user.role.includes('Supervisor') || user.role.includes('Approver')) && (
             <button
               onClick={() => {
                 setAssigningUser(user);
                 setShowAssignModal(true);
               }}
-              className="mr-3 p-1.5 text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors"
+              className="mr-2 p-1 text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 rounded-md border border-purple-200"
               title="Assign sites and workers"
             >
-              <div className="flex items-center gap-1.5">
-                <Building2 className="w-4 h-4" />
-                <span className="text-xs font-semibold">Assign</span>
+              <div className="flex items-center gap-1 px-1">
+                <Building2 className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Assign</span>
               </div>
-            </button>
-          )}
-
-          {/* Assignment Button for Approvers */}
-          {(user.role || '').includes('Approver') && (
-            <button
-              onClick={() => {
-                setSelectedApprover(user);
-                setShowSiteAssignment(true);
-              }}
-              className="mr-3 text-blue-600 hover:text-blue-900"
-              title="Assign sites to approver"
-            >
-              <Building2 className="w-4 h-4" />
             </button>
           )}
 
           <button
             onClick={() => openEditModal(user)}
-            className="mr-3 text-orange-600 hover:text-orange-900"
+            className="mr-2 text-orange-600 hover:text-orange-900"
             title="Edit user"
           >
             <Edit className="w-4 h-4" />
@@ -663,20 +625,21 @@ export default function UserManagement({ onBack }: UserManagementProps) {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
-        >
-          <UserPlus className="w-5 h-5" />
-          Create New User
-        </button>
-        <button
-          onClick={() => setShowBulkImportModal(true)}
-          className="flex items-center gap-2 px-4 py-2 text-orange-700 bg-orange-100 border border-orange-200 rounded-lg hover:bg-orange-200"
-        >
-          <Building2 className="w-5 h-5" />
-          Bulk Import
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
+          >
+            <UserPlus className="w-5 h-5" />
+            Create New User
+          </button>
+          <button
+            onClick={() => setShowBulkImportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 text-orange-700 bg-orange-100 border border-orange-200 rounded-lg hover:bg-orange-200"
+          >
+            Bulk Import
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -696,7 +659,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       {/* Tabs */}
       <div className="mb-6">
         <div className="flex gap-2 border-b border-gray-200">
-          {/* ... existing tabs code will be maintained ... */}
           <button
             onClick={() => setActiveTab('all')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
@@ -763,7 +725,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           </button>
         </div>
 
-        {/* Active filter indicator */}
         {activeTab !== 'all' && (
           <div className="flex items-center gap-2 px-4 py-2 mt-2 border border-orange-200 rounded-lg bg-orange-50">
             <span className="text-sm text-orange-700">
@@ -802,8 +763,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       )}
 
       {/* User Table */}
-      <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
-        <table className="w-full">
+      <div className="overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-sm">
+        <table className="w-full min-w-[1000px]">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 w-4">
@@ -829,6 +790,84 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         </table>
       </div>
 
+      {/* Pagination - keeping your existing pagination code */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white border border-t-0 border-gray-200 rounded-b-lg sm:px-6">
+        <div className="flex justify-between flex-1 sm:hidden">
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className={`relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className={`relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Showing <span className="font-medium">{Math.min(filteredUsers.length, startIndex + 1)}</span> to{' '}
+              <span className="font-medium">{Math.min(endIndex, filteredUsers.length)}</span> of{' '}
+              <span className="font-medium">{filteredUsers.length}</span> results
+            </p>
+          </div>
+          <div>
+            <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className={`relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum = i + 1;
+                if (totalPages > 5) {
+                  if (currentPage > 3) {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  if (pageNum > totalPages) {
+                    pageNum = totalPages - 4 + i;
+                  }
+                }
+
+                if (pageNum > totalPages) return null;
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
+                      ? 'z-10 bg-orange-600 text-white'
+                      : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                      }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className={`relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
       {/* Bulk Edit Modal */}
       {showBulkEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -873,7 +912,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
               </div>
 
               <div>
-                <label className="block mb-2 text-sm font-medium text-gray-700">Site Assignment</label>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Site</label>
                 <select
                   value={bulkUpdates.site}
                   onChange={(e) => setBulkUpdates({ ...bulkUpdates, site: e.target.value })}
@@ -936,94 +975,10 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         </div>
       )}
 
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border border-t-0 border-gray-200 rounded-b-lg sm:px-6">
-        <div className="flex justify-between flex-1 sm:hidden">
-          <button
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className={`relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-            className={`relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-          >
-            Next
-          </button>
-        </div>
-        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">{Math.min(filteredUsers.length, startIndex + 1)}</span> to{' '}
-              <span className="font-medium">{Math.min(endIndex, filteredUsers.length)}</span> of{' '}
-              <span className="font-medium">{filteredUsers.length}</span> results
-            </p>
-          </div>
-          <div>
-            <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className={`relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-              >
-                <span className="sr-only">Previous</span>
-                <ChevronLeft className="w-5 h-5" aria-hidden="true" />
-              </button>
-
-              {/* Page Numbers */}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                // Logic to show a window of pages around current page
-                let pageNum = i + 1;
-                if (totalPages > 5) {
-                  if (currentPage > 3) {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  if (pageNum > totalPages) {
-                    pageNum = totalPages - 4 + i;
-                  }
-                }
-
-                if (pageNum > totalPages) return null;
-
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    aria-current={currentPage === pageNum ? 'page' : undefined}
-                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNum
-                      ? 'z-10 bg-orange-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600'
-                      : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
-                      }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className={`relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-              >
-                <span className="sr-only">Next</span>
-                <ChevronRight className="w-5 h-5" aria-hidden="true" />
-              </button>
-            </nav>
-          </div>
-        </div>
-      </div>
-
       {/* Create User Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl">
+          <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 className="mb-4 text-xl font-semibold text-gray-900">Create New User</h2>
 
             <div className="space-y-4">
@@ -1049,7 +1004,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     type="text"
                     value={newUser.full_name}
                     onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
-                    placeholder="Gaurav Shukla"
+                    placeholder="John Doe"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
@@ -1067,100 +1022,114 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
-            </div>
 
-            {/* Job Role Dropdown */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Job Role
-              </label>
-              <select
-                value={newUser.job_role}
-                onChange={(e) => setNewUser({ ...newUser, job_role: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-              >
-                <option value="">Select Job Role</option>
-                {JOB_ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                />
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={newUser.confirmPassword}
+                    onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Confirm Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={newUser.confirmPassword}
-                  onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Roles (Ctrl+Click for multiple) <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    multiple
+                    value={Array.isArray(newUser.role) ? newUser.role : []}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, option => option.value);
+                      setNewUser({ ...newUser, role: selected });
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 h-32"
+                  >
+                    <option value="Worker">Worker</option>
+                    <option value="Requester">Supervisor</option>
+                    <option value="Approver_Safety">Safety Officer</option>
+                    <option value="Approver_AreaOwner">Area Owner</option>
+                    <option value="Approver_SiteLeader">Site Leader</option>
+                    <option value="Admin">Administrator</option>
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">Hold Ctrl/Cmd to select multiple</p>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Site
+                  </label>
+                  <select
+                    value={newUser.site_id}
+                    onChange={(e) => setNewUser({ ...newUser, site_id: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="">Select Site</option>
+                    {sites.map((site) => (
+                      <option key={site.id} value={site.id}>
+                        {site.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Department</label>
+                  <select
+                    value={newUser.department}
+                    onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="">Select Department</option>
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Job Role</label>
+                  <select
+                    value={newUser.job_role}
+                    onChange={(e) => setNewUser({ ...newUser, job_role: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="">Select Job Role</option>
+                    {JOB_ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Roles (Ctrl+Click to select multiple) <span className="text-red-500">*</span>
-                </label>
-                <select
-                  multiple
-                  value={Array.isArray(newUser.role) ? newUser.role : []}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions, option => option.value);
-                    setNewUser({ ...newUser, role: selected });
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 h-32"
-                >
-                  <option value="Worker">Worker</option>
-                  <option value="Requester">Supervisor</option>
-                  <option value="Approver_Safety">Safety Officer</option>
-                  <option value="Approver_AreaOwner">Area Owner</option>
-                  <option value="Approver_SiteLeader">Site Leader</option>
-                  <option value="Admin">Administrator</option>
-                </select>
-                <p className="mt-1 text-xs text-gray-500">Hold Ctrl (Windows) or Cmd (Mac) to select multiple roles.</p>
-              </div>
-
-              <div>
-                <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Primary Site Assignment
-                </label>
-                <select
-                  value={newUser.site_id}
-                  onChange={(e) => setNewUser({ ...newUser, site_id: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">Select Site</option>
-                  {sites.map((site) => (
-                    <option key={site.id} value={site.id}>
-                      {site.name} ({site.site_code})
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500">For Supervisors/Approvers, you can assign multiple sites using the assignment button in the table.</p>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t">
+            <div className="flex justify-end gap-3 pt-4 mt-4 border-t">
               <button
                 onClick={() => setShowAddModal(false)}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -1181,7 +1150,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       {/* Edit User Modal */}
       {showEditModal && editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl">
+          <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 className="mb-4 text-xl font-semibold text-gray-900">Edit User</h2>
 
             <div className="space-y-4">
@@ -1227,18 +1196,17 @@ export default function UserManagement({ onBack }: UserManagementProps) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Roles (Ctrl+Click to select multiple) <span className="text-red-500">*</span>
+                    Roles (Ctrl+Click for multiple) <span className="text-red-500">*</span>
                   </label>
                   <select
                     multiple
                     value={
                       Array.isArray(editFormData.role)
                         ? editFormData.role
-                        : (typeof editFormData.role === 'string' ? (editFormData.role as string || '').split(',').map((r: string) => r.trim()) : [])
+                        : (typeof editFormData.role === 'string' ? editFormData.role.split(',').map(r => r.trim()) : [])
                     }
                     onChange={(e) => {
                       const selected = Array.from(e.target.selectedOptions, option => option.value);
-                      // Store as comma-separated string for edit form compatible with backend
                       setEditFormData({ ...editFormData, role: selected.join(',') });
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 h-32"
@@ -1250,13 +1218,11 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     <option value="Approver_SiteLeader">Site Leader</option>
                     <option value="Admin">Administrator</option>
                   </select>
-                  <p className="mt-1 text-xs text-gray-500">Hold Ctrl (Windows) or Cmd (Mac) to select multiple roles.</p>
+                  <p className="mt-1 text-xs text-gray-500">Hold Ctrl/Cmd to select multiple</p>
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Primary Site Assignment
-                  </label>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Site</label>
                   <select
                     value={editFormData.site_id}
                     onChange={(e) => setEditFormData({ ...editFormData, site_id: e.target.value })}
@@ -1265,7 +1231,41 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     <option value="">Select Site</option>
                     {sites.map((site) => (
                       <option key={site.id} value={site.id}>
-                        {site.name} ({site.site_code})
+                        {site.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Department</label>
+                  <select
+                    value={editFormData.department}
+                    onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="">Select Department</option>
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Job Role</label>
+                  <select
+                    value={editFormData.job_role}
+                    onChange={(e) => setEditFormData({ ...editFormData, job_role: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="">Select Job Role</option>
+                    {JOB_ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
                       </option>
                     ))}
                   </select>
@@ -1280,103 +1280,52 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   </p>
                 </div>
               )}
+            </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <div className="flex gap-3">
-                  {(editingUser.role === 'Requester' || editingUser.role === 'Supervisor') && (
-                    <button
-                      onClick={() => {
-                        setShowEditModal(false);
-                        setAssigningUser(editingUser);
-                        setShowAssignModal(true);
-                      }}
-                      className="px-4 py-2 text-purple-600 border border-purple-200 bg-purple-50 rounded-lg hover:bg-purple-100 flex items-center gap-2"
-                    >
-                      <Building2 className="w-4 h-4" />
-                      Manage Assignments
-                    </button>
-                  )}
-                  {editingUser.role.includes('Approver') && (
-                    <button
-                      onClick={() => {
-                        setShowEditModal(false);
-                        setSelectedApprover(editingUser);
-                        setShowSiteAssignment(true);
-                      }}
-                      className="px-4 py-2 text-blue-600 border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center gap-2"
-                    >
-                      <Building2 className="w-4 h-4" />
-                      Manage Sites
-                    </button>
-                  )}
-                  <button
-                    onClick={handleEditUser}
-                    className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </div>
+            <div className="flex justify-end gap-3 pt-4 mt-4 border-t">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditUser}
+                className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700"
+              >
+                Save Changes
+              </button>
             </div>
           </div>
         </div>
-      )
-      }
+      )}
 
-      {/* Assignment Modal */}
-      {
-        showAssignModal && assigningUser && (
-          <AssignResourcesModal
-            requester={assigningUser}
-            onClose={() => {
-              setShowAssignModal(false);
-              setAssigningUser(null);
-            }}
-            onSuccess={() => {
-              setShowAssignModal(false);
-              setAssigningUser(null);
-              fetchUsers(true);
-            }}
-          />
-        )
-      }
+      {/* ✅ SIMPLIFIED VIEW USER MODAL - Single Site Only */}
+      {showViewModal && viewingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-3xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">User Details</h3>
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
-      {/* ✅ ENHANCED VIEW USER MODAL - WITH ASSIGNMENTS */}
-      {
-        showViewModal && viewingUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="w-full max-w-3xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">User Details</h3>
-                <button
-                  onClick={() => setShowViewModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* User Info Card */}
-                <div className="p-4 rounded-lg bg-gray-50">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full">
-                      <User className="w-8 h-8 text-orange-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900">{viewingUser.full_name}</h4>
-                      <p className="text-sm text-gray-600">{getRoleDisplay(viewingUser.role)}</p>
-                    </div>
+            <div className="space-y-6">
+              <div className="p-4 rounded-lg bg-gray-50">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full">
+                    <User className="w-8 h-8 text-orange-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">{viewingUser.full_name}</h4>
+                    <p className="text-sm text-gray-600">{getRoleDisplay(viewingUser.role)}</p>
                   </div>
                 </div>
 
-                {/* Basic Details Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Login ID</label>
@@ -1397,7 +1346,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     <p className="mt-1 text-sm text-gray-900">{viewingUser.department_name || 'Not assigned'}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Site Assignment</label>
+                    <label className="block text-sm font-medium text-gray-700">Site</label>
                     <p className="mt-1 text-sm text-gray-900">{viewingUser.site_name || 'Not assigned'}</p>
                   </div>
                   <div>
@@ -1427,92 +1376,78 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   )}
                 </div>
 
-                {/* ✅ NEW: Assignments Section (for Supervisors/Requesters) */}
-                {(viewingUser.role === 'Requester' || viewingUser.role === 'Supervisor') && (
-                  <div className="pt-4 border-t">
-                    {userAssignments.loading ? (
-                      <div className="p-4 text-center rounded-lg bg-gray-50">
-                        <Loader2 className="w-6 h-6 mx-auto mb-2 text-orange-600 animate-spin" />
-                        <p className="text-sm text-gray-600">Loading assignments...</p>
-                      </div>
-                    ) : (userAssignments.sites.length > 0 || userAssignments.workers.length > 0) ? (
-                      <div className="space-y-4">
-                        {/* Assigned Sites */}
-                        {userAssignments.sites.length > 0 && (
-                          <div>
-                            <h5 className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-900">
-                              <Building2 className="w-4 h-4 text-orange-600" />
-                              Assigned Sites ({userAssignments.sites.length})
-                            </h5>
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                              {userAssignments.sites.map((site: any) => (
-                                <div
-                                  key={site.assignment_id}
-                                  className="p-3 border border-gray-200 rounded-lg bg-orange-50"
-                                >
-                                  <p className="text-sm font-medium text-gray-900">{site.name}</p>
-                                  <p className="text-xs text-gray-600">Code: {site.site_code}</p>
-                                  {site.location && (
-                                    <p className="mt-1 text-xs text-gray-500">{site.location}</p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                {/* ✅ ADD THIS SECTION: */}
+                {(viewingUser.role.includes('Supervisor') ||
+                  viewingUser.role.includes('Requester') ||
+                  viewingUser.role.includes('Approver')) && (
+                    <div className="pt-4 mt-4 border-t">
+                      <h5 className="mb-3 text-sm font-semibold text-gray-900">Resource Assignments</h5>
 
-                        {/* Assigned Workers */}
-                        {userAssignments.workers.length > 0 && (
-                          <div>
-                            <h5 className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-900">
-                              <User className="w-4 h-4 text-green-600" />
-                              Assigned Workers ({userAssignments.workers.length})
-                            </h5>
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                              {userAssignments.workers.map((worker: any) => (
-                                <div
-                                  key={worker.assignment_id}
-                                  className="p-3 border border-gray-200 rounded-lg bg-green-50"
-                                >
-                                  <p className="text-sm font-medium text-gray-900">{worker.full_name}</p>
-                                  <p className="text-xs text-gray-600">{worker.email}</p>
-                                  <p className="text-xs text-gray-500">ID: {worker.login_id}</p>
-                                </div>
-                              ))}
+                      {userAssignments.loading ? (
+                        <div className="p-4 text-center rounded-lg bg-gray-50">
+                          <Loader2 className="w-6 h-6 mx-auto mb-2 text-orange-600 animate-spin" />
+                          <p className="text-sm text-gray-600">Loading...</p>
+                        </div>
+                      ) : (userAssignments.sites.length > 0 || userAssignments.workers.length > 0) ? (
+                        <div className="space-y-4">
+                          {userAssignments.sites.length > 0 && (
+                            <div>
+                              <h6 className="mb-2 text-xs font-semibold text-gray-700">
+                                Additional Sites ({userAssignments.sites.length})
+                              </h6>
+                              <div className="grid grid-cols-2 gap-2">
+                                {userAssignments.sites.map((site: any) => (
+                                  <div key={site.id} className="p-2 border rounded bg-orange-50">
+                                    <p className="text-sm font-medium">{site.name}</p>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="p-4 text-center rounded-lg bg-gray-50">
-                        <p className="text-sm text-gray-600">No sites or workers assigned</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                          )}
 
-              <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
-                <button
-                  onClick={() => {
-                    setShowViewModal(false);
-                    openEditModal(viewingUser);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700"
-                >
-                  Edit User
-                </button>
-                <button
-                  onClick={() => setShowViewModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Close
-                </button>
+                          {userAssignments.workers.length > 0 && (
+                            <div>
+                              <h6 className="mb-2 text-xs font-semibold text-gray-700">
+                                Assigned Workers ({userAssignments.workers.length})
+                              </h6>
+                              <div className="grid grid-cols-2 gap-2">
+                                {userAssignments.workers.map((worker: any) => (
+                                  <div key={worker.id} className="p-2 border rounded bg-green-50">
+                                    <p className="text-sm font-medium">{worker.full_name}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">Use Assign button to add sites/workers</p>
+                      )}
+                    </div>
+                  )}
               </div>
             </div>
+
+            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
+              <button
+                onClick={() => {
+                  setShowViewModal(false);
+                  openEditModal(viewingUser);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700"
+              >
+                Edit User
+              </button>
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* Bulk Import Modal */}
       {showBulkImportModal && (
@@ -1525,213 +1460,21 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         />
       )}
 
-      {/* Site Assignment Modal for Approvers */}
-      {
-        showSiteAssignment && selectedApprover && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Assign Sites to {selectedApprover.full_name}
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowSiteAssignment(false);
-                    setSelectedApprover(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <p className="mb-4 text-sm text-gray-600">
-                Select sites where this approver will be available for permit approvals
-              </p>
-
-              <SiteAssignmentContent
-                approverId={selectedApprover.id}
-                approverRole={selectedApprover.role}
-                onClose={() => {
-                  setShowSiteAssignment(false);
-                  setSelectedApprover(null);
-                }}
-                onSuccess={() => {
-                  fetchUsers(true);
-                }}
-              />
-            </div>
-          </div>
-        )
-      }
-    </div >
-  );
-}
-
-// Site Assignment Content Component
-function SiteAssignmentContent({
-  approverId,
-  approverRole,
-  onClose,
-  onSuccess
-}: {
-  approverId: number;
-  approverRole: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const [sites, setSites] = useState<Site[]>([]);
-  const [selectedSites, setSelectedSites] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    loadData();
-  }, [approverId]);
-
-  const loadData = async () => {
-    try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      // Load all sites
-      const sitesResponse = await fetch('/api/sites', { headers });
-      const sitesData = await sitesResponse.json();
-
-      if (sitesData.success) {
-        setSites(sitesData.data || []);
-      }
-
-      // Load approver's current site assignments
-      const assignedResponse = await fetch(`/api/approvers/${approverId}/sites`, { headers });
-      const assignedData = await assignedResponse.json();
-
-      if (assignedData.success && assignedData.data) {
-        setSelectedSites(assignedData.data.map((s: any) => s.site_id));
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Failed to load sites');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleToggleSite = (siteId: number) => {
-    setSelectedSites(prev =>
-      prev.includes(siteId)
-        ? prev.filter(id => id !== siteId)
-        : [...prev, siteId]
-    );
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-
-    try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
-      const response = await fetch(`/api/approvers/${approverId}/assign-sites`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          site_ids: selectedSites,
-          approver_role: approverRole
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert('Sites assigned successfully!');
-        onSuccess();
-        onClose();
-      } else {
-        alert(data.message || 'Failed to assign sites');
-      }
-    } catch (error) {
-      console.error('Error assigning sites:', error);
-      alert('Failed to save. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-8 h-8 text-orange-600 animate-spin" />
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {sites.length === 0 ? (
-        <p className="py-8 text-center text-gray-500">
-          No sites available. Please add sites first.
-        </p>
-      ) : (
-        <div className="space-y-2 mb-6">
-          {sites.map((site) => (
-            <label
-              key={site.id}
-              className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-            >
-              <input
-                type="checkbox"
-                checked={selectedSites.includes(site.id)}
-                onChange={() => handleToggleSite(site.id)}
-                className="mt-1 w-4 h-4 text-orange-600 rounded focus:ring-2 focus:ring-orange-500"
-              />
-              <div className="flex-1">
-                <div className="font-medium text-gray-900">{site.name}</div>
-                <div className="text-sm text-gray-600">
-                  Code: {site.site_code} • {site.location}
-                </div>
-              </div>
-            </label>
-          ))}
-        </div>
+      {/* ✅ ADD THESE TWO MODALS: */}
+      {showAssignModal && assigningUser && (
+        <AssignResourcesModal
+          requester={assigningUser}
+          onClose={() => {
+            setShowAssignModal(false);
+            setAssigningUser(null);
+          }}
+          onSuccess={() => {
+            setShowAssignModal(false);
+            setAssigningUser(null);
+            fetchUsers(true);
+          }}
+        />
       )}
-
-      <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
-        <p className="text-sm text-blue-900">
-          <strong>Selected sites: {selectedSites.length}</strong>
-          <br />
-          This approver will appear in the approval workflow for permits created at these sites.
-        </p>
-      </div>
-
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={onClose}
-          disabled={saving}
-          className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={saving || loading}
-          className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center gap-2"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save Assignment'
-          )}
-        </button>
-      </div>
     </div>
   );
 }

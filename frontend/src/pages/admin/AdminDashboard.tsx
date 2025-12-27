@@ -202,7 +202,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
         </div>
 
         {/* Additional Stats Section (Optional) */}
-        {(stats.totalPermits || stats.activeTasks || stats.completedTasks) && (
+        {!!(stats.totalPermits || stats.activeTasks || stats.completedTasks) && (
           <div className="grid grid-cols-1 gap-6 mt-8 md:grid-cols-3">
             {stats.totalPermits !== undefined && (
               <div className="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">

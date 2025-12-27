@@ -14,7 +14,7 @@ const authorizeAdmin = (req, res, next) => {
   }
 
   const userRole = req.user.role?.toLowerCase();
-  
+
   if (userRole !== 'admin' && userRole !== 'administrator') {
     return res.status(403).json({
       success: false,
@@ -35,19 +35,52 @@ router.use(authorizeAdmin);
 router.get('/:requesterId', async (req, res) => {
   try {
     const { requesterId } = req.params;
-    
+
     console.log(`📥 GET assignments for requester ID: ${requesterId}`);
-    
-    // Get assigned sites
-    const [assignedSites] = await pool.query(`
+
+    // Get user role to determine which tables to check
+    const [user] = await pool.query('SELECT role FROM users WHERE id = ?', [requesterId]);
+    const role = user[0]?.role || '';
+
+    // 1. Get assigned sites from requester_sites (for Supervisors/Requesters)
+    let [assignedSites] = await pool.query(`
       SELECT rs.id as assignment_id, s.*, rs.assigned_at
       FROM requester_sites rs
       JOIN sites s ON rs.site_id = s.id
       WHERE rs.requester_user_id = ?
       ORDER BY s.name
     `, [requesterId]);
-    
-    // Get assigned workers
+
+    // 2. ALSO Get assigned sites from site_approvers (if has Approver role)
+    if (role.toLowerCase().includes('approver')) {
+      let roleColumn = '';
+      if (role.includes('AreaOwner') || role.includes('AreaManager')) roleColumn = 'area_manager_id';
+      else if (role.includes('Safety')) roleColumn = 'safety_officer_id';
+      else if (role.includes('SiteLeader')) roleColumn = 'site_leader_id';
+
+      if (roleColumn) {
+        const [approverSites] = await pool.query(`
+                SELECT 
+                    sa.id as assignment_id,
+                    s.*,
+                    sa.updated_at as assigned_at
+                FROM sites s
+                INNER JOIN site_approvers sa ON s.id = sa.site_id
+                WHERE sa.${roleColumn} = ?
+                ORDER BY s.name
+            `, [requesterId]);
+
+        // Combine and ensure unique sites by ID
+        const existingIds = new Set(assignedSites.map(s => s.id));
+        approverSites.forEach(site => {
+          if (!existingIds.has(site.id)) {
+            assignedSites.push(site);
+          }
+        });
+      }
+    }
+
+    // 3. Get assigned workers
     const [assignedWorkers] = await pool.query(`
       SELECT rw.id as assignment_id, u.*, rw.assigned_at
       FROM requester_workers rw
@@ -55,9 +88,9 @@ router.get('/:requesterId', async (req, res) => {
       WHERE rw.requester_user_id = ?
       ORDER BY u.full_name
     `, [requesterId]);
-    
+
     console.log(`✅ Found ${assignedSites.length} assigned sites and ${assignedWorkers.length} assigned workers`);
-    
+
     res.json({
       success: true,
       data: {
@@ -83,31 +116,63 @@ router.post('/:requesterId/sites', async (req, res) => {
     const { requesterId } = req.params;
     const { site_ids } = req.body; // Array of site IDs
     const adminId = req.user.id;
-    
-    console.log(`📥 POST - Assigning sites to requester ${requesterId}:`, site_ids);
-    
-    if (!site_ids || !Array.isArray(site_ids) || site_ids.length === 0) {
+
+    console.log(`📥 POST - Assigning sites to user ${requesterId}:`, site_ids);
+
+    if (!site_ids || !Array.isArray(site_ids)) {
       return res.status(400).json({
         success: false,
         message: 'site_ids array is required'
       });
     }
-    
-    // First, remove all existing site assignments for this requester
-    await pool.query('DELETE FROM requester_sites WHERE requester_user_id = ?', [requesterId]);
-    
-    // Then insert new assignments
-    const values = site_ids.map(siteId => [requesterId, siteId, adminId]);
-    await pool.query(
-      'INSERT INTO requester_sites (requester_user_id, site_id, assigned_by_admin_id) VALUES ?',
-      [values]
-    );
-    
-    console.log(`✅ Successfully assigned ${site_ids.length} sites to requester ${requesterId}`);
-    
+
+    // Get user role
+    const [user] = await pool.query('SELECT role FROM users WHERE id = ?', [requesterId]);
+    const role = user[0]?.role || '';
+
+    // 1. Update requester_sites (for Supervisors/Requesters)
+    if (role.toLowerCase().includes('supervisor') || role.toLowerCase().includes('requester')) {
+      // Remove existing
+      await pool.query('DELETE FROM requester_sites WHERE requester_user_id = ?', [requesterId]);
+
+      // Insert new if any
+      if (site_ids.length > 0) {
+        const values = site_ids.map(siteId => [requesterId, siteId, adminId]);
+        await pool.query(
+          'INSERT INTO requester_sites (requester_user_id, site_id, assigned_by_admin_id) VALUES ?',
+          [values]
+        );
+      }
+    }
+
+    // 2. Update site_approvers (if has Approver role)
+    if (role.toLowerCase().includes('approver')) {
+      let roleColumn = '';
+      if (role.includes('AreaOwner') || role.includes('AreaManager')) roleColumn = 'area_manager_id';
+      else if (role.includes('Safety')) roleColumn = 'safety_officer_id';
+      else if (role.includes('SiteLeader')) roleColumn = 'site_leader_id';
+
+      if (roleColumn) {
+        // Remove from all sites first
+        await pool.query(`UPDATE site_approvers SET ${roleColumn} = NULL WHERE ${roleColumn} = ?`, [requesterId]);
+
+        // Assign to new sites
+        for (const siteId of site_ids) {
+          const [existing] = await pool.query('SELECT id FROM site_approvers WHERE site_id = ?', [siteId]);
+          if (existing.length > 0) {
+            await pool.query(`UPDATE site_approvers SET ${roleColumn} = ?, updated_at = CURRENT_TIMESTAMP WHERE site_id = ?`, [requesterId, siteId]);
+          } else {
+            await pool.query(`INSERT INTO site_approvers (site_id, ${roleColumn}) VALUES (?, ?)`, [siteId, requesterId]);
+          }
+        }
+      }
+    }
+
+    console.log(`✅ Successfully updated site assignments for user ${requesterId}`);
+
     res.json({
       success: true,
-      message: `${site_ids.length} site(s) assigned successfully`
+      message: `Site assignments updated successfully`
     });
   } catch (error) {
     console.error('❌ Error assigning sites:', error);
@@ -121,37 +186,39 @@ router.post('/:requesterId/sites', async (req, res) => {
 
 // ============= ASSIGN WORKERS TO REQUESTER =============
 
-// POST /api/requester-assignments/:requesterId/workers - Assign workers to requester
+// POST /api/requester-assignments/:requesterId/workers - Assign workers to user
 router.post('/:requesterId/workers', async (req, res) => {
   try {
     const { requesterId } = req.params;
     const { worker_ids } = req.body; // Array of worker user IDs
     const adminId = req.user.id;
-    
-    console.log(`📥 POST - Assigning workers to requester ${requesterId}:`, worker_ids);
-    
-    if (!worker_ids || !Array.isArray(worker_ids) || worker_ids.length === 0) {
+
+    console.log(`📥 POST - Assigning workers to user ${requesterId}:`, worker_ids);
+
+    if (!worker_ids || !Array.isArray(worker_ids)) {
       return res.status(400).json({
         success: false,
         message: 'worker_ids array is required'
       });
     }
-    
-    // First, remove all existing worker assignments for this requester
+
+    // Remove existing
     await pool.query('DELETE FROM requester_workers WHERE requester_user_id = ?', [requesterId]);
-    
-    // Then insert new assignments
-    const values = worker_ids.map(workerId => [requesterId, workerId, adminId]);
-    await pool.query(
-      'INSERT INTO requester_workers (requester_user_id, worker_user_id, assigned_by_admin_id) VALUES ?',
-      [values]
-    );
-    
-    console.log(`✅ Successfully assigned ${worker_ids.length} workers to requester ${requesterId}`);
-    
+
+    // Insert new if any
+    if (worker_ids.length > 0) {
+      const values = worker_ids.map(workerId => [requesterId, workerId, adminId]);
+      await pool.query(
+        'INSERT INTO requester_workers (requester_user_id, worker_user_id, assigned_by_admin_id) VALUES ?',
+        [values]
+      );
+    }
+
+    console.log(`✅ Successfully assigned ${worker_ids.length} workers to user ${requesterId}`);
+
     res.json({
       success: true,
-      message: `${worker_ids.length} worker(s) assigned successfully`
+      message: `Workers assigned successfully`
     });
   } catch (error) {
     console.error('❌ Error assigning workers:', error);
@@ -169,7 +236,7 @@ router.post('/:requesterId/workers', async (req, res) => {
 router.get('/available/sites', async (req, res) => {
   try {
     const [sites] = await pool.query('SELECT * FROM sites WHERE is_active = TRUE ORDER BY name');
-    
+
     res.json({
       success: true,
       data: sites
@@ -193,7 +260,7 @@ router.get('/available/workers', async (req, res) => {
       WHERE role = 'Worker' AND is_active = TRUE
       ORDER BY full_name
     `);
-    
+
     res.json({
       success: true,
       data: workers
@@ -214,9 +281,9 @@ router.get('/available/workers', async (req, res) => {
 router.delete('/sites/:assignmentId', async (req, res) => {
   try {
     const { assignmentId } = req.params;
-    
+
     await pool.query('DELETE FROM requester_sites WHERE id = ?', [assignmentId]);
-    
+
     res.json({
       success: true,
       message: 'Site assignment removed successfully'
@@ -235,9 +302,9 @@ router.delete('/sites/:assignmentId', async (req, res) => {
 router.delete('/workers/:assignmentId', async (req, res) => {
   try {
     const { assignmentId } = req.params;
-    
+
     await pool.query('DELETE FROM requester_workers WHERE id = ?', [assignmentId]);
-    
+
     res.json({
       success: true,
       message: 'Worker assignment removed successfully'
