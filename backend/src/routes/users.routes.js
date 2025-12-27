@@ -492,8 +492,9 @@ router.delete('/:id', authorizeAdmin, async (req, res) => {
   }
 });
 
-
-// PATCH /api/users/bulk-update - Bulk update users (Admin only)
+// ============================================================================
+// FIXED: PATCH /api/users/bulk-update - Bulk update users (Admin only)
+// ============================================================================
 router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
   try {
     const { userIds, updates } = req.body;
@@ -514,14 +515,22 @@ router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
       });
     }
 
-    // White list allowed fields
-    const allowedFields = ['role', 'department', 'department_id', 'job_role', 'is_active'];
+    // Helper function to check if user has permit-creating roles
+    const hasPermitRole = (roleString) => {
+      if (!roleString) return false;
+      const userRoles = roleString.split(',').map(r => r.trim());
+      return userRoles.some(r =>
+        r === 'Supervisor' ||
+        r === 'Requester' ||
+        r.includes('Approver')
+      );
+    };
+
     const updateFields = [];
     const params = [];
 
-    // Handle department name to id conversion if needed
+    // Handle department name to id conversion
     if (updates.department) {
-      // If department name passed, get ID
       const [deptResult] = await pool.query(
         'SELECT id FROM departments WHERE name = ?',
         [updates.department]
@@ -535,19 +544,25 @@ router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
       params.push(updates.department_id);
     }
 
-    // Handle site name to id conversion
+    // ✅ FIXED: Handle site name to id conversion
+    let siteIdToAssign = null;
     if (updates.site) {
       const [siteResult] = await pool.query(
         'SELECT id FROM sites WHERE name = ?',
         [updates.site]
       );
       if (siteResult.length > 0) {
+        siteIdToAssign = siteResult[0].id;
         updateFields.push('site_id = ?');
-        params.push(siteResult[0].id);
+        params.push(siteIdToAssign);
+        console.log(`✅ Found site: ${updates.site} -> ID: ${siteIdToAssign}`);
+      } else {
+        console.log(`⚠️ Site not found: ${updates.site}`);
       }
     } else if (updates.site_id !== undefined) {
+      siteIdToAssign = updates.site_id;
       updateFields.push('site_id = ?');
-      params.push(updates.site_id);
+      params.push(siteIdToAssign);
     }
 
     // Handle other fields
@@ -576,6 +591,7 @@ router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
     // Add user IDs to params
     params.push(...userIds);
 
+    // ✅ Execute the UPDATE query
     const query = `
       UPDATE users 
       SET ${updateFields.join(', ')} 
@@ -583,45 +599,63 @@ router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
     `;
 
     await pool.query(query, params);
+    console.log(`✅ Updated ${userIds.length} user(s) in users table`);
 
-    // ✅ NEW: If site was updated, also assign it to Supervisors/Requesters for permit management
-    if (updates.site || updates.site_id) {
-      const siteIdToAssign = updates.site_id || (updates.site ? (await pool.query('SELECT id FROM sites WHERE name = ?', [updates.site]))[0][0]?.id : null);
+    // ============================================================================
+    // ✅ CRITICAL FIX: Handle requester_sites assignments
+    // ============================================================================
 
-      if (siteIdToAssign) {
-        console.log('🏢 Assigning site to Supervisors/Requesters for permit management...');
+    // Get updated users with their LATEST data after the update
+    const [updatedUsers] = await pool.query(
+      `SELECT id, role, site_id FROM users WHERE id IN (${userIds.map(() => '?').join(',')})`,
+      userIds
+    );
 
-        // Get users who were updated and are Supervisors/Requesters
-        const [updatedUsers] = await pool.query(
-          `SELECT id, role FROM users WHERE id IN (${userIds.map(() => '?').join(',')})`,
-          userIds
-        );
+    console.log('\n📊 Processing requester_sites assignments...');
+    let assignedCount = 0;
 
-        let assignedCount = 0;
-        for (const user of updatedUsers) {
-          // Check if user is Supervisor or Requester
-          if (user.role && (user.role.includes('Supervisor') || user.role.includes('Requester'))) {
-            // Check if assignment already exists
-            const [existing] = await pool.query(
-              'SELECT id FROM requester_sites WHERE requester_user_id = ? AND site_id = ?',
-              [user.id, siteIdToAssign]
+    for (const user of updatedUsers) {
+      console.log(`\n👤 Processing user ID ${user.id}:`);
+      console.log(`   Role: ${user.role}`);
+      console.log(`   Site ID: ${user.site_id}`);
+
+      // Check if user has permit-creating roles
+      if (hasPermitRole(user.role)) {
+        console.log(`   ✓ Has permit-creating role`);
+
+        // Use the site from the update if provided, otherwise use user's existing site
+        const targetSiteId = siteIdToAssign || user.site_id;
+
+        if (targetSiteId) {
+          console.log(`   → Assigning to site ID: ${targetSiteId}`);
+
+          // Check if assignment already exists
+          const [existing] = await pool.query(
+            'SELECT id FROM requester_sites WHERE requester_user_id = ? AND site_id = ?',
+            [user.id, targetSiteId]
+          );
+
+          if (existing.length === 0) {
+            // Create assignment
+            await pool.query(
+              'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
+              [user.id, targetSiteId]
             );
-
-            if (existing.length === 0) {
-              // Create assignment
-              await pool.query(
-                'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
-                [user.id, siteIdToAssign]
-              );
-              assignedCount++;
-            }
+            assignedCount++;
+            console.log(`   ✅ Created requester_sites assignment`);
+          } else {
+            console.log(`   ℹ️ Assignment already exists`);
           }
+        } else {
+          console.log(`   ⚠️ No site to assign`);
         }
-
-        if (assignedCount > 0) {
-          console.log(`✅ Assigned ${assignedCount} Supervisor(s)/Requester(s) to site for permit management`);
-        }
+      } else {
+        console.log(`   ✗ No permit-creating role`);
       }
+    }
+
+    if (assignedCount > 0) {
+      console.log(`\n✅ Created ${assignedCount} new requester_sites assignment(s)`);
     }
 
     res.json({
@@ -638,6 +672,179 @@ router.patch('/bulk-update', authorizeAdmin, async (req, res) => {
     });
   }
 });
+
+
+// ============================================================================
+// FIXED: POST /api/users/bulk-import - Bulk create users (Admin only)
+// ============================================================================
+router.post('/bulk-import', authorizeAdmin, async (req, res) => {
+  try {
+    const { users } = req.body;
+
+    console.log('📥 POST /api/users/bulk-import', { count: users?.length });
+
+    if (!users || !Array.isArray(users) || users.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No users provided for import'
+      });
+    }
+
+    const results = {
+      successful: 0,
+      failed: 0,
+      errors: []
+    };
+
+    // Helper function to check if user has permit-creating roles
+    const hasPermitRole = (roleString) => {
+      if (!roleString) return false;
+      const userRoles = roleString.split(',').map(r => r.trim());
+      return userRoles.some(r =>
+        r === 'Supervisor' ||
+        r === 'Requester' ||
+        r.includes('Approver')
+      );
+    };
+
+    // Process each user
+    for (const [index, user] of users.entries()) {
+      try {
+        const { login_id, full_name, email, password, role, department, job_role, site } = user;
+
+        console.log(`\n📝 Processing row ${index + 1}: ${login_id}`);
+
+        // Basic validation
+        if (!login_id || !full_name || !email || !password || !role) {
+          throw new Error(`Row ${index + 1}: Missing required fields (login_id, full_name, email, password, role)`);
+        }
+
+        // Check duplicates
+        const [existing] = await pool.query(
+          'SELECT id, is_active, role FROM users WHERE login_id = ? OR email = ?',
+          [login_id, email]
+        );
+
+        // Get department_id
+        let department_id = null;
+        if (department) {
+          const [deptResult] = await pool.query(
+            'SELECT id FROM departments WHERE name = ?',
+            [department]
+          );
+          if (deptResult.length > 0) {
+            department_id = deptResult[0].id;
+          }
+        }
+
+        // ✅ FIXED: Get site_id from site name
+        let site_id = null;
+        if (site) {
+          const [siteResult] = await pool.query('SELECT id FROM sites WHERE name = ?', [site]);
+          if (siteResult.length > 0) {
+            site_id = siteResult[0].id;
+            console.log(`   ✅ Found site: ${site} -> ID: ${site_id}`);
+          } else {
+            console.log(`   ⚠️ Site not found: ${site}`);
+          }
+        }
+
+        const password_hash = await bcrypt.hash(password, 10);
+
+        if (existing.length > 0) {
+          // Conflict check
+          if (existing.length > 1) {
+            throw new Error(`Row ${index + 1}: Ambiguous match - Login ID and Email match different existing users.`);
+          }
+
+          const existingUser = existing[0];
+
+          // ✅ MERGE ROLES: Combine existing and new roles
+          let mergedRoles = role;
+          if (existingUser.role) {
+            const existingRolesList = existingUser.role.split(',').map(r => r.trim());
+            const newRolesList = role.split(',').map(r => r.trim());
+            const uniqueRoles = new Set([...existingRolesList, ...newRolesList]);
+            mergedRoles = Array.from(uniqueRoles).join(',');
+            console.log(`   🔄 Merging roles: ${existingUser.role} + ${role} = ${mergedRoles}`);
+          }
+
+          // UPDATE existing user
+          await pool.query(
+            `UPDATE users 
+               SET full_name = ?, email = ?, password_hash = ?, role = ?, department_id = ?, site_id = ?, job_role = ?, is_active = TRUE, updated_at = NOW()
+               WHERE id = ?`,
+            [full_name, email, password_hash, mergedRoles, department_id, site_id, job_role || null, existingUser.id]
+          );
+
+          console.log(`   ✅ Updated existing user ID: ${existingUser.id}`);
+
+          // ✅ FIXED: Add to requester_sites if has permit role and site
+          if (hasPermitRole(mergedRoles) && site_id) {
+            const [existingAssignment] = await pool.query(
+              'SELECT id FROM requester_sites WHERE requester_user_id = ? AND site_id = ?',
+              [existingUser.id, site_id]
+            );
+
+            if (existingAssignment.length === 0) {
+              await pool.query(
+                'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
+                [existingUser.id, site_id]
+              );
+              console.log(`   ✅ Added to requester_sites (site: ${site_id})`);
+            } else {
+              console.log(`   ℹ️ Already in requester_sites`);
+            }
+          }
+
+        } else {
+          // ✅ INSERT new user
+          const [result] = await pool.query(
+            `INSERT INTO users (login_id, full_name, email, password_hash, role, department_id, site_id, job_role, is_active, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
+            [login_id, full_name, email, password_hash, role, department_id, site_id, job_role || null]
+          );
+
+          console.log(`   ✅ Created new user ID: ${result.insertId}`);
+
+          // ✅ FIXED: Add to requester_sites if has permit role and site
+          if (hasPermitRole(role) && site_id) {
+            await pool.query(
+              'INSERT INTO requester_sites (requester_user_id, site_id) VALUES (?, ?)',
+              [result.insertId, site_id]
+            );
+            console.log(`   ✅ Added to requester_sites (site: ${site_id})`);
+          }
+        }
+
+        results.successful++;
+
+      } catch (error) {
+        console.error(`   ❌ Error: ${error.message}`);
+        results.failed++;
+        results.errors.push(`Row ${index + 1}: ${error.message}`);
+      }
+    }
+
+    console.log(`\n📊 Import Summary: ${results.successful} successful, ${results.failed} failed`);
+
+    res.json({
+      success: true,
+      message: `Import completed. Successful: ${results.successful}, Failed: ${results.failed}`,
+      data: results
+    });
+
+  } catch (error) {
+    console.error('❌ Error in bulk import:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error importing users',
+      error: error.message
+    });
+  }
+});
+
+
 
 
 // POST /api/users/bulk-import - Bulk create users (Admin only)
