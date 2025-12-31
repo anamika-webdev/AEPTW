@@ -4,7 +4,8 @@
 import { useState, useEffect, useRef } from 'react';
 import {
     ArrowLeft, Save, AlertCircle, FileText, MapPin,
-    Users, Shield, CheckSquare, X, Upload, PenTool
+    Users, Shield, CheckSquare, X, Upload, PenTool,
+    HardHat, Shirt, Hand, Footprints, Glasses, Headphones, Anchor, ShieldCheck
 } from 'lucide-react';
 import { permitsAPI, masterDataAPI, sitesAPI, uploadAPI } from '../../services/api';
 import SignatureCanvas from 'react-signature-canvas';
@@ -772,18 +773,36 @@ export default function EditPTW({ permitId, onBack, onSave }: EditPTWProps) {
                             <CheckSquare className="w-5 h-5" />
                             Personal Protective Equipment (PPE)
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            {ppe.map(ppeItem => (
-                                <label key={ppeItem.id} className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.selectedPPE.includes(ppeItem.id)}
-                                        onChange={() => togglePPE(ppeItem.id)}
-                                        className="w-4 h-4 text-blue-600"
-                                    />
-                                    <span className="text-sm text-slate-700">{ppeItem.name}</span>
-                                </label>
-                            ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {ppe.map(ppeItem => {
+                                const name = (ppeItem.name || '').toLowerCase();
+                                let Icon = Shield;
+                                let color = 'text-orange-600';
+
+                                if (name.includes('helmet')) { Icon = HardHat; color = 'text-orange-600'; }
+                                else if (name.includes('vest')) { Icon = Shirt; color = 'text-yellow-600'; }
+                                else if (name.includes('glove')) { Icon = Hand; color = 'text-blue-600'; }
+                                else if (name.includes('boot') || name.includes('shoe')) { Icon = Footprints; color = 'text-amber-700'; }
+                                else if (name.includes('goggle') || name.includes('glasses')) { Icon = Glasses; color = 'text-cyan-600'; }
+                                else if (name.includes('mask')) { Icon = ShieldCheck; color = 'text-green-600'; }
+                                else if (name.includes('ear')) { Icon = Headphones; color = 'text-purple-600'; }
+                                else if (name.includes('harness')) { Icon = Anchor; color = 'text-slate-600'; }
+
+                                return (
+                                    <label key={ppeItem.id} className={`flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 cursor-pointer transition-all ${formData.selectedPPE.includes(ppeItem.id) ? 'border-blue-300 bg-blue-50' : 'border-slate-200'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.selectedPPE.includes(ppeItem.id)}
+                                            onChange={() => togglePPE(ppeItem.id)}
+                                            className="w-4 h-4 text-blue-600"
+                                        />
+                                        <div className={`p-1.5 rounded-full bg-white shadow-sm ${color}`}>
+                                            <Icon className="w-5 h-5" />
+                                        </div>
+                                        <span className="text-sm font-medium text-slate-700">{ppeItem.name}</span>
+                                    </label>
+                                );
+                            })}
                         </div>
                     </div>
 

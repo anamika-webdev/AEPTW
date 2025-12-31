@@ -18,12 +18,15 @@ export interface User {
   role: UserRole | string; // Allow string for database flexibility
   department?: string | null;
   department_id?: number | null;
-  job_role?: string | null;
+  department_name?: string;
+  site_id?: number;
+  site_name?: string;
+  job_role?: string;
   contact?: string | null;
-  phone?: string | null; // Added for compatibility
+  phone?: string;
   signature_url?: string | null;
   is_active?: boolean;
-  created_at: string;
+  created_at?: string;
 }
 
 // Site Types

@@ -4,6 +4,7 @@
 const cron = require('node-cron');
 const db = require('../config/database');
 const { createNotification } = require('../utils/notificationUtils');
+const emailService = require('./emailService');
 
 const initScheduler = () => {
     console.log('⏰ Initializing Cron Scheduler for PTW Notifications...');
@@ -24,8 +25,11 @@ const initScheduler = () => {
                     p.start_time, 
                     p.created_by_user_id,
                     p.work_location,
+                    u.full_name as user_name,
+                    u.email as user_email,
                     TIMESTAMPDIFF(MINUTE, NOW(), p.start_time) as minutes_until_start
                 FROM permits p
+                JOIN users u ON p.created_by_user_id = u.id
                 WHERE p.status IN ('Approved', 'Active')
                 AND p.start_time BETWEEN DATE_ADD(NOW(), INTERVAL 29 MINUTE) 
                                      AND DATE_ADD(NOW(), INTERVAL 31 MINUTE)
@@ -57,7 +61,18 @@ const initScheduler = () => {
                         permit.id
                     );
 
-                    console.log(`✅ Sent START reminder for ${permit.permit_serial} (${permit.minutes_until_start} mins away)`);
+                    // Send Email Reminder
+                    if (permit.user_email) {
+                        await emailService.sendPTWStartReminder({
+                            recipientEmail: permit.user_email,
+                            recipientName: permit.user_name || 'Supervisor',
+                            permitSerial: permit.permit_serial,
+                            startTime: permit.start_time,
+                            location: permit.work_location
+                        });
+                    }
+
+                    console.log(`✅ Sent START reminder and EMAIL for ${permit.permit_serial} (${permit.minutes_until_start} mins away)`);
                 }
             }
 
@@ -70,8 +85,11 @@ const initScheduler = () => {
                     p.end_time, 
                     p.created_by_user_id,
                     p.work_location,
+                    u.full_name as user_name,
+                    u.email as user_email,
                     TIMESTAMPDIFF(MINUTE, NOW(), p.end_time) as minutes_until_end
                 FROM permits p
+                JOIN users u ON p.created_by_user_id = u.id
                 WHERE p.status = 'Active' 
                 AND p.end_time BETWEEN DATE_ADD(NOW(), INTERVAL 29 MINUTE) 
                                    AND DATE_ADD(NOW(), INTERVAL 31 MINUTE)
@@ -103,7 +121,18 @@ const initScheduler = () => {
                         permit.id
                     );
 
-                    console.log(`⚠️  Sent EXPIRY reminder for ${permit.permit_serial} (${permit.minutes_until_end} mins remaining)`);
+                    // Send Email Reminder
+                    if (permit.user_email) {
+                        await emailService.sendPTWExpiryReminder({
+                            recipientEmail: permit.user_email,
+                            recipientName: permit.user_name || 'Supervisor',
+                            permitSerial: permit.permit_serial,
+                            endTime: permit.end_time,
+                            isCritical: false
+                        });
+                    }
+
+                    console.log(`⚠️  Sent EXPIRY reminder and EMAIL for ${permit.permit_serial} (${permit.minutes_until_end} mins remaining)`);
                 }
             }
 
@@ -116,8 +145,11 @@ const initScheduler = () => {
                     p.end_time, 
                     p.created_by_user_id,
                     p.work_location,
+                    u.full_name as user_name,
+                    u.email as user_email,
                     TIMESTAMPDIFF(MINUTE, NOW(), p.end_time) as minutes_until_end
                 FROM permits p
+                JOIN users u ON p.created_by_user_id = u.id
                 WHERE p.status = 'Active' 
                 AND p.end_time BETWEEN DATE_ADD(NOW(), INTERVAL 9 MINUTE) 
                                    AND DATE_ADD(NOW(), INTERVAL 11 MINUTE)
@@ -149,7 +181,18 @@ const initScheduler = () => {
                         permit.id
                     );
 
-                    console.log(`🚨 Sent CRITICAL EXPIRY reminder for ${permit.permit_serial} (${permit.minutes_until_end} mins remaining)`);
+                    // Send Email Reminder
+                    if (permit.user_email) {
+                        await emailService.sendPTWExpiryReminder({
+                            recipientEmail: permit.user_email,
+                            recipientName: permit.user_name || 'Supervisor',
+                            permitSerial: permit.permit_serial,
+                            endTime: permit.end_time,
+                            isCritical: true
+                        });
+                    }
+
+                    console.log(`🚨 Sent CRITICAL EXPIRY reminder and EMAIL for ${permit.permit_serial} (${permit.minutes_until_end} mins remaining)`);
                 }
             }
 
@@ -161,8 +204,11 @@ const initScheduler = () => {
                     p.permit_serial, 
                     p.end_time, 
                     p.created_by_user_id,
+                    u.full_name as user_name,
+                    u.email as user_email,
                     TIMESTAMPDIFF(MINUTE, p.end_time, NOW()) as minutes_expired
                 FROM permits p
+                JOIN users u ON p.created_by_user_id = u.id
                 WHERE p.status = 'Active' 
                 AND p.end_time < NOW()
             `;
@@ -170,7 +216,7 @@ const initScheduler = () => {
             const [expiredPermits] = await db.query(expiredQuery);
 
             if (expiredPermits.length > 0) {
-                console.log(`🔴 Found ${expiredPermits.length} expired permit(s) - auto-closing`);
+                console.log(`🔴 Found ${expiredPermits.length} expired permit(s) - auto - closing`);
             }
 
             for (const permit of expiredPermits) {
@@ -190,7 +236,21 @@ const initScheduler = () => {
                     permit.id
                 );
 
-                console.log(`⛔ Auto-closed expired permit ${permit.permit_serial}`);
+                // Send Email Notification
+                if (permit.user_email) {
+                    await emailService.sendPTWClosed({
+                        recipientEmail: permit.user_email,
+                        recipientName: permit.user_name || 'Supervisor',
+                        permitSerial: permit.permit_serial,
+                        closedBy: 'System (Auto-close)',
+                        permitDetails: {
+                            workType: 'Expired',
+                            site: 'Check dashboard'
+                        }
+                    });
+                }
+
+                console.log(`⛔ Auto - closed expired permit ${permit.permit_serial} and sent EMAIL`);
             }
 
             // Log summary if no notifications sent

@@ -1,7 +1,7 @@
 
 // src/components/supervisor/CreatePTW.tsx - COMPLETE UPDATED VERSION WITH FIXES
 import { useState, useEffect, useCallback, memo } from 'react';
-import { ArrowLeft, FileText, Check, AlertTriangle, X, Camera, Clock, MapPin, ImageIcon } from 'lucide-react';
+import { ArrowLeft, FileText, Check, AlertTriangle, X, Camera, Clock, MapPin, ImageIcon, Lightbulb, HardHat, Shirt, Hand, Footprints, Glasses, Headphones, Anchor, ShieldCheck } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -28,7 +28,8 @@ import type {
   MasterChecklistQuestion,
   PermitType,
   WorkerRole,
-  ChecklistResponse
+  ChecklistResponse,
+  MasterHazard
 } from '../../types';
 
 interface CreatePTWProps {
@@ -47,6 +48,13 @@ interface Evidence {
   description: string;
 }
 
+interface TrainingEvidence {
+  id: string;
+  file: File;
+  preview: string;
+  caption?: string;
+}
+
 interface PTWFormData {
   evidences: Evidence[];
   selectedHazards: number[];
@@ -56,6 +64,8 @@ interface PTWFormData {
   swmsFile: File | null;
   swmsText: string;
   swmsMode: 'file' | 'text';
+  selectedControlMeasures: number[];
+  otherControlMeasures: string;
   // Add other missing fields to this interface or rely on state initialization inference if this interface is incomplete
   [key: string]: any;
 }
@@ -71,7 +81,9 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   // Master data
   const [sites, setSites] = useState<Site[]>([]);
   const [workers, setWorkers] = useState<User[]>([]);
+  const [hazards, setHazards] = useState<MasterHazard[]>([]);
   const [checklistQuestions, setChecklistQuestions] = useState<MasterChecklistQuestion[]>([]);
+  const [userDepartmentId, setUserDepartmentId] = useState<number | null>(null);
   // Approvers
   const [areaOwners, setAreaOwners] = useState<User[]>([]);
   const [safetyOfficers, setSafetyOfficers] = useState<User[]>([]);
@@ -88,7 +100,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     trainingEvidences: TrainingEvidence[];  // ⭐ ADD THIS LINE
   }>>([]);
 
-  const [formData, setFormData] = useState<PTWFormData>({
+  const initialFormData: PTWFormData = {
     categories: [] as PermitType[],
     site_id: 0,
     location: '',
@@ -108,6 +120,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     swmsFile: null as File | null,
     swmsText: '',
     swmsMode: 'file' as 'file' | 'text',
+    selectedControlMeasures: [] as number[],
+    otherControlMeasures: '',
 
     issuedToName: '',
     issuedToContact: '',
@@ -120,13 +134,32 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     checklistTextResponses: {} as Record<number, string>,
 
     // Approver IDs
-    area_owner_id: 0 as number | string,
+    area_manager_id: 0 as number | string,
     safety_officer_id: 0 as number | string,
     site_leader_id: 0 as number | string,
 
     declaration: false,
-  });
+  };
 
+  const [formData, setFormData] = useState<PTWFormData>(initialFormData);
+
+  // Sync controlMeasures string for backend compatibility
+  useEffect(() => {
+    const selectedMeasuresText = checklistQuestions
+      .filter(q => formData.selectedControlMeasures.includes(q.id))
+      .map(q => `- ${q.question_text}`)
+      .join('\n');
+
+    const othersText = formData.otherControlMeasures.trim();
+    const finalMeasures = [selectedMeasuresText, othersText ? `Others:\n${othersText}` : '']
+      .filter(t => t.trim().length > 0)
+      .join('\n\n');
+
+    setFormData(prev => ({
+      ...prev,
+      controlMeasures: finalMeasures
+    }));
+  }, [formData.selectedControlMeasures, formData.otherControlMeasures, checklistQuestions]);
 
 
   // Geolocation function
@@ -248,8 +281,19 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         setFormData(prev => ({
           ...prev,
           permitInitiator: currentUser.full_name || currentUser.name || '',
-          permitInitiatorContact: currentUser.email || ''
+          permitInitiatorContact: currentUser.email || '',
+          site_id: currentUser.site_id || prev.site_id
         }));
+
+        // If site_id exists, load its approvers immediately
+        if (currentUser.site_id) {
+          loadSiteApprovers(currentUser.site_id);
+        }
+
+        // Store department ID
+        if (currentUser.department) {
+          setUserDepartmentId(parseInt(currentUser.department));
+        }
       } catch (error) {
         console.error('Error parsing user data:', error);
       }
@@ -257,7 +301,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
   }, []);
 
   useEffect(() => {
-    loadCorrectChecklistQuestions();
+    // loadCorrectChecklistQuestions(); - REMOVED: Using database data now
   }, []);
 
   const loadMasterData = async () => {
@@ -265,8 +309,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     try {
       console.log('🔄 Loading master data from admin database...');
 
-      const [sitesRes, hazardsRes, ppeRes, workersRes] = await Promise.all([
-        sitesAPI.getAll().catch(err => {
+      const [sitesRes, hazardsRes, ppeRes, workersRes, questionsRes] = await Promise.all([
+        sitesAPI.getAll({ assignedOnly: true }).catch(err => {
           console.error('❌ Sites API error:', err);
           return { success: false, data: [] };
         }),
@@ -278,39 +322,40 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           console.error('❌ PPE API error:', err);
           return { success: false, data: [] };
         }),
-        usersAPI.getWorkers().catch(err => {
+        usersAPI.getWorkers({ assignedOnly: true }).catch(err => {
           console.error('❌ Workers API error:', err);
+          return { success: false, data: [] };
+        }),
+        masterDataAPI.getChecklistQuestions().catch(err => {
+          console.error('❌ Questions API error:', err);
           return { success: false, data: [] };
         }),
       ]);
 
       console.log('📍 Sites API Response:', sitesRes);
-      // ⭐ MODIFIED: Handle sites with auto-prefill logic
+
       if (sitesRes.success && sitesRes.data) {
         const sitesList = Array.isArray(sitesRes.data) ? sitesRes.data : [];
-        console.log(`✅ Sites loaded: ${sitesList.length} `);
+        console.log(`✅ Sites loaded: ${sitesList.length}`);
         setSites(sitesList);
 
-        // ⭐ NEW: Auto-prefill if only 1 site is assigned
+        // Get user's site from session
+        const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+        const currentUser = userStr ? JSON.parse(userStr) : null;
+        const userSiteId = currentUser?.site_id;
 
-        if (sitesList.length === 1) {
-          console.log('✅ Auto-selecting single site:', sitesList[0].name);
-          setFormData(prev => ({
-            ...prev,
-            site_id: sitesList[0].id
-          }));
-
-          // ⭐ ALSO load approvers for the auto-selected site
+        // Priority 1: User's assigned site from session
+        if (userSiteId && sitesList.find(s => s.id === userSiteId)) {
+          console.log('✅ Pre-filling user assigned site:', userSiteId);
+          setFormData(prev => ({ ...prev, site_id: userSiteId }));
+          loadSiteApprovers(userSiteId);
+        }
+        // Priority 2: Auto-prefill if only 1 site is available in the list
+        else if (sitesList.length === 1) {
+          console.log('✅ Auto-selecting only available site:', sitesList[0].name);
+          setFormData(prev => ({ ...prev, site_id: sitesList[0].id }));
           loadSiteApprovers(sitesList[0].id);
         }
-        else if (sitesList.length > 1) {
-          console.log(`📋 ${sitesList.length} sites available - user must select`);
-        } else {
-          console.warn('⚠️ No sites assigned to this user');
-        }
-      } else {
-        console.warn('⚠️ Sites not loaded');
-        setSites([]);
       }
 
       // ✅ FIXED: Proper null checks and array validation
@@ -324,9 +369,10 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
       if (hazardsRes.success && hazardsRes.data) {
         console.log('✅ Hazards loaded:', hazardsRes.data.length);
-        // Hazards data loaded but not stored in state (not currently used in UI)
+        setHazards(Array.isArray(hazardsRes.data) ? hazardsRes.data : []);
       } else {
         console.warn('⚠️ Hazards not loaded');
+        setHazards([]);
       }
 
       if (ppeRes.success && ppeRes.data) {
@@ -344,6 +390,14 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         setWorkers([]);
       }
 
+      if (questionsRes.success && questionsRes.data) {
+        console.log('✅ Checklist questions loaded:', questionsRes.data.length);
+        const questionsList = Array.isArray(questionsRes.data) ? questionsRes.data : [];
+        setChecklistQuestions(questionsList);
+      } else {
+        console.warn('⚠️ Checklist questions not loaded');
+        setChecklistQuestions([]);
+      }
       // ✅ FIXED: Don't show error if at least some data loaded
       const hasData = sitesRes.success || hazardsRes.success || ppeRes.success || workersRes.success;
       if (!hasData) {
@@ -415,7 +469,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         // Auto-fill approver fields
         setFormData(prev => ({
           ...prev,
-          area_owner_id: siteApprovers.area_manager_id || 0,
+          area_manager_id: siteApprovers.area_manager_id || 0,
           safety_officer_id: siteApprovers.safety_officer_id || 0,
           site_leader_id: siteApprovers.site_leader_id || 0
         }));
@@ -430,7 +484,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         // Clear approver fields if no approvers found
         setFormData(prev => ({
           ...prev,
-          area_owner_id: 0,
+          area_manager_id: 0,
           safety_officer_id: 0,
           site_leader_id: 0
         }));
@@ -439,86 +493,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       console.error('❌ Error loading site approvers:', error);
     }
   };
-  const loadCorrectChecklistQuestions = () => {
-    const correctQuestions: Record<PermitType, Array<{ question: string; isTextInput: boolean }>> = {
-      'General': [
-        { question: 'Job Location has been checked and verified to conduct the activity.', isTextInput: false },
-        { question: 'Area has been barricaded to eliminate the possibilities of unauthorized entry.', isTextInput: false },
-        { question: 'Caution board has been displayed.', isTextInput: false },
-        { question: "PPE's available as per job requirement.", isTextInput: false },
-        { question: 'Information of work has been communicated to the affected team.', isTextInput: false },
-        { question: 'Tools to be inspected for safe use.', isTextInput: false },
-      ],
-      'Hot_Work': [
-        { question: 'No hot work to be carried out at site during fire impairment.', isTextInput: false },
-        { question: 'Area barricade.', isTextInput: false },
-        { question: 'Authorize/Certified welder', isTextInput: false },
-        { question: 'Area clearance of 11mt', isTextInput: false },
-        { question: 'Fire Blanket availability', isTextInput: false },
-        { question: 'Fire Extinguisher availability (CO2/DCP)', isTextInput: false },
-        { question: 'No flammable and combustible material in the vicinity of hot work', isTextInput: false },
-        { question: 'Welding machine earthing to be ensured', isTextInput: false },
-        { question: 'Face shield, welding gloves, apron must be provided to welder.', isTextInput: false },
-        { question: 'Cable condition to be checked.', isTextInput: false },
-        { question: 'Fire watcher/fire fighter/first aider/AED certified person availability', isTextInput: false },
-      ],
-      'Electrical': [
-        { question: 'Area Barricade', isTextInput: false },
-        { question: 'Wiremen License', isTextInput: false },
-        { question: 'Supervisory License', isTextInput: false },
-        { question: 'Approved "A" class contractor.', isTextInput: false },
-        { question: "Electrical approved PPE's", isTextInput: false },
-        { question: 'De-energized of electrical equipment.', isTextInput: false },
-        { question: 'LOTO', isTextInput: false },
-        { question: 'Fire fighter/first aider/AED certified person availability', isTextInput: false },
-        { question: 'Insulated tools provided.', isTextInput: false },
-      ],
-      'Height': [
-        { question: 'Area Barricade', isTextInput: false },
-        { question: 'Vertigo (Height Phobia)/Acrophobic', isTextInput: false },
-        { question: 'Pre use inspection of scaffolding/full body harness/ A type ladder / FRP ladder/ Scissor lift/Boom lift/Hydra/Crane.', isTextInput: false },
-        { question: 'TPI certificate lifting tools and tackles', isTextInput: false },
-        { question: "PPE's must be inspected and certified.", isTextInput: false },
-        { question: 'Anchorage point availability', isTextInput: false },
-        { question: 'Rescue plan available.', isTextInput: false },
-        { question: 'Supervision available.', isTextInput: false },
-        { question: 'Bottom support of ladders/scaffolding to be available.', isTextInput: false },
-      ],
-      'Confined_Space': [
-        { question: 'Area Barricade', isTextInput: false },
-        { question: 'Person NOT Claustrophobic', isTextInput: false },
-        { question: 'Confined Space Number & Name', isTextInput: false },
-        { question: 'LEL Checking', isTextInput: false },
-        { question: 'Flameproof handlamp provided (if requirement)', isTextInput: false },
-        { question: 'Force air ventilation provided (if required)', isTextInput: false },
-        { question: 'O2 Level (19.5 To 23.5%)', isTextInput: false },
-        { question: 'CO & H2S Value', isTextInput: false },
-        { question: 'Tripod stand availability.', isTextInput: false },
-        { question: 'Service/Area and energy isolation', isTextInput: false },
-        { question: 'Mechanical equipment lockout', isTextInput: false },
-        { question: 'Rescue plan available', isTextInput: false },
-        { question: 'GFCI provided for electrical tools', isTextInput: false },
-      ],
-    };
 
-    const allQuestions: MasterChecklistQuestion[] = [];
-    let idCounter = 1;
-
-    (['General', 'Hot_Work', 'Electrical', 'Height', 'Confined_Space'] as PermitType[]).forEach(category => {
-      correctQuestions[category].forEach(({ question, isTextInput }) => {
-        allQuestions.push({
-          id: idCounter++,
-          permit_type: category,
-          question_text: question,
-          is_mandatory: true,
-          response_type: isTextInput ? 'text' : 'yes_no'
-        });
-      });
-    });
-
-    console.log('✅ Loaded correct checklist questions:', allQuestions.length);
-    setChecklistQuestions(allQuestions);
-  };
 
   const toggleCategory = (category: PermitType) => {
     setFormData(prev => ({
@@ -637,8 +612,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       }
     }
 
-    // Step 2: Workers Validation
-    if (currentStep === 2) {
+    // Step 6: Issued To & Workers Validation (Moved from Step 2)
+    if (currentStep === 6) {
       if (!formData.issuedToName.trim()) {
         alert('Please enter Vendor Name (Issued To)');
         return;
@@ -678,8 +653,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
     // ⭐ VALIDATION FOR SUBSEQUENT STEPS ⭐
 
-    // Step 3: Hazards Validation
-    if (currentStep === 3) {
+    // Step 2: Hazards Validation (Moved from Step 3)
+    if (currentStep === 2) {
       if (formData.selectedHazards.length === 0) {
         alert('Please select at least one hazard');
         return;
@@ -690,8 +665,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       }
     }
 
-    // Step 4: PPE & SWMS Validation
-    if (currentStep === 4) {
+    // Step 3: PPE & SWMS Validation (Moved from Step 4)
+    if (currentStep === 3) {
       if (formData.selectedPPE.length === 0) {
         alert('Please select at least one PPE');
         return;
@@ -706,8 +681,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       }
     }
 
-    // Step 5: Checklist Validation - DYNAMIC BASED ON PERMIT TYPE
-    if (currentStep === 5) {
+    // Step 4: Checklist Validation (Moved from Step 5)
+    if (currentStep === 4) {
       if (!formData.categories || formData.categories.length === 0) {
         alert('Please select at least one permit category in Step 1');
         return;
@@ -761,14 +736,6 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       // 4. Hot Work Specific
       if (isHotWork) {
         if (!validateField(500, 'Fire Watcher Name', 4500)) return;
-        // Fire Fighter Availability Checkbox (503)
-        // If we treat 503 as "Are they available?", we might want to check it.
-        // PersonnelFields sets it to 'Yes'/'No'.
-        // If checking 'Yes' is mandatory:
-        // if (formData.checklistTextResponses[503] !== 'Yes') {
-        //   alert('Fire Fighter Available on Site must be checked for Hot Work');
-        //   return;
-        // }
       }
 
       // 5. Confined Space Specific
@@ -802,10 +769,11 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
       }
     }
 
-    // Step 6: Approvers Validation
-    if (currentStep === 6) {
-      if (!formData.area_manager_id) {
-        alert('Please select Area Manager');
+    // Step 5: Approvers Validation (Moved from Step 6)
+    if (currentStep === 5) {
+      const selectedAM = formData.area_manager_id;
+      if (!selectedAM || selectedAM === 0 || selectedAM === '0') {
+        alert(`Please select Area Owner (Current ID: ${selectedAM})`);
         return;
       }
       if (requiresSiteLeaderApproval && !formData.site_leader_id) {
@@ -1096,13 +1064,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
     textValue?: string;
     onTextChange?: (value: string) => void;
   }
-  //  Training Evidence Interface
-  interface TrainingEvidence {
-    id: string;
-    file: File;
-    preview: string;
-    caption?: string;
-  }
+
 
   // ALTERNATIVE FIX: Uncontrolled input with ref (no re-render issues)
   const RequirementRow = memo(({
@@ -1326,7 +1288,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <div className="flex items-start gap-3 p-4 mt-3 border-2 border-red-200 rounded-lg bg-red-50">
                   <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-red-900">⚠️ Site Leader Approval Required</p>
+                    <p className="font-semibold text-red-900">Site Leader Approval Required</p>
                     <p className="text-sm text-red-700">
                       You've selected {selectedHighRiskCount} high-risk permit types. This requires approval from a Site Leader in addition to Area Manager and Safety Officer.
                     </p>
@@ -1342,8 +1304,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                   Site *
                   {/* Show indicator for single site auto-selection */}
                   {sites.length === 1 && (
-                    <span className="ml-2 text-xs text-green-600 font-normal">
-                      ✓ Auto-selected (only 1 site assigned)
+                    <span className="ml-2 text-xs text-green-600 font-normal flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Auto-selected (only 1 site assigned)
                     </span>
                   )}
                 </Label>
@@ -1374,7 +1336,9 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                             <span>Code: {sites[0].site_code}</span>
                           )}
                           {sites[0].location && (
-                            <span>• {sites[0].location}</span>
+                            <span className="flex items-center gap-1">
+                              <span className="text-slate-400">|</span> {sites[0].location}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1559,304 +1523,9 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
           </div>
         )}
 
-        {/* STEP 2: Issued To & Workers */}
+
+        {/* STEP 2: Hazards & Control Measures */}
         {currentStep === 2 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-900">Issued To & Workers Assignment</h2>
-
-            <div className="p-6 space-y-4 border-2 border-orange-200 rounded-lg bg-orange-50">
-              <h3 className="flex items-center gap-2 font-medium text-slate-900">
-                <FileText className="w-5 h-5 text-orange-600" />
-                Issued To (Permit Recipient)
-              </h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="issuedToName">Vendor Name *</Label>
-                  <Input
-                    id="issuedToName"
-                    value={formData.issuedToName}
-                    onChange={(e) => setFormData({ ...formData, issuedToName: e.target.value })}
-                    placeholder="e.g., XYZ pvt ltd."
-                    className="bg-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="issuedToContact">Contact Number *</Label>
-                  <Input
-                    id="issuedToContact"
-                    value={formData.issuedToContact}
-                    onChange={(e) => setFormData({ ...formData, issuedToContact: e.target.value })}
-                    placeholder="e.g., +91 9876543210"
-                    className="bg-white"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900">Workers Assignment</h3>
-              <p className="text-slate-600">Select the workers who will be performing this work</p>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex items-center gap-4">
-                  <Checkbox
-                    checked={workerSelectionMode === 'existing'}
-                    onCheckedChange={(checked) => setWorkerSelectionMode(checked ? 'existing' : 'new')}
-                  />
-                  <p className="text-sm font-medium text-slate-700">Existing Workers</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <Checkbox
-                    checked={workerSelectionMode === 'new'}
-                    onCheckedChange={(checked) => setWorkerSelectionMode(checked ? 'new' : 'existing')}
-                  />
-                  <p className="text-sm font-medium text-slate-700">Add New Workers</p>
-                </div>
-              </div>
-
-              {workerSelectionMode === 'existing' && (
-                <div className="p-4 overflow-y-auto border rounded-lg border-slate-200 max-h-96">
-                  <div className="space-y-2">
-                    {workers.length > 0 ? (
-                      workers.map((worker) => (
-                        <label
-                          key={worker.id}
-                          className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer border-slate-200 hover:bg-slate-50"
-                        >
-                          <Checkbox
-                            checked={formData.selectedWorkers.includes(worker.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  selectedWorkers: [...prev.selectedWorkers, worker.id]
-                                }));
-                              } else {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  selectedWorkers: prev.selectedWorkers.filter((id: number) => id !== worker.id)
-                                }));
-                              }
-                            }}
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-slate-900">{worker.full_name}</p>
-                            <p className="text-xs text-slate-500">{worker.email}</p>
-                          </div>
-                        </label>
-                      ))
-                    ) : (
-                      <p className="text-sm text-center text-slate-500">No workers available. Please add new workers below.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {workerSelectionMode === 'new' && (
-                <div className="space-y-4">
-                  <Button onClick={addNewWorker} variant="outline" className="gap-2" type="button">
-                    <FileText className="w-4 h-4" />
-                    Add New Worker
-                  </Button>
-
-                  {/* Display Added Workers with Input Fields + Training Evidence */}
-                  {newWorkers.length > 0 && (
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-slate-900">
-                        Added Workers ({newWorkers.length})
-                      </h4>
-
-                      {newWorkers.map((worker, index) => (
-                        <div
-                          key={index}
-                          className="p-6 border-2 rounded-lg border-slate-200 bg-slate-50 space-y-4"
-                        >
-                          {/* Worker Info Header with Delete Button */}
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h5 className="font-semibold text-slate-900">
-                                {worker.name || `New Worker ${index + 1}`}
-                              </h5>
-                              <p className="text-sm text-slate-600">{worker.role}</p>
-                            </div>
-                            <Button
-                              onClick={() => removeNewWorker(index)}
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-
-                          {/* ✅ WORKER INPUT FIELDS - THIS WAS MISSING */}
-                          <div className="grid gap-4 md:grid-cols-2">
-                            {/* Name Input */}
-                            <div>
-                              <Label>Worker Name *</Label>
-                              <Input
-                                value={worker.name}
-                                onChange={(e) => updateNewWorker(index, 'name', e.target.value)}
-                                placeholder="Full name"
-                                className="bg-white"
-                              />
-                            </div>
-
-                            {/* Role Select */}
-                            <div>
-                              <Label>Role *</Label>
-                              <Select
-                                value={worker.role}
-                                onValueChange={(value) => updateNewWorker(index, 'role', value)}
-                              >
-                                <SelectTrigger className="bg-white">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Technician">Technician</SelectItem>
-                                  <SelectItem value="Contract_Worker">Contract Worker</SelectItem>
-                                  <SelectItem value="Supervisor">Supervisor</SelectItem>
-                                  <SelectItem value="Engineer">Engineer</SelectItem>
-                                  <SelectItem value="Worker">Worker</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Company Name Input */}
-                            <div>
-                              <Label>Company Name *</Label>
-                              <Input
-                                value={worker.companyName}
-                                onChange={(e) => updateNewWorker(index, 'companyName', e.target.value)}
-                                placeholder="Company name"
-                                className="bg-white"
-                              />
-                            </div>
-
-                            {/* Phone Input */}
-                            <div>
-                              <Label>Phone Number *</Label>
-                              <Input
-                                value={worker.phone}
-                                onChange={(e) => updateNewWorker(index, 'phone', e.target.value)}
-                                placeholder="+91 XXXXXXXXXX"
-                                className="bg-white"
-                              />
-                            </div>
-
-                            {/* Email Input - Full Width */}
-                            <div className="md:col-span-2">
-                              <Label>Email</Label>
-                              <Input
-                                type="email"
-                                value={worker.email}
-                                onChange={(e) => updateNewWorker(index, 'email', e.target.value)}
-                                placeholder="email@example.com"
-                                className="bg-white"
-                              />
-                            </div>
-                          </div>
-
-                          {/* ⭐ TRAINING EVIDENCE UPLOAD SECTION */}
-                          <div className="mt-4 p-4 border-2 border-dashed rounded-lg border-green-300 bg-green-50">
-                            {/* Header with Upload Button */}
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <Camera className="w-5 h-5 text-green-600" />
-                                <h6 className="font-medium text-slate-900">
-                                  Training Evidence / Certificate
-                                </h6>
-                              </div>
-                              <Button
-                                onClick={() => {
-                                  setCurrentWorkerIndex(index);
-                                  setCaptureType('worker');
-                                  setShowCameraModal(true);
-                                }}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-                              >
-                                <Camera className="w-4 h-4" />
-                                Take Photo
-                              </Button>
-                            </div>
-
-                            {/* Evidence Count / Status */}
-                            {worker.trainingEvidences && worker.trainingEvidences.length > 0 ? (
-                              <p className="text-sm text-green-700 mb-3">
-                                {worker.trainingEvidences.length} image(s) uploaded
-                              </p>
-                            ) : (
-                              <p className="text-sm text-slate-600 mb-3">
-                                No training evidence uploaded yet. Upload training certificates or photos.
-                              </p>
-                            )}
-
-                            {/* Evidence Thumbnails Grid */}
-                            {worker.trainingEvidences && worker.trainingEvidences.length > 0 && (
-                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-3">
-                                {worker.trainingEvidences.map((evidence) => (
-                                  <div
-                                    key={evidence.id}
-                                    className="relative group bg-white border-2 border-slate-200 rounded-lg overflow-hidden"
-                                  >
-                                    {/* Image Preview */}
-                                    <div className="relative aspect-square">
-                                      <img
-                                        src={evidence.preview}
-                                        alt="Training evidence"
-                                        className="w-full h-full object-cover"
-                                      />
-                                      {/* Delete Button Overlay */}
-                                      <button
-                                        onClick={() => handleRemoveTrainingEvidence(index, evidence.id)}
-                                        className="absolute top-2 right-2 w-8 h-8 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
-                                        type="button"
-                                      >
-                                        <X className="w-4 h-4 text-white" />
-                                      </button>
-                                    </div>
-
-                                    {/* Caption Input */}
-                                    <div className="p-2">
-                                      <Input
-                                        value={evidence.caption || ''}
-                                        onChange={(e) =>
-                                          handleUpdateEvidenceCaption(index, evidence.id, e.target.value)
-                                        }
-                                        placeholder="Add caption..."
-                                        className="text-xs"
-                                      />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Upload Instructions */}
-                            <div className="flex items-start gap-2 p-3 bg-green-100 rounded">
-                              <ImageIcon className="w-4 h-4 text-green-700 flex-shrink-0 mt-0.5" />
-                              <div className="text-xs text-green-800">
-                                <p className="font-medium">Upload Guidelines:</p>
-                                <ul className="list-disc list-inside mt-1 space-y-0.5">
-                                  <li>Use camera to capture clear photos</li>
-                                  <li>Ensure good lighting and focus</li>
-                                  <li>Capture training certificates, safety induction proof, or ID cards</li>
-                                </ul>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: Hazards - Side by Side Layout */}
-        {currentStep === 3 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-slate-900">
               Hazard Identification & Control Measures
@@ -1864,7 +1533,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* LEFT: Hazard Identification */}
-              <div className="p-6 border-2 border-orange-200 rounded-xl bg-orange-50">
+              <div className="p-6 border-2 border-orange-200 rounded-xl bg-orange-50 flex flex-col h-full">
                 <h3 className="mb-4 text-lg font-semibold text-orange-900">
                   Identified Hazards *
                 </h3>
@@ -1873,27 +1542,27 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 </p>
 
                 <div className="space-y-3">
-                  {[
-                    'Fall from height',
-                    'Electrical shock',
-                    'Fire hazard',
-                    'Toxic gases',
-                    'Slips and trips',
-                    'Moving machinery',
-                    'Hot surfaces',
-                    'Confined space',
-                  ].map((hazard, index) => (
+                  {(hazards.length > 0 ? hazards : [
+                    { id: 1, hazard_name: 'Fall from height' },
+                    { id: 2, hazard_name: 'Electrical shock' },
+                    { id: 3, hazard_name: 'Fire hazard' },
+                    { id: 4, hazard_name: 'Toxic gases' },
+                    { id: 5, hazard_name: 'Slips and trips' },
+                    { id: 6, hazard_name: 'Moving machinery' },
+                    { id: 7, hazard_name: 'Hot surfaces' },
+                    { id: 8, hazard_name: 'Confined space' },
+                  ]).map((hazard) => (
                     <label
-                      key={index}
-                      className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedHazards.includes(index + 1)
+                      key={hazard.id}
+                      className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedHazards.includes(hazard.id)
                         ? 'border-orange-500 bg-white shadow-md'
                         : 'border-orange-200 hover:border-orange-300 bg-white'
                         }`}
                     >
                       <Checkbox
-                        checked={formData.selectedHazards.includes(index + 1)}
+                        checked={formData.selectedHazards.includes(hazard.id)}
                         onCheckedChange={() => {
-                          const hazardId = index + 1;
+                          const hazardId = hazard.id;
                           setFormData((prev) => ({
                             ...prev,
                             selectedHazards: prev.selectedHazards.includes(hazardId)
@@ -1903,7 +1572,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                         }}
                       />
                       <span className="text-sm font-medium text-slate-800">
-                        {hazard}
+                        {hazard.hazard_name || (hazard as any).name}
                       </span>
                     </label>
                   ))}
@@ -1917,22 +1586,13 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {formData.selectedHazards.map((id) => {
-                        const hazardNames = [
-                          'Fall from height',
-                          'Electrical shock',
-                          'Fire hazard',
-                          'Toxic gases',
-                          'Slips and trips',
-                          'Moving machinery',
-                          'Hot surfaces',
-                          'Confined space',
-                        ];
+                        const hazardObj = hazards.find(h => h.id === id);
                         return (
                           <span
                             key={id}
                             className="px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-200 rounded-full"
                           >
-                            {hazardNames[id - 1]}
+                            {hazardObj ? (hazardObj.hazard_name || (hazardObj as any).name) : `Hazard ${id}`}
                           </span>
                         );
                       })}
@@ -1941,8 +1601,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 )}
 
                 {/* Other Hazards */}
-                <div className="mt-4">
-                  <Label htmlFor="otherHazards" className="text-orange-900">
+                <div className="mt-4 flex-1 flex flex-col">
+                  <Label htmlFor="otherHazards" className="text-orange-900 font-semibold mb-2 block">
                     Other Hazards
                   </Label>
                   <Textarea
@@ -1952,54 +1612,106 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                       setFormData({ ...formData, otherHazards: e.target.value })
                     }
                     placeholder="Describe any other hazards..."
-                    rows={4}
-                    className="mt-2"
+                    className="mt-2 flex-1 min-h-[100px] bg-white border-orange-200"
                   />
                 </div>
               </div>
 
               {/* RIGHT: Control Measures */}
-              <div className="p-6 border-2 border-blue-200 rounded-xl bg-blue-50">
+              <div className="p-6 border-2 border-blue-200 rounded-xl bg-blue-50 flex flex-col h-full">
                 <h3 className="mb-4 text-lg font-semibold text-blue-900">
                   Control Measures *
                 </h3>
                 <p className="mb-4 text-sm text-blue-700">
-                  Describe measures to mitigate identified hazards
+                  Select measures to mitigate identified hazards
                 </p>
 
-                <Textarea
-                  id="controlMeasures"
-                  value={formData.controlMeasures}
-                  onChange={(e) =>
-                    setFormData({ ...formData, controlMeasures: e.target.value })
-                  }
-                  placeholder="Examples:
-• Use fall protection equipment
-• Implement lockout/tagout procedures
-• Ensure proper ventilation
-• Use appropriate PPE
-• Establish safety barriers
-• Conduct safety briefings"
-                  rows={20}
-                  className="font-mono text-sm"
-                />
+                <div className="space-y-3 max-h-[400px] overflow-y-auto mb-4 pr-2">
+                  {checklistQuestions
+                    .filter(q => formData.categories.includes(q.permit_type as PermitType))
+                    .map((question) => (
+                      <label
+                        key={question.id}
+                        className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.selectedControlMeasures.includes(question.id)
+                          ? 'border-blue-500 bg-white shadow-md'
+                          : 'border-blue-200 hover:border-blue-300 bg-white'
+                          }`}
+                      >
+                        <Checkbox
+                          checked={formData.selectedControlMeasures.includes(question.id)}
+                          onCheckedChange={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              selectedControlMeasures: prev.selectedControlMeasures.includes(question.id)
+                                ? prev.selectedControlMeasures.filter((id) => id !== question.id)
+                                : [...prev.selectedControlMeasures, question.id],
+                            }));
+                          }}
+                        />
+                        <span className="text-sm font-medium text-slate-800">
+                          {question.question_text}
+                        </span>
+                      </label>
+                    ))}
 
-                <div className="p-3 mt-4 border-2 border-blue-300 rounded-lg bg-blue-100">
-                  <p className="text-sm font-semibold text-blue-900">
-                    💡 Safety Note:
-                  </p>
-                  <p className="mt-1 text-xs text-blue-800">
-                    List all safety measures, procedures, and precautions required
-                    for this work. Be specific and comprehensive.
-                  </p>
+                  {checklistQuestions.filter(q => formData.categories.includes(q.permit_type as PermitType)).length === 0 && (
+                    <p className="text-sm italic text-slate-500 text-center py-4">
+                      Please select permit categories in Step 1 to see suggested control measures.
+                    </p>
+                  )}
                 </div>
+
+                {/* Selected Control Measures Summary */}
+                {formData.selectedControlMeasures.length > 0 && (
+                  <div className="p-3 mt-4 border-2 border-blue-300 rounded-lg bg-blue-100">
+                    <p className="mb-2 text-sm font-semibold text-blue-900">
+                      Selected: {formData.selectedControlMeasures.length} measure(s)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.selectedControlMeasures.map((id) => {
+                        const qObj = checklistQuestions.find(q => q.id === id);
+                        return (
+                          <span
+                            key={id}
+                            className="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-200 rounded-full"
+                          >
+                            {qObj ? qObj.question_text : `Measure ${id}`}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-4 pt-4 border-t border-blue-200 flex-1 flex flex-col">
+                  <Label htmlFor="otherControlMeasures" className="text-blue-900 font-semibold mb-2 block">
+                    Other Control Measures
+                  </Label>
+                  <Textarea
+                    id="otherControlMeasures"
+                    value={formData.otherControlMeasures}
+                    onChange={(e) =>
+                      setFormData({ ...formData, otherControlMeasures: e.target.value })
+                    }
+                    placeholder="List any additional safety measures specifically for this work..."
+                    className="bg-white flex-1 min-h-[100px] border-blue-200"
+                  />
+                </div>
+
+                <p className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                  <Lightbulb className="w-4 h-4" /> Pro Tip:
+                </p>
+                <p className="mt-1 text-xs text-blue-800 ml-6">
+                  Please select all applicable control measures from the list above.
+                  You can also add specific custom measures in the "Other Control Measures" field.
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* STEP 4: PPE & SWMS with Evidence Upload */}
-        {currentStep === 4 && (
+        {/* STEP 3: PPE & SWMS with Evidence Upload */}
+        {currentStep === 3 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-slate-900">
               PPE Requirements & SWMS Upload
@@ -2014,15 +1726,15 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {[
-                  'Safety Helmet',
-                  'Safety Vest',
-                  'Safety Gloves',
-                  'Safety Boots',
-                  'Safety Goggles',
-                  'Face Mask',
-                  'Ear Protection',
-                  'Safety Harness',
-                ].map((ppeName, index) => (
+                  { name: 'Safety Helmet', icon: HardHat, color: 'text-orange-600' },
+                  { name: 'Safety Vest', icon: Shirt, color: 'text-yellow-600' },
+                  { name: 'Safety Gloves', icon: Hand, color: 'text-blue-600' },
+                  { name: 'Safety Boots', icon: Footprints, color: 'text-amber-700' },
+                  { name: 'Safety Goggles', icon: Glasses, color: 'text-cyan-600' },
+                  { name: 'Face Mask', icon: ShieldCheck, color: 'text-green-600' },
+                  { name: 'Ear Protection', icon: Headphones, color: 'text-purple-600' },
+                  { name: 'Safety Harness', icon: Anchor, color: 'text-slate-600' },
+                ].map((ppe, index) => (
                   <button
                     key={index}
                     type="button"
@@ -2040,15 +1752,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                       : 'border-slate-200 hover:border-orange-300 bg-white'
                       }`}
                   >
-                    <div className="text-4xl">
-                      {index === 0 && '⛑️'}
-                      {index === 1 && '🦺'}
-                      {index === 2 && '🧤'}
-                      {index === 3 && '👢'}
-                      {index === 4 && '🥽'}
-                      {index === 5 && '😷'}
-                      {index === 6 && '🎧'}
-                      {index === 7 && '🪢'}
+                    <div className={ppe.color}>
+                      <ppe.icon className="w-8 h-8" />
                     </div>
                     <span
                       className={`text-sm font-semibold text-center ${formData.selectedPPE.includes(index + 1)
@@ -2056,7 +1761,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                         : 'text-slate-700'
                         }`}
                     >
-                      {ppeName}
+                      {ppe.name}
                     </span>
                     {formData.selectedPPE.includes(index + 1) && (
                       <div className="flex items-center justify-center w-8 h-8 bg-orange-600 rounded-full">
@@ -2070,8 +1775,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
             {/* Evidence Upload Section */}
             <div className="p-6 border-2 border-purple-200 rounded-xl bg-purple-50">
-              <h3 className="mb-4 text-lg font-semibold text-purple-900">
-                📸 Upload Evidence (PPE, Barricading, Tool Condition)
+              <h3 className="mb-4 text-lg font-semibold text-purple-900 flex items-center gap-2">
+                <Camera className="w-5 h-5" /> Upload Evidence (PPE, Barricading, Tool Condition)
               </h3>
               <p className="mb-4 text-sm text-purple-700">
                 Add photos with automatic timestamp and location tracking
@@ -2090,10 +1795,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                   <Camera className="w-5 h-5" />
                   Take Photo
                 </Button>
-                <p className="text-xs text-center text-purple-600">
-                  📱 On mobile: Opens camera directly<br />
-                  💻 On desktop: Opens file picker
-                </p>
+
               </div>
 
               {/* Camera input - FIXED: Not hidden completely, just visually hidden */}
@@ -2238,8 +1940,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                     className="mt-2"
                   />
                   {formData.swmsFile && (
-                    <p className="mt-2 text-sm text-blue-700">
-                      ✓ {formData.swmsFile.name}
+                    <p className="mt-2 text-sm text-blue-700 flex items-center gap-1">
+                      <Check className="w-4 h-4" /> {formData.swmsFile.name}
                     </p>
                   )}
                 </div>
@@ -2265,8 +1967,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
 
 
 
-        {/* STEP 5: Work Requirements Checklist - COMPLETE VERSION */}
-        {currentStep === 5 && (
+        {/* STEP 4: Work Requirements Checklist - COMPLETE VERSION */}
+        {currentStep === 4 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Work Requirements Checklist</h2>
             <p className="text-sm text-slate-600">
@@ -2444,8 +2146,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
         )
         }
 
-        {/* STEP 6: Approvers */}
-        {currentStep === 6 && (
+        {/* STEP 5: Approvers */}
+        {currentStep === 5 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-900">Select Approvers</h2>
 
@@ -2461,20 +2163,8 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 </div>
               </div>
             )}
-
-            <p className="text-sm text-slate-600"></p>
-            <h2 className="text-xl font-semibold text-slate-900">Select Approvers</h2>
-
-            {/* ⭐ ADD THIS MESSAGE */}
-            <p className="text-sm text-slate-600">
-              {formData.area_manager_id || formData.safety_officer_id || formData.site_leader_id ? (
-                <span className="flex items-center gap-2 text-green-600">
-                  <Check className="w-4 h-4" />
-                  Approvers have been pre-selected based on site configuration. You can change them if needed.
-                </span>
-              ) : (
-                'Please select at least one approver for this permit'
-              )}
+            <p className="text-sm font-medium text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+              Note: Approvers need to be selected to proceed further.
             </p>
 
             <div className="space-y-4">
@@ -2482,19 +2172,16 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               <div>
                 <label className="block text-sm font-medium text-slate-900 mb-2">
                   Area Owner <span className="text-red-500">*</span>
-                  {/* ⭐ ADD THIS INDICATOR */}
-                  {formData.area_owner_id && (
-                    <span className="ml-2 text-xs text-green-600 font-normal">
-                      ✓ Pre-selected
-                    </span>
-                  )}
                 </label>
                 <select
-                  value={formData.area_owner_id}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    area_owner_id: parseInt(e.target.value) || ''
-                  }))}
+                  value={formData.area_manager_id || ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      area_manager_id: val ? parseInt(val) : 0
+                    }));
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
@@ -2510,22 +2197,26 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
               {/* Safety Officer - OPTIONAL */}
               <div>
                 <label className="block text-sm font-medium text-slate-900 mb-2">
-                  Safety Officer
-                  {formData.safety_officer_id && (
-                    <span className="ml-2 text-xs text-green-600 font-normal">
-                      ✓ Pre-selected
+                  Safety Officer {userDepartmentId === 23 && (
+                    <span className="text-blue-600 font-normal ml-2 inline-flex items-center gap-1">
+                      (Pre-approved: WHS Dept)
                     </span>
                   )}
                 </label>
                 <select
-                  value={formData.safety_officer_id}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    safety_officer_id: parseInt(e.target.value) || ''
-                  }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={formData.safety_officer_id || ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      safety_officer_id: val ? parseInt(val) : 0
+                    }));
+                  }}
+                  disabled={userDepartmentId === 23}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${userDepartmentId === 23 ? 'bg-slate-50 border-slate-200 cursor-not-allowed text-slate-500' : 'border-slate-300 bg-white'
+                    }`}
                 >
-                  <option value="">-- Select Safety Officer --</option>
+                  <option value="">{userDepartmentId === 23 ? '-- Pre-approved by WHS Department --' : '-- Select Safety Officer --'}</option>
                   {safetyOfficers.map((so) => (
                     <option key={so.id} value={so.id}>
                       {so.full_name} ({so.email})
@@ -2540,18 +2231,16 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                   Site Leader {requiresSiteLeaderApproval && (
                     <span className="text-red-500">* (Required for High-Risk)</span>
                   )}
-                  {formData.site_leader_id && (
-                    <span className="ml-2 text-xs text-green-600 font-normal">
-                      ✓ Pre-selected
-                    </span>
-                  )}
                 </label>
                 <select
-                  value={formData.site_leader_id}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    site_leader_id: parseInt(e.target.value) || ''
-                  }))}
+                  value={formData.site_leader_id || ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      site_leader_id: val ? parseInt(val) : 0
+                    }));
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="">-- Select Site Leader --</option>
@@ -2571,13 +2260,302 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 )}
               </div>
             </div>
+          </div>
+        )
+        }
 
-            {/* ⭐ ADD THIS INFO BOX */}
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-900">
-                <strong>💡 Tip:</strong> Approvers are automatically selected based on the site you chose.
-                However, you can change them if needed. At least Area Manager is required to proceed.
-              </p>
+        {/* STEP 6: Issued To & Workers */}
+        {currentStep === 6 && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-slate-900">Issued To & Workers Assignment</h2>
+
+            <div className="p-6 space-y-4 border-2 border-orange-200 rounded-lg bg-orange-50">
+              <h3 className="flex items-center gap-2 font-medium text-slate-900">
+                <FileText className="w-5 h-5 text-orange-600" />
+                Issued To (Permit Recipient)
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="issuedToName">Vendor Name *</Label>
+                  <Input
+                    id="issuedToName"
+                    value={formData.issuedToName}
+                    onChange={(e) => setFormData({ ...formData, issuedToName: e.target.value })}
+                    placeholder="e.g., XYZ pvt ltd."
+                    className="bg-white"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="issuedToContact">Contact Number *</Label>
+                  <Input
+                    id="issuedToContact"
+                    value={formData.issuedToContact}
+                    onChange={(e) => setFormData({ ...formData, issuedToContact: e.target.value })}
+                    placeholder="e.g., +91 9876543210"
+                    className="bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-slate-900">Workers Assignment</h3>
+              <p className="text-slate-600">Select the workers who will be performing this work</p>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex items-center gap-4">
+                  <Checkbox
+                    checked={workerSelectionMode === 'existing'}
+                    onCheckedChange={(checked) => setWorkerSelectionMode(checked ? 'existing' : 'new')}
+                  />
+                  <p className="text-sm font-medium text-slate-700">Existing Workers</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Checkbox
+                    checked={workerSelectionMode === 'new'}
+                    onCheckedChange={(checked) => setWorkerSelectionMode(checked ? 'new' : 'existing')}
+                  />
+                  <p className="text-sm font-medium text-slate-700">Add New Workers</p>
+                </div>
+              </div>
+
+              {workerSelectionMode === 'existing' && (
+                <div className="p-4 overflow-y-auto border rounded-lg border-slate-200 max-h-96">
+                  <div className="space-y-2">
+                    {workers.length > 0 ? (
+                      workers.map((worker) => (
+                        <label
+                          key={worker.id}
+                          className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer border-slate-200 hover:bg-slate-50"
+                        >
+                          <Checkbox
+                            checked={formData.selectedWorkers.includes(worker.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  selectedWorkers: [...prev.selectedWorkers, worker.id]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  selectedWorkers: prev.selectedWorkers.filter((id: number) => id !== worker.id)
+                                }));
+                              }
+                            }}
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900">{worker.full_name}</p>
+                            <p className="text-xs text-slate-500">{worker.email}</p>
+                          </div>
+                        </label>
+                      ))
+                    ) : (
+                      <p className="text-sm text-center text-slate-500">No workers available. Please add new workers below.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {workerSelectionMode === 'new' && (
+                <div className="space-y-4">
+                  <Button onClick={addNewWorker} variant="outline" className="gap-2" type="button">
+                    <FileText className="w-4 h-4" />
+                    Add New Worker
+                  </Button>
+
+                  {/* Display Added Workers with Input Fields + Training Evidence */}
+                  {newWorkers.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-slate-900">
+                        Added Workers ({newWorkers.length})
+                      </h4>
+
+                      {newWorkers.map((worker, index) => (
+                        <div
+                          key={index}
+                          className="p-6 border-2 rounded-lg border-slate-200 bg-slate-50 space-y-4"
+                        >
+                          {/* Worker Info Header with Delete Button */}
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h5 className="font-semibold text-slate-900">
+                                {worker.name || `New Worker ${index + 1}`}
+                              </h5>
+                              <p className="text-sm text-slate-600">{worker.role}</p>
+                            </div>
+                            <Button
+                              onClick={() => removeNewWorker(index)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+
+                          {/* ✅ WORKER INPUT FIELDS */}
+                          <div className="grid gap-4 md:grid-cols-2">
+                            {/* Name Input */}
+                            <div>
+                              <Label>Worker Name *</Label>
+                              <Input
+                                value={worker.name}
+                                onChange={(e) => updateNewWorker(index, 'name', e.target.value)}
+                                placeholder="Full name"
+                                className="bg-white"
+                              />
+                            </div>
+
+                            {/* Role Select */}
+                            <div>
+                              <Label>Role *</Label>
+                              <Select
+                                value={worker.role}
+                                onValueChange={(value) => updateNewWorker(index, 'role', value)}
+                              >
+                                <SelectTrigger className="bg-white">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Technician">Technician</SelectItem>
+                                  <SelectItem value="Contract_Worker">Contract Worker</SelectItem>
+                                  <SelectItem value="Supervisor">Supervisor</SelectItem>
+                                  <SelectItem value="Engineer">Engineer</SelectItem>
+                                  <SelectItem value="Worker">Worker</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Company Name Input */}
+                            <div>
+                              <Label>Company Name *</Label>
+                              <Input
+                                value={worker.companyName}
+                                onChange={(e) => updateNewWorker(index, 'companyName', e.target.value)}
+                                placeholder="Company name"
+                                className="bg-white"
+                              />
+                            </div>
+
+                            {/* Phone Input */}
+                            <div>
+                              <Label>Phone Number *</Label>
+                              <Input
+                                value={worker.phone}
+                                onChange={(e) => updateNewWorker(index, 'phone', e.target.value)}
+                                placeholder="+91 XXXXXXXXXX"
+                                className="bg-white"
+                              />
+                            </div>
+
+                            {/* Email Input - Full Width */}
+                            <div className="md:col-span-2">
+                              <Label>Email</Label>
+                              <Input
+                                type="email"
+                                value={worker.email}
+                                onChange={(e) => updateNewWorker(index, 'email', e.target.value)}
+                                placeholder="email@example.com"
+                                className="bg-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* ⭐ TRAINING EVIDENCE UPLOAD SECTION */}
+                          <div className="mt-4 p-4 border-2 border-dashed rounded-lg border-green-300 bg-green-50">
+                            {/* Header with Upload Button */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <Camera className="w-5 h-5 text-green-600" />
+                                <h6 className="font-medium text-slate-900">
+                                  Training Evidence / Certificate
+                                </h6>
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  setCurrentWorkerIndex(index);
+                                  setCaptureType('worker');
+                                  setShowCameraModal(true);
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                              >
+                                <Camera className="w-4 h-4" />
+                                Take Photo
+                              </Button>
+                            </div>
+
+                            {/* Evidence Count / Status */}
+                            {worker.trainingEvidences && worker.trainingEvidences.length > 0 ? (
+                              <p className="text-sm text-green-700 mb-3">
+                                {worker.trainingEvidences.length} image(s) uploaded
+                              </p>
+                            ) : (
+                              <p className="text-sm text-slate-600 mb-3">
+                                No training evidence uploaded yet. Upload training certificates or photos.
+                              </p>
+                            )}
+
+                            {/* Evidence Thumbnails Grid */}
+                            {worker.trainingEvidences && worker.trainingEvidences.length > 0 && (
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-3">
+                                {worker.trainingEvidences.map((evidence) => (
+                                  <div
+                                    key={evidence.id}
+                                    className="relative group bg-white border-2 border-slate-200 rounded-lg overflow-hidden"
+                                  >
+                                    {/* Image Preview */}
+                                    <div className="relative aspect-square">
+                                      <img
+                                        src={evidence.preview}
+                                        alt="Training evidence"
+                                        className="w-full h-full object-cover"
+                                      />
+                                      {/* Delete Button Overlay */}
+                                      <button
+                                        onClick={() => handleRemoveTrainingEvidence(index, evidence.id)}
+                                        className="absolute top-2 right-2 w-8 h-8 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                                        type="button"
+                                      >
+                                        <X className="w-4 h-4 text-white" />
+                                      </button>
+                                    </div>
+
+                                    {/* Caption Input */}
+                                    <div className="p-2">
+                                      <Input
+                                        value={evidence.caption || ''}
+                                        onChange={(e) =>
+                                          handleUpdateEvidenceCaption(index, evidence.id, e.target.value)
+                                        }
+                                        placeholder="Add caption..."
+                                        className="text-xs"
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Upload Instructions */}
+                            <div className="flex items-start gap-2 p-3 bg-green-100 rounded">
+                              <ImageIcon className="w-4 h-4 text-green-700 flex-shrink-0 mt-0.5" />
+                              <div className="text-xs text-green-800">
+                                <p className="font-medium">Upload Guidelines:</p>
+                                <ul className="list-disc list-inside mt-1 space-y-0.5">
+                                  <li>Use camera to capture clear photos</li>
+                                  <li>Ensure good lighting and focus</li>
+                                  <li>Capture training certificates, safety induction proof, or ID cards</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )
@@ -2635,7 +2613,7 @@ export function CreatePTW({ onBack, onSuccess }: CreatePTWProps) {
                 <div>
                   <p className="text-sm text-slate-500">Approvers</p>
                   <p className="text-sm font-medium text-slate-700">
-                    Area Manager required, others optional
+                    Area Owner required, others optional
                   </p>
                 </div>
               </div>

@@ -1,6 +1,5 @@
 // frontend/src/components/common/Sidebar.tsx
-// FIXED SIDEBAR WITH WORKING APPROVER NAVIGATION
-
+import { useState } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -14,18 +13,12 @@ import {
   XCircle,
   BarChart,
   Calendar,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
+import { formatRolesForDisplay } from '../../utils/roleMapper';
 
-interface User {
-  id: number;
-  login_id: string;
-  full_name?: string;
-  name?: string;
-  email: string;
-  role: string;
-  frontendRole?: string;
-  department?: string;
-}
+import { User } from '../../types';
 
 interface SidebarProps {
   currentUser: User;
@@ -34,6 +27,7 @@ interface SidebarProps {
   onLogout: () => void;
   isMobileMenuOpen: boolean;
   onMobileMenuClose: () => void;
+  approverTab?: string;
 }
 
 export default function Sidebar({
@@ -42,10 +36,24 @@ export default function Sidebar({
   onNavigate,
   onLogout,
   isMobileMenuOpen,
-  onMobileMenuClose
+  onMobileMenuClose,
+  approverTab
 }: SidebarProps) {
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    'admin': true,
+    'approver': true,
+    'supervisor': true
+  });
 
-  const getInitials = (name: string) => {
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const getInitials = (name: string | undefined | null) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(n => n[0])
@@ -54,89 +62,128 @@ export default function Sidebar({
       .slice(0, 2);
   };
 
-  // Check BOTH role field AND frontendRole field (case-insensitive)
-  const userRole = currentUser.role?.toLowerCase();
-  const frontendRole = currentUser.frontendRole?.toLowerCase();
-
-  const isAdmin =
-    userRole === 'admin' ||
-    userRole === 'administrator' ||
-    frontendRole === 'admin';
-
-  // ✅ Check if user is an approver
-  const isApprover =
-    userRole === 'approver_areamanager' ||
-    userRole === 'approver_safety' ||
-    userRole === 'approver_siteleader' ||
-    userRole?.includes('approver');
+  // Determine roles
+  const roles = (currentUser.role || '').toLowerCase();
+  const hasAdmin = roles.includes('admin') || roles.includes('administrator');
+  const hasApprover = roles.includes('approver');
+  const hasSupervisor = roles.includes('supervisor') || roles.includes('requester');
 
   const getNavigationItems = () => {
-    // ✅ ADMIN MENU
-    if (isAdmin) {
-      return [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'site-management', label: 'Site Management', icon: Building2 },
-        { id: 'user-management', label: 'User Management', icon: Users },
-        { id: 'all-permits', label: 'All Permits', icon: FileText },
-        { id: 'reports', label: 'Reports', icon: BarChart },
-      ];
+    let sections: any[] = [];
+
+    // ✅ ADMIN SECTION
+    if (hasAdmin) {
+      sections.push({
+        type: 'section',
+        id: 'admin',
+        label: 'Admin Tools',
+        items: [
+          { id: 'admin-dashboard', label: 'Admin Dashboard', icon: LayoutDashboard },
+          { id: 'site-management', label: 'Site Management', icon: Building2 },
+          { id: 'user-management', label: 'User Management', icon: Users },
+          { id: 'all-permits', label: 'All Permits', icon: FileText },
+          { id: 'reports', label: 'Reports', icon: BarChart },
+        ]
+      });
     }
 
-    // ✅ APPROVER MENU - Fixed to use special navigation
-    else if (isApprover) {
-      return [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'pending', label: 'Pending Requests', icon: Clock, isApproverTab: true },
-        { id: 'approved', label: 'Approved Requests', icon: CheckCircle, isApproverTab: true },
-        { id: 'rejected', label: 'Rejected Requests', icon: XCircle, isApproverTab: true },
-        { id: 'extension-approvals', label: 'Extension Approvals', icon: Calendar },
-      ];
+    // ✅ APPROVER SECTION
+    if (hasApprover) {
+      sections.push({
+        type: 'section',
+        id: 'approver',
+        label: 'Approver Tools',
+        items: [
+          { id: 'approver-dashboard', label: 'Approver Dashboard', icon: LayoutDashboard },
+          { id: 'pending', label: 'Pending Requests', icon: Clock, isApproverTab: true },
+          { id: 'approved', label: 'Approved Requests', icon: CheckCircle, isApproverTab: true },
+          { id: 'rejected', label: 'Rejected Requests', icon: XCircle, isApproverTab: true },
+          { id: 'extension-approvals', label: 'Extension Approvals', icon: Calendar },
+        ]
+      });
     }
 
-    // ✅ SUPERVISOR MENU
-    else {
-      return [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'worker-list', label: 'Workers', icon: Users },
-        { id: 'create-permit', label: 'Create PTW', icon: Plus },
-      ];
+    // ✅ SUPERVISOR SECTION
+    if (hasSupervisor) {
+      sections.push({
+        type: 'section',
+        id: 'supervisor',
+        label: 'Supervisor Tools',
+        items: [
+          { id: 'supervisor-dashboard', label: 'Supervisor Dashboard', icon: LayoutDashboard },
+          { id: 'worker-list', label: 'Workers', icon: Users },
+          { id: 'create-permit', label: 'Create PTW', icon: Plus },
+        ]
+      });
     }
+
+    // Default if no roles
+    if (sections.length === 0) {
+      sections.push({
+        type: 'section',
+        id: 'user',
+        label: 'User Tools',
+        items: [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        ]
+      });
+    }
+
+    return sections;
   };
 
-  const navigationItems = getNavigationItems();
+  const navSections = getNavigationItems();
 
   const handleNavClick = (item: any) => {
-    // For approver tabs, navigate with the tab identifier
-    if (item.isApproverTab) {
-      onNavigate(item.id); // This will be 'pending', 'approved', or 'rejected'
-    } else {
-      onNavigate(item.id);
-    }
+    onNavigate(item.id);
     onMobileMenuClose();
   };
 
-  const NavButton = ({ item }: { item: any }) => {
-    const Icon = item.icon;
-
-    // For approver tabs, check if we're on dashboard AND if this is the active tab
-    const isActive = item.isApproverTab
-      ? currentPage === 'dashboard' && false // Will be handled by parent component
-      : currentPage === item.id;
+  const NavSection = ({ section }: { section: any }) => {
+    const isExpanded = expandedSections[section.id];
 
     return (
-      <button
-        onClick={() => handleNavClick(item)}
-        className={`
-          w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all
-          ${isActive
-            ? 'bg-orange-600 text-white shadow-md'
-            : 'text-gray-700 hover:bg-gray-100'
-          }
-        `}
-      >
-        <Icon className="w-5 h-5" />
-        <span>{item.label}</span>
-      </button>
+      <div className="mb-2">
+        <button
+          onClick={() => toggleSection(section.id)}
+          className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-orange-600 transition-colors"
+        >
+          <span>{section.label}</span>
+          {isExpanded ? (
+            <ChevronDown className="w-3 h-3" />
+          ) : (
+            <ChevronRight className="w-3 h-3" />
+          )}
+        </button>
+
+        {isExpanded && (
+          <div className="mt-1 space-y-1 px-2">
+            {section.items.map((item: any) => {
+              const Icon = item.icon;
+              const isActive = item.isApproverTab
+                ? (currentPage === 'approver-dashboard' && approverTab === item.id)
+                : currentPage === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item)}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all
+                    ${isActive
+                      ? 'bg-orange-100 text-orange-600 border border-orange-200 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }
+                  `}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-orange-600' : 'text-gray-400'}`} />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -167,8 +214,8 @@ export default function Sidebar({
             />
             <div className="text-center">
               <h2 className="text-xl font-bold text-gray-900">PTW System</h2>
-              <p className="text-xl text-gray-500">
-                {isAdmin ? 'Admin Panel' : isApprover ? 'Approver Panel' : 'Supervisor Panel'}
+              <p className="text-xs text-gray-500 font-medium">
+                Internal Portal
               </p>
             </div>
           </div>
@@ -184,26 +231,26 @@ export default function Sidebar({
         <div className="p-4 border-b bg-gradient-to-r from-orange-50 to-amber-50">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-12 h-12 text-lg font-bold text-white rounded-full bg-gradient-to-br from-orange-500 to-amber-600">
-              {getInitials(currentUser.full_name || currentUser.name || currentUser.email)}
+              {getInitials(currentUser.full_name || currentUser.email)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {currentUser.full_name || currentUser.name || currentUser.email}
+                {currentUser.full_name || currentUser.email}
               </p>
               <p className="text-xs text-gray-600 truncate">
                 {currentUser.email}
               </p>
-              <p className="text-xs font-medium text-orange-600 capitalize">
-                {currentUser.role.replace(/_/g, ' ')}
+              <p className="text-xs font-medium text-orange-600">
+                {formatRolesForDisplay(currentUser.role)}
               </p>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {navigationItems.map((item) => (
-            <NavButton key={item.id} item={item} />
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+          {navSections.map((section) => (
+            <NavSection key={section.id} section={section} />
           ))}
         </nav>
 

@@ -6,117 +6,136 @@ const nodemailer = require('nodemailer');
  * Supports both Gmail and custom SMTP configurations
  */
 class EmailService {
-    constructor() {
-        this.transporter = null;
-        this.initialized = false;
-        this.initializeTransporter();
-    }
+  constructor() {
+    this.transporter = null;
+    this.initialized = false;
+    this.isTestAccount = false;
+    this.initializationPromise = this.initializeTransporter();
+  }
 
-    /**
-     * Initialize email transporter based on environment configuration
-     */
-    initializeTransporter() {
-        try {
-            // Check if email is enabled
-            if (process.env.EMAIL_ENABLED !== 'true') {
-                console.log('📧 Email notifications are DISABLED in configuration');
-                return;
-            }
+  /**
+   * Initialize email transporter based on environment configuration
+   */
+  async initializeTransporter() {
+    try {
+      // 1. Try to use real credentials from .env
+      if (process.env.EMAIL_HOST && process.env.EMAIL_USER) {
+        const emailConfig = {
+          host: process.env.EMAIL_HOST,
+          port: parseInt(process.env.EMAIL_PORT || '587'),
+          secure: process.env.EMAIL_SECURE === 'true',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD,
+          },
+        };
 
-            const emailConfig = {
-                host: process.env.EMAIL_HOST,
-                port: parseInt(process.env.EMAIL_PORT || '587'),
-                secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASSWORD,
-                },
-            };
-
-            // Add TLS configuration for better security
-            if (!emailConfig.secure) {
-                emailConfig.tls = {
-                    rejectUnauthorized: process.env.EMAIL_REJECT_UNAUTHORIZED !== 'false'
-                };
-            }
-
-            this.transporter = nodemailer.createTransport(emailConfig);
-
-            // Verify transporter configuration
-            this.transporter.verify((error, success) => {
-                if (error) {
-                    console.error('❌ Email transporter verification failed:', error.message);
-                    this.initialized = false;
-                } else {
-                    console.log('✅ Email transporter is ready to send emails');
-                    this.initialized = true;
-                }
-            });
-
-        } catch (error) {
-            console.error('❌ Failed to initialize email transporter:', error.message);
-            this.initialized = false;
-        }
-    }
-
-    /**
-     * Check if email service is available
-     */
-    isAvailable() {
-        return this.initialized && this.transporter !== null;
-    }
-
-    /**
-     * Send a single email
-     * @param {Object} options - Email options
-     * @param {string} options.to - Recipient email address
-     * @param {string} options.subject - Email subject
-     * @param {string} options.text - Plain text content
-     * @param {string} options.html - HTML content
-     * @returns {Promise<Object>} Email send result
-     */
-    async sendEmail({ to, subject, text, html }) {
-        if (!this.isAvailable()) {
-            console.warn('⚠️ Email service not available - email not sent');
-            return { success: false, error: 'Email service not configured' };
+        if (!emailConfig.secure) {
+          emailConfig.tls = {
+            rejectUnauthorized: process.env.EMAIL_REJECT_UNAUTHORIZED !== 'false'
+          };
         }
 
-        try {
-            const mailOptions = {
-                from: {
-                    name: process.env.EMAIL_FROM_NAME || 'Amazon EPTW System',
-                    address: process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER
-                },
-                to,
-                subject,
-                text,
-                html: html || text,
-            };
+        this.transporter = nodemailer.createTransport(emailConfig);
+        this.initialized = true;
+        console.log('✅ Email service initialized with real credentials');
+        return;
+      }
 
-            const info = await this.transporter.sendMail(mailOptions);
-            console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
+      // 2. Fallback: Create dynamic test account (Zero Config Mode)
+      console.log('ℹ️ No email config found in .env. Setting up Auto-Test account (Ethereal)...');
 
-            return {
-                success: true,
-                messageId: info.messageId,
-                response: info.response
-            };
-        } catch (error) {
-            console.error(`❌ Failed to send email to ${to}:`, error.message);
-            return {
-                success: false,
-                error: error.message
-            };
+      const testAccount = await nodemailer.createTestAccount();
+      this.transporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass
         }
+      });
+
+      this.initialized = true;
+      this.isTestAccount = true;
+      console.log('🚀 Zero-Config Email Enabled (TEST MODE)');
+      console.log('📅 Use credentials:', { user: testAccount.user, pass: testAccount.pass });
+      console.log('🔗 You can view sent emails at: https://ethereal.email');
+
+    } catch (error) {
+      console.error('❌ Failed to initialize email service:', error.message);
+      this.initialized = false;
+    }
+  }
+
+  /**
+   * Check if email service is available
+   */
+  isAvailable() {
+    return this.initialized && this.transporter !== null;
+  }
+
+  /**
+   * Send a single email
+   * @param {Object} options - Email options
+   * @param {string} options.to - Recipient email address
+   * @param {string} options.subject - Email subject
+   * @param {string} options.text - Plain text content
+   * @param {string} options.html - HTML content
+   * @returns {Promise<Object>} Email send result
+   */
+  async sendEmail({ to, subject, text, html }) {
+    // Wait for initialization to complete
+    await this.initializationPromise;
+
+    if (!this.isAvailable()) {
+      console.warn('⚠️ Email service not available - email not sent');
+      return { success: false, error: 'Email service not configured' };
     }
 
-    /**
-     * Send PTW approval request notification
-     */
-    async sendPTWApprovalRequest({ recipientEmail, recipientName, permitSerial, requesterName, role, permitDetails }) {
-        const subject = `PTW Approval Required: ${permitSerial}`;
+    try {
+      const mailOptions = {
+        from: {
+          name: process.env.EMAIL_FROM_NAME || 'Amazon EPTW System',
+          address: process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER || (this.isTestAccount ? this.transporter.options.auth.user : 'system@eptw.local')
+        },
+        to,
+        subject,
+        text,
+        html: html || text,
+      };
 
-        const html = `
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
+
+      // If using test account, log the preview URL
+      if (this.isTestAccount) {
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        console.log(`📧 [TEST MODE] View this email at: ${previewUrl}`);
+      }
+
+      return {
+        success: true,
+        messageId: info.messageId,
+        response: info.response,
+        previewUrl: this.isTestAccount ? nodemailer.getTestMessageUrl(info) : null
+      };
+    } catch (error) {
+      console.error(`❌ Failed to send email to ${to}:`, error.message);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Send PTW approval request notification
+   */
+  async sendPTWApprovalRequest({ recipientEmail, recipientName, permitSerial, requesterName, role, permitDetails }) {
+    const subject = `PTW Approval Required: ${permitSerial}`;
+
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -165,7 +184,7 @@ class EmailService {
       </html>
     `;
 
-        const text = `
+    const text = `
       PTW Approval Required
       
       Dear ${recipientName},
@@ -188,16 +207,16 @@ class EmailService {
       This is an automated notification from Amazon EPTW System
     `;
 
-        return await this.sendEmail({ to: recipientEmail, subject, text, html });
-    }
+    return await this.sendEmail({ to: recipientEmail, subject, text, html });
+  }
 
-    /**
-     * Send PTW approval notification
-     */
-    async sendPTWApproved({ recipientEmail, recipientName, permitSerial, approverName, role, permitDetails }) {
-        const subject = `✅ PTW Approved: ${permitSerial}`;
+  /**
+   * Send PTW approval notification
+   */
+  async sendPTWApproved({ recipientEmail, recipientName, permitSerial, approverName, role, permitDetails }) {
+    const subject = `✅ PTW Approved: ${permitSerial}`;
 
-        const html = `
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -245,7 +264,7 @@ class EmailService {
       </html>
     `;
 
-        const text = `
+    const text = `
       PTW Approved
       
       Dear ${recipientName},
@@ -267,16 +286,16 @@ class EmailService {
       This is an automated notification from Amazon EPTW System
     `;
 
-        return await this.sendEmail({ to: recipientEmail, subject, text, html });
-    }
+    return await this.sendEmail({ to: recipientEmail, subject, text, html });
+  }
 
-    /**
-     * Send PTW rejection notification
-     */
-    async sendPTWRejected({ recipientEmail, recipientName, permitSerial, rejectorName, role, rejectionReason, permitDetails }) {
-        const subject = `❌ PTW Rejected: ${permitSerial}`;
+  /**
+   * Send PTW rejection notification
+   */
+  async sendPTWRejected({ recipientEmail, recipientName, permitSerial, rejectorName, role, rejectionReason, permitDetails }) {
+    const subject = `❌ PTW Rejected: ${permitSerial}`;
 
-        const html = `
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -330,7 +349,7 @@ class EmailService {
       </html>
     `;
 
-        const text = `
+    const text = `
       PTW Rejected
       
       Dear ${recipientName},
@@ -355,16 +374,16 @@ class EmailService {
       This is an automated notification from Amazon EPTW System
     `;
 
-        return await this.sendEmail({ to: recipientEmail, subject, text, html });
-    }
+    return await this.sendEmail({ to: recipientEmail, subject, text, html });
+  }
 
-    /**
-     * Send extension request notification
-     */
-    async sendExtensionRequest({ recipientEmail, recipientName, permitSerial, requesterName, extensionDetails }) {
-        const subject = `Extension Request: ${permitSerial}`;
+  /**
+   * Send extension request notification
+   */
+  async sendExtensionRequest({ recipientEmail, recipientName, permitSerial, requesterName, extensionDetails }) {
+    const subject = `Extension Request: ${permitSerial}`;
 
-        const html = `
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -410,7 +429,7 @@ class EmailService {
       </html>
     `;
 
-        const text = `
+    const text = `
       Extension Request
       
       Dear ${recipientName},
@@ -432,16 +451,16 @@ class EmailService {
       This is an automated notification from Amazon EPTW System
     `;
 
-        return await this.sendEmail({ to: recipientEmail, subject, text, html });
-    }
+    return await this.sendEmail({ to: recipientEmail, subject, text, html });
+  }
 
-    /**
-     * Send PTW closure notification
-     */
-    async sendPTWClosed({ recipientEmail, recipientName, permitSerial, closedBy, permitDetails }) {
-        const subject = `PTW Closed: ${permitSerial}`;
+  /**
+   * Send PTW closure notification
+   */
+  async sendPTWClosed({ recipientEmail, recipientName, permitSerial, closedBy, permitDetails }) {
+    const subject = `PTW Closed: ${permitSerial}`;
 
-        const html = `
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -484,7 +503,7 @@ class EmailService {
       </html>
     `;
 
-        const text = `
+    const text = `
       PTW Closed
       
       Dear ${recipientName},
@@ -504,23 +523,123 @@ class EmailService {
       This is an automated notification from Amazon EPTW System
     `;
 
-        return await this.sendEmail({ to: recipientEmail, subject, text, html });
+    return await this.sendEmail({ to: recipientEmail, subject, text, html });
+  }
+
+  /**
+   * Send PTW Start Reminder (30 mins before)
+   */
+  async sendPTWStartReminder({ recipientEmail, recipientName, permitSerial, startTime, location }) {
+    const subject = `⏰ Reminder: PTW ${permitSerial} starts in 30 minutes`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #3b82f6; color: white; padding: 20px; border-radius: 10px 10px 0 0; text-align: center; }
+          .content { background: #eff6ff; padding: 30px; border-radius: 0 0 10px 10px; }
+          .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>⏰ Work Starting Soon</h2>
+          </div>
+          <div class="content">
+            <p>Dear ${recipientName},</p>
+            <p>This is a reminder that your Permit to Work <strong>${permitSerial}</strong> is scheduled to start in 30 minutes.</p>
+            
+            <div class="details">
+              <p><strong>Permit:</strong> ${permitSerial}</p>
+              <p><strong>Start Time:</strong> ${new Date(startTime).toLocaleString()}</p>
+              <p><strong>Location:</strong> ${location}</p>
+            </div>
+            
+            <p>Please ensure all safety preparations are complete before commencing work.</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated reminder from Amazon EPTW System</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `Reminder: PTW ${permitSerial} starts in 30 minutes at ${location}. Start Time: ${new Date(startTime).toLocaleString()}`;
+
+    return await this.sendEmail({ to: recipientEmail, subject, text, html });
+  }
+
+  /**
+   * Send PTW Expiry Reminder (30 mins before end)
+   */
+  async sendPTWExpiryReminder({ recipientEmail, recipientName, permitSerial, endTime, isCritical = false }) {
+    const timeRemaining = isCritical ? '10 minutes' : '30 minutes';
+    const color = isCritical ? '#ef4444' : '#f59e0b';
+    const subject = `${isCritical ? '🚨 CRITICAL' : '⚠️ Warning'}: PTW ${permitSerial} expires in ${timeRemaining}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: ${color}; color: white; padding: 20px; border-radius: 10px 10px 0 0; text-align: center; }
+          .content { background: #fffbeb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${color}; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>${isCritical ? '🚨 CRITICAL EXPIRY' : '⚠️ EXPIRY WARNING'}</h2>
+          </div>
+          <div class="content">
+            <p>Dear ${recipientName},</p>
+            <p>Your Permit to Work <strong>${permitSerial}</strong> is set to expire in <strong style="color: ${color};">${timeRemaining}</strong>.</p>
+            
+            <div class="details">
+              <p><strong>Permit:</strong> ${permitSerial}</p>
+              <p><strong>End Time:</strong> ${new Date(endTime).toLocaleString()}</p>
+            </div>
+            
+            <p><strong>Action Required:</strong> Please take immediate action to either <strong>EXTEND</strong> or <strong>CLOSE</strong> the permit before it expires.</p>
+            <p>Expired permits will be automatically closed by the system.</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated notification from Amazon EPTW System</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `URGENT: PTW ${permitSerial} expires in ${timeRemaining} at ${new Date(endTime).toLocaleString()}. Please extend or close it immediately.`;
+
+    return await this.sendEmail({ to: recipientEmail, subject, text, html });
+  }
+
+  /**
+   * Send bulk emails
+   * @param {Array} emails - Array of email configurations
+   */
+  async sendBulkEmails(emails) {
+    const results = [];
+
+    for (const emailConfig of emails) {
+      const result = await this.sendEmail(emailConfig);
+      results.push({ ...result, to: emailConfig.to });
     }
 
-    /**
-     * Send bulk emails
-     * @param {Array} emails - Array of email configurations
-     */
-    async sendBulkEmails(emails) {
-        const results = [];
-
-        for (const emailConfig of emails) {
-            const result = await this.sendEmail(emailConfig);
-            results.push({ ...result, to: emailConfig.to });
-        }
-
-        return results;
-    }
+    return results;
+  }
 }
 
 // Export singleton instance

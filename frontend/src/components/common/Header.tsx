@@ -1,18 +1,9 @@
-// frontend/src/components/common/Header.tsx
 import { useState, useRef, useEffect } from 'react';
-import { Menu, LogOut, User as UserIcon, Mail, Briefcase } from 'lucide-react';
+import { Menu, LogOut, User as UserIcon, Mail, Briefcase, X } from 'lucide-react';
+import UserProfile from './UserProfile';
+import { User } from '../../types';
+import { formatRolesForDisplay } from '../../utils/roleMapper';
 import NotificationsPanel from '../supervisor/NotificationsPanel';
-
-interface User {
-  id: number;
-  login_id: string;
-  full_name?: string;
-  name?: string;
-  email: string;
-  role: string;
-  department?: string;
-  frontendRole?: string;
-}
 
 interface HeaderProps {
   currentUser: User;
@@ -22,6 +13,7 @@ interface HeaderProps {
 
 export default function Header({ currentUser, onMenuToggle, onLogout }: HeaderProps) {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -37,7 +29,8 @@ export default function Header({ currentUser, onMenuToggle, onLogout }: HeaderPr
   }, []);
 
   // Get initials for avatar
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined | null) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(n => n[0])
@@ -95,11 +88,11 @@ export default function Header({ currentUser, onMenuToggle, onLogout }: HeaderPr
               className="flex items-center gap-3 px-3 py-2 transition-colors rounded-lg hover:bg-gray-100"
             >
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-gray-900">{currentUser.full_name || currentUser.name || currentUser.email}</p>
-                <p className="text-xs text-gray-500">{currentUser.role}</p>
+                <p className="text-sm font-semibold text-gray-900">{currentUser.full_name || currentUser.email}</p>
+                <p className="text-xs text-gray-500">{formatRolesForDisplay(currentUser.role)}</p>
               </div>
               <div className="flex items-center justify-center w-10 h-10 text-white rounded-full bg-gradient-to-br from-orange-600 to-amber-600">
-                <span className="text-sm font-bold">{getInitials(currentUser.full_name || currentUser.name || currentUser.email)}</span>
+                <span className="text-sm font-bold">{getInitials(currentUser.full_name || currentUser.email)}</span>
               </div>
             </button>
 
@@ -110,11 +103,11 @@ export default function Header({ currentUser, onMenuToggle, onLogout }: HeaderPr
                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-orange-600 to-amber-600">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-16 h-16 text-white rounded-full bg-white/20">
-                      <span className="text-xl font-bold">{getInitials(currentUser.full_name || currentUser.name || currentUser.email)}</span>
+                      <span className="text-xl font-bold">{getInitials(currentUser.full_name || currentUser.email)}</span>
                     </div>
                     <div className="flex-1 text-white">
-                      <h3 className="font-semibold">{currentUser.full_name || currentUser.name || currentUser.email}</h3>
-                      <p className="text-sm opacity-90">{currentUser.role}</p>
+                      <h3 className="font-semibold">{currentUser.full_name || currentUser.email}</h3>
+                      <p className="text-sm opacity-90">{formatRolesForDisplay(currentUser.role)}</p>
                     </div>
                   </div>
                 </div>
@@ -141,6 +134,19 @@ export default function Header({ currentUser, onMenuToggle, onLogout }: HeaderPr
                 </div>
 
                 {/* Actions */}
+                <div className="p-2 space-y-1">
+                  <button
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      setShowProfileModal(true);
+                    }}
+                    className="flex items-center w-full gap-2 px-4 py-2 text-sm font-medium text-slate-700 transition-colors rounded-lg hover:bg-slate-100"
+                  >
+                    <UserIcon className="w-4 h-4" />
+                    View Full Profile
+                  </button>
+                </div>
+
                 <div className="p-2 border-t border-gray-200">
                   <button
                     onClick={() => {
@@ -158,6 +164,33 @@ export default function Header({ currentUser, onMenuToggle, onLogout }: HeaderPr
           </div>
         </div>
       </div>
+
+      {showProfileModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setShowProfileModal(false)}
+              className="absolute top-4 right-4 z-10 p-2 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <UserProfile
+              user={{
+                ...currentUser,
+                department: currentUser.department || undefined,
+                department_name: currentUser.department_name,
+                site_name: currentUser.site_name,
+                job_role: currentUser.job_role,
+                phone: currentUser.phone,
+                full_name: currentUser.full_name || 'User',
+                email: currentUser.email || '',
+                frontendRole: (currentUser.role.includes('Admin') ? 'Admin' : 'Supervisor') as any
+              }}
+            />
+          </div>
+        </div>
+      )}
     </header>
   );
 }

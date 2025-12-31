@@ -3,28 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
-const { authenticateToken } = require('../middleware/auth.middleware');
-
-// Custom admin authorization
-const authorizeAdmin = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      message: 'Unauthorized - Please login first'
-    });
-  }
-
-  const userRole = req.user.role?.toLowerCase();
-  
-  if (userRole !== 'admin' && userRole !== 'administrator') {
-    return res.status(403).json({
-      success: false,
-      message: `Access denied. Admin role required. Your role: ${req.user.role}`
-    });
-  }
-
-  next();
-};
+const { authenticateToken, authorizeAdmin } = require('../middleware/auth.middleware');
 
 router.use(authenticateToken);
 router.use(authorizeAdmin);
@@ -38,13 +17,13 @@ router.get('/stats', async (req, res) => {
     const totalSites = sitesResult[0].count;
 
     const [workersResult] = await pool.query(
-      "SELECT COUNT(*) as count FROM users WHERE role = 'Worker' AND is_active = TRUE"
+      "SELECT COUNT(*) as count FROM users WHERE role LIKE '%Worker%' AND is_active = TRUE"
     );
     const totalWorkers = workersResult[0].count;
 
     const [supervisorsResult] = await pool.query(
       `SELECT COUNT(*) as count FROM users 
-       WHERE role IN ('Approver_AreaManager', 'Approver_Safety', 'Approver_SiteLeader', 'Requester', 'Supervisor') 
+       WHERE (role LIKE '%Supervisor%' OR role LIKE '%Requester%' OR role LIKE '%Approver%') 
        AND is_active = TRUE`
     );
     const totalSupervisors = supervisorsResult[0].count;
@@ -52,10 +31,10 @@ router.get('/stats', async (req, res) => {
     const [ptwResult] = await pool.query('SELECT COUNT(*) as count FROM permits');
     const totalPTW = ptwResult[0].count;
 
-    const [activeResult] = await pool.query("SELECT COUNT(*) as count FROM permits WHERE status = 'Active'");
+    const [activeResult] = await pool.query("SELECT COUNT(*) as count FROM permits WHERE status IN ('Active', 'Extension_Requested')");
     const activePTW = activeResult[0].count;
 
-    const [pendingResult] = await pool.query("SELECT COUNT(*) as count FROM permits WHERE status = 'Pending_Approval'");
+    const [pendingResult] = await pool.query("SELECT COUNT(*) as count FROM permits WHERE status = 'Initiated' OR status = 'Pending_Approval'");
     const pendingPTW = pendingResult[0].count;
 
     const [closedResult] = await pool.query("SELECT COUNT(*) as count FROM permits WHERE status = 'Closed'");
@@ -99,6 +78,19 @@ router.get('/users', async (req, res) => {
         u.role,
         u.department_id,
         d.name as department_name,
+        u.site_id,
+        (SELECT GROUP_CONCAT(DISTINCT s2.name SEPARATOR ', ')
+         FROM (
+           SELECT site_id FROM requester_sites WHERE requester_user_id = u.id
+           UNION
+           SELECT site_id FROM site_approvers WHERE area_manager_id = u.id OR safety_officer_id = u.id OR site_leader_id = u.id
+           UNION
+           SELECT id as site_id FROM sites WHERE id = u.site_id
+         ) as all_sites
+         JOIN sites s2 ON all_sites.site_id = s2.id
+        ) as site_name,
+        u.job_role,
+        u.phone,
         u.is_active,
         u.created_at,
         COUNT(DISTINCT p.id) as permit_count
@@ -107,28 +99,28 @@ router.get('/users', async (req, res) => {
       LEFT JOIN permits p ON u.id = p.created_by_user_id
       WHERE 1=1
     `;
-    
+
     const params = [];
-    
+
     if (role) {
-      query += ' AND u.role = ?';
-      params.push(role);
+      query += ' AND u.role LIKE ?';
+      params.push(`%${role}%`);
     }
-    
+
     if (department_id) {
       query += ' AND u.department_id = ?';
       params.push(department_id);
     }
-    
+
     if (is_active !== undefined) {
       query += ' AND u.is_active = ?';
       params.push(is_active === 'true' || is_active === true);
     }
-    
+
     query += ' GROUP BY u.id ORDER BY u.created_at DESC';
-    
+
     const [users] = await pool.query(query, params);
-    
+
     console.log('✅ Fetched users:', users.length);
     res.json({
       success: true,
@@ -188,7 +180,7 @@ router.get('/users/:id', async (req, res) => {
 router.post('/users', async (req, res) => {
   try {
     const { full_name, email, password, role, department, department_id } = req.body;
-    
+
     console.log('📥 Create user request:', { full_name, email, role, department });
 
     // Validation
@@ -223,7 +215,7 @@ router.post('/users', async (req, res) => {
 
     // Generate login_id from email
     let login_id = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    
+
     // Check if login_id exists
     const [existingLoginId] = await pool.query(
       'SELECT id FROM users WHERE login_id = ?',
@@ -297,7 +289,7 @@ router.post('/users', async (req, res) => {
 router.put('/users/:id', async (req, res) => {
   try {
     const { full_name, email, password, role, department, department_id } = req.body;
-    
+
     console.log('📥 Update user request:', { id: req.params.id, full_name, email, role });
 
     // Check if user exists

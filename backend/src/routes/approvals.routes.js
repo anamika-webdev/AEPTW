@@ -6,6 +6,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth.middleware');
 const { createNotification } = require('../utils/notificationUtils');
+const emailService = require('../services/emailService');
 
 // Apply authentication to all routes
 router.use(authenticateToken);
@@ -92,7 +93,7 @@ router.get('/pending', async (req, res) => {
         p.area_manager_status,
         p.safety_officer_status,
         p.site_leader_status,
-        am.full_name as area_owner_name,
+        am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name,
         p.${fields.signatureField} as my_signature,  
@@ -169,7 +170,7 @@ router.get('/approved', async (req, res) => {
         p.area_manager_status,
         p.safety_officer_status,
         p.site_leader_status,
-        am.full_name as area_owner_name,
+        am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -241,7 +242,7 @@ router.get('/rejected', async (req, res) => {
         p.area_manager_status,
         p.safety_officer_status,
         p.site_leader_status,
-        am.full_name as area_owner_name,
+        am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -430,6 +431,31 @@ router.post('/:ptwId/approve', async (req, res) => {
           ptwId
         );
       }
+
+      // 📧 Send Email - FULL APPROVAL
+      try {
+        const [userData] = await pool.query(
+          'SELECT full_name, email FROM users WHERE id = ?',
+          [p.created_by_user_id]
+        );
+
+        if (userData.length > 0 && userData[0].email) {
+          await emailService.sendPTWApproved({
+            recipientEmail: userData[0].email,
+            recipientName: userData[0].full_name,
+            permitSerial: p.permit_serial,
+            approverName: req.user.full_name,
+            role: fields.roleName,
+            permitDetails: {
+              workType: 'Check dashboard for details',
+              site: 'Check dashboard for details'
+            }
+          });
+          console.log(`📧 Full approval email sent to: ${userData[0].email}`);
+        }
+      } catch (emailErr) {
+        console.error(`❌ Failed to send approval email:`, emailErr.message);
+      }
     } else {
       console.log(`⏳ PTW ${ptwId} partially approved, waiting for other approvers`);
 
@@ -442,6 +468,30 @@ router.post('/:ptwId/approve', async (req, res) => {
           'info',
           ptwId
         );
+      }
+
+      // 📧 Send Email - PARTIAL APPROVAL
+      try {
+        const [userData] = await pool.query(
+          'SELECT full_name, email FROM users WHERE id = ?',
+          [p.created_by_user_id]
+        );
+
+        if (userData.length > 0 && userData[0].email) {
+          await emailService.sendEmail({
+            to: userData[0].email,
+            subject: `PTW Update: ${p.permit_serial}`,
+            text: `Your Permit to Work ${p.permit_serial} has been approved by ${fields.roleName}. Pending other approvals.`,
+            html: `
+              <h3>PTW Approval Update</h3>
+              <p>Dear ${userData[0].full_name},</p>
+              <p>Your Permit to Work <strong>${p.permit_serial}</strong> has been approved by ${req.user.full_name} (${fields.roleName}).</p>
+              <p><strong>Current Status:</strong> Partially Approved (Pending other approvers)</p>
+            `
+          });
+        }
+      } catch (emailErr) {
+        console.error(`❌ Failed to send partial approval email:`, emailErr.message);
       }
     }
 
@@ -541,6 +591,32 @@ router.post('/:ptwId/reject', async (req, res) => {
         'error',
         ptwId
       );
+    }
+
+    // 📧 Send Email - REJECTION
+    try {
+      const [userData] = await pool.query(
+        'SELECT full_name, email FROM users WHERE id = ?',
+        [permit[0].created_by_user_id]
+      );
+
+      if (userData.length > 0 && userData[0].email) {
+        await emailService.sendPTWRejected({
+          recipientEmail: userData[0].email,
+          recipientName: userData[0].full_name,
+          permitSerial: permit[0].permit_serial,
+          rejectorName: req.user.full_name,
+          role: fields.roleName,
+          rejectionReason: reason,
+          permitDetails: {
+            workType: 'Check dashboard for details',
+            site: 'Check dashboard for details'
+          }
+        });
+        console.log(`📧 Rejection email sent to: ${userData[0].email}`);
+      }
+    } catch (emailErr) {
+      console.error(`❌ Failed to send rejection email:`, emailErr.message);
     }
 
     res.json({

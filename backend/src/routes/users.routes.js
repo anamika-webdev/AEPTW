@@ -3,17 +3,9 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
-const { authenticateToken } = require('../middleware/auth.middleware');
+const { authenticateToken, authorizeAdmin } = require('../middleware/auth.middleware');
 
 const authenticate = authenticateToken;
-
-// Admin authorization middleware
-const authorizeAdmin = (req, res, next) => {
-  if (!req.user || (req.user.role?.toLowerCase() !== 'admin' && req.user.role?.toLowerCase() !== 'administrator')) {
-    return res.status(403).json({ success: false, message: 'Access denied. Admin role required.' });
-  }
-  next();
-};
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -26,12 +18,21 @@ router.get('/', authorizeAdmin, async (req, res) => {
     let query = `
       SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
              u.department_id, d.name as department_name, 
-             u.site_id, s.name as site_name,
-             u.job_role, u.created_at, u.is_active,
+             u.site_id,
+             (SELECT GROUP_CONCAT(DISTINCT s2.name SEPARATOR ', ')
+              FROM (
+                SELECT site_id FROM requester_sites WHERE requester_user_id = u.id
+                UNION
+                SELECT site_id FROM site_approvers WHERE area_manager_id = u.id OR safety_officer_id = u.id OR site_leader_id = u.id
+                UNION
+                SELECT id as site_id FROM sites WHERE id = u.site_id
+              ) as all_sites
+              JOIN sites s2 ON all_sites.site_id = s2.id
+             ) as site_name,
+             u.job_role, u.phone, u.created_at, u.is_active,
              (SELECT COUNT(*) FROM permits WHERE created_by_user_id = u.id) as permit_count
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
-      LEFT JOIN sites s ON u.site_id = s.id
       WHERE u.is_active = TRUE
     `;
     const params = [];
@@ -64,15 +65,18 @@ router.get('/', authorizeAdmin, async (req, res) => {
 router.get('/workers', async (req, res) => {
   try {
     const userId = req.user.id;
-    const userRole = req.user.role?.toLowerCase();
+    const userRole = (req.user.role || '').toLowerCase();
+    const assignedOnly = req.query.assignedOnly === 'true';
+    const isAdmin = !assignedOnly && (userRole.includes('admin') || userRole.includes('administrator'));
+    const isRequester = userRole.includes('supervisor') || userRole.includes('requester') || assignedOnly;
 
-    console.log('📥 GET /api/users/workers - User:', userId, 'Role:', userRole);
+    console.log('📥 GET /api/users/workers - User:', userId, 'Role:', userRole, 'isAdmin:', isAdmin, 'isRequester:', isRequester, 'assignedOnly:', assignedOnly);
 
     let query;
     let params;
 
     // Admin sees all workers
-    if (userRole === 'admin' || userRole === 'administrator') {
+    if (isAdmin) {
       query = `
         SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
                u.department_id, d.name as department_name
@@ -84,7 +88,7 @@ router.get('/workers', async (req, res) => {
       params = [];
     }
     // Requesters/Supervisors see only their assigned workers
-    else if (userRole === 'requester' || userRole === 'supervisor') {
+    else if (isRequester) {
       query = `
         SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
                u.department_id, d.name as department_name
@@ -261,7 +265,7 @@ router.get('/:id', authorizeAdmin, async (req, res) => {
       SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
              u.department_id, d.name as department_name, 
              u.site_id, s.name as site_name,
-             u.job_role, u.created_at, u.is_active
+             u.job_role, u.phone, u.created_at, u.is_active
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN sites s ON u.site_id = s.id
@@ -292,7 +296,7 @@ router.get('/:id', authorizeAdmin, async (req, res) => {
 // POST /api/users - Create user (Admin only)
 router.post('/', authorizeAdmin, async (req, res) => {
   try {
-    const { login_id, full_name, email, password, role, department, site_id, job_role } = req.body;
+    const { login_id, full_name, email, password, role, department, site_id, job_role, phone } = req.body;
 
     console.log('📥 POST /api/users - Creating user:', { login_id, role, site_id, job_role });
 
@@ -334,16 +338,16 @@ router.post('/', authorizeAdmin, async (req, res) => {
 
     // Insert user
     const [result] = await pool.query(
-      `INSERT INTO users (login_id, full_name, email, password_hash, role, department_id, site_id, job_role, is_active, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
-      [login_id, full_name, email, password_hash, role, department_id, site_id || null, job_role || null]
+      `INSERT INTO users (login_id, full_name, email, password_hash, role, department_id, site_id, job_role, phone, is_active, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
+      [login_id, full_name, email, password_hash, role, department_id, site_id || null, job_role || null, phone || null]
     );
 
     const [newUser] = await pool.query(`
       SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
              u.department_id, d.name as department_name, 
              u.site_id, s.name as site_name,
-             u.job_role, u.created_at
+             u.job_role, u.phone, u.created_at
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN sites s ON u.site_id = s.id
@@ -371,7 +375,7 @@ router.post('/', authorizeAdmin, async (req, res) => {
 router.put('/:id', authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { full_name, email, password, role, department, site_id, job_role, is_active } = req.body;
+    const { full_name, email, password, role, department, site_id, job_role, phone, is_active } = req.body;
 
     console.log('📥 PUT /api/users/:id - Updating user:', id);
 
@@ -429,6 +433,10 @@ router.put('/:id', authorizeAdmin, async (req, res) => {
       updateFields.push('job_role = ?');
       params.push(job_role || null);
     }
+    if (phone !== undefined) {
+      updateFields.push('phone = ?');
+      params.push(phone || null);
+    }
     if (is_active !== undefined) {
       updateFields.push('is_active = ?');
       params.push(is_active);
@@ -446,7 +454,7 @@ router.put('/:id', authorizeAdmin, async (req, res) => {
       SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
              u.department_id, d.name as department_name, 
              u.site_id, s.name as site_name,
-             u.job_role, u.updated_at
+             u.job_role, u.phone, u.updated_at
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN sites s ON u.site_id = s.id

@@ -154,8 +154,8 @@ export const usersAPI = {
   },
 
   // Get workers specifically (role = 'Worker' or 'Requester')
-  getWorkers: async (): Promise<ApiResponse<User[]>> => {
-    const response = await api.get('/users/workers');
+  getWorkers: async (filters?: any): Promise<ApiResponse<User[]>> => {
+    const response = await api.get('/users/workers', { params: filters });
     return response.data;
   },
 

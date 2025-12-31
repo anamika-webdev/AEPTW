@@ -2,28 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
-const { authenticateToken } = require('../middleware/auth.middleware');
-
-// Admin authorization middleware
-const authorizeAdmin = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      message: 'Unauthorized - Please login first'
-    });
-  }
-
-  const userRole = req.user.role?.toLowerCase();
-
-  if (userRole !== 'admin' && userRole !== 'administrator') {
-    return res.status(403).json({
-      success: false,
-      message: 'Access denied. Admin role required.'
-    });
-  }
-
-  next();
-};
+const { authenticateToken, authorizeAdmin } = require('../middleware/auth.middleware');
 
 // All routes require authentication and admin access
 router.use(authenticateToken);
@@ -51,34 +30,25 @@ router.get('/:requesterId', async (req, res) => {
       ORDER BY s.name
     `, [requesterId]);
 
-    // 2. ALSO Get assigned sites from site_approvers (if has Approver role)
-    if (role.toLowerCase().includes('approver')) {
-      let roleColumn = '';
-      if (role.includes('AreaOwner') || role.includes('AreaManager')) roleColumn = 'area_manager_id';
-      else if (role.includes('Safety')) roleColumn = 'safety_officer_id';
-      else if (role.includes('SiteLeader')) roleColumn = 'site_leader_id';
+    // 2. ALSO Get assigned sites from site_approvers (if has any Approver role)
+    const [approverSites] = await pool.query(`
+      SELECT 
+          sa.id as assignment_id,
+          s.*,
+          sa.updated_at as assigned_at
+      FROM sites s
+      INNER JOIN site_approvers sa ON s.id = sa.site_id
+      WHERE sa.area_manager_id = ? OR sa.safety_officer_id = ? OR sa.site_leader_id = ?
+      ORDER BY s.name
+    `, [requesterId, requesterId, requesterId]);
 
-      if (roleColumn) {
-        const [approverSites] = await pool.query(`
-                SELECT 
-                    sa.id as assignment_id,
-                    s.*,
-                    sa.updated_at as assigned_at
-                FROM sites s
-                INNER JOIN site_approvers sa ON s.id = sa.site_id
-                WHERE sa.${roleColumn} = ?
-                ORDER BY s.name
-            `, [requesterId]);
-
-        // Combine and ensure unique sites by ID
-        const existingIds = new Set(assignedSites.map(s => s.id));
-        approverSites.forEach(site => {
-          if (!existingIds.has(site.id)) {
-            assignedSites.push(site);
-          }
-        });
+    // Combine and ensure unique sites by ID
+    const existingIds = new Set(assignedSites.map(s => s.id));
+    approverSites.forEach(site => {
+      if (!existingIds.has(site.id)) {
+        assignedSites.push(site);
       }
-    }
+    });
 
     // 3. Get assigned workers
     const [assignedWorkers] = await pool.query(`

@@ -1,61 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { getHighestPriorityRole } from '../../utils/roleMapper';
 
-interface User {
-  id: number;
-  login_id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  frontendRole?: string;
-  department?: string;
-  auth_provider?: 'local' | 'google';
-  created_at?: string;
-}
+import { User } from '../../types';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
 }
 
-// Map database roles to frontend roles - PRESERVE APPROVER ROLES
-function mapDatabaseRoleToFrontend(dbRole: string): string {
-  const role = dbRole?.toLowerCase();
-
-  console.log('🔍 Mapping role:', dbRole);
-
-  // Admin roles
-  if (role === 'admin' || role === 'administrator') {
-    return 'Admin';
-  }
-
-  // Approver roles - KEEP THESE AS-IS
-  if (role === 'approver_areamanager' || role === 'approver_area_manager') {
-    return 'Approver_AreaManager';
-  }
-
-  if (role === 'approver_safety' || role === 'approver_safety_officer') {
-    return 'Approver_Safety';
-  }
-
-  if (role === 'approver_siteleader' || role === 'approver_site_leader') {
-    return 'Approver_SiteLeader';
-  }
-
-  // Worker role
-  if (role === 'worker') {
-    return 'Worker';
-  }
-
-  // Requester/Supervisor roles
-  if (role === 'requester' || role === 'supervisor') {
-    return 'Supervisor';
-  }
-
-  // Default to Supervisor
-  console.warn('⚠️ Unknown role, defaulting to Supervisor:', dbRole);
-  return 'Supervisor';
-}
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [loginId, setLoginId] = useState('');
@@ -99,8 +52,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         console.log('✅ Login successful');
         console.log('👤 User role from DB:', user.role);
 
-        // Map the role
-        const frontendRole = mapDatabaseRoleToFrontend(user.role);
+        // Map the role using prioritized logic
+        const frontendRole = getHighestPriorityRole(user.role);
         console.log('🎭 Mapped frontend role:', frontendRole);
 
         const mappedUser: User = {

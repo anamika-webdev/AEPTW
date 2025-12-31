@@ -25,7 +25,15 @@ import {
   ImageIcon,
   PenTool,
   RotateCcw,
-  Download
+  Download,
+  HardHat,
+  Shirt,
+  Hand,
+  Footprints,
+  Glasses,
+  Headphones,
+  Anchor,
+  ShieldCheck
 } from 'lucide-react';
 import { evidenceAPI, Evidence } from '../../services/evidenceAPI';
 import { closureEvidenceAPI, ClosureEvidence } from '../../services/closureEvidenceAPI';
@@ -1125,9 +1133,15 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
                             ext.status === 'Extension_Requested' || ext.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300' :
                               'bg-gray-100 text-gray-800 border-2 border-gray-300'
                           }`}>
-                          {ext.status === 'Extended' ? '✓ Extended' :
-                            ext.status === 'Extension_Requested' ? '⏳ Pending Approval' :
-                              ext.status === 'Extension_Rejected' ? '✗ Rejected' :
+                          {ext.status === 'Extended' ? (
+                            <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Extended</span>
+                          ) :
+                            ext.status === 'Extension_Requested' ? (
+                              <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> Pending Approval</span>
+                            ) :
+                              ext.status === 'Extension_Rejected' ? (
+                                <span className="flex items-center gap-1"><XCircle className="w-4 h-4" /> Rejected</span>
+                              ) :
                                 ext.status}
                         </span>
                       </div>
@@ -1324,12 +1338,27 @@ export default function PermitDetails({ ptwId, onBack }: PermitDetailsProps) {
               <h2 className="text-2xl font-bold text-slate-900">Required PPE ({ppe.length})</h2>
             </div>
             <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {ppe.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 p-4 border-2 border-orange-200 rounded-lg bg-orange-50">
-                  <Shield className="flex-shrink-0 w-6 h-6 text-orange-600" />
-                  <p className="font-bold text-orange-900">{item.name || item.ppe_name}</p>
-                </div>
-              ))}
+              {ppe.map((item) => {
+                const name = (item.name || item.ppe_name || '').toLowerCase();
+                let Icon = Shield;
+                let color = 'text-orange-600';
+
+                if (name.includes('helmet')) { Icon = HardHat; color = 'text-orange-600'; }
+                else if (name.includes('vest')) { Icon = Shirt; color = 'text-yellow-600'; }
+                else if (name.includes('glove')) { Icon = Hand; color = 'text-blue-600'; }
+                else if (name.includes('boot') || name.includes('shoe')) { Icon = Footprints; color = 'text-amber-700'; }
+                else if (name.includes('goggle') || name.includes('glasses')) { Icon = Glasses; color = 'text-cyan-600'; }
+                else if (name.includes('mask')) { Icon = ShieldCheck; color = 'text-green-600'; }
+                else if (name.includes('ear')) { Icon = Headphones; color = 'text-purple-600'; }
+                else if (name.includes('harness')) { Icon = Anchor; color = 'text-slate-600'; }
+
+                return (
+                  <div key={item.id} className="flex items-center gap-3 p-4 border-2 border-orange-200 rounded-lg bg-orange-50">
+                    <Icon className={`flex-shrink-0 w-6 h-6 ${color}`} />
+                    <p className="font-bold text-orange-900">{item.name || item.ppe_name}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

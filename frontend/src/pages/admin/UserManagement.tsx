@@ -24,6 +24,7 @@ interface User {
   site_id?: number;
   site_name?: string;
   job_role?: string;
+  phone?: string; // Added phone field
   created_at: string;
   permit_count?: number;
   is_active: boolean;
@@ -102,7 +103,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     role: ['Worker'],
     department: '',
     job_role: '',
-    site_id: ''
+    site_id: '',
+    phone: '' // Added phone field
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -112,7 +114,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     role: '',
     department: '',
     job_role: '',
-    site_id: ''
+    site_id: '',
+    phone: '' // Added phone field
   });
 
   const fetchUsers = async (showMessage = false) => {
@@ -207,7 +210,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           role: Array.isArray(newUser.role) ? newUser.role.join(',') : newUser.role,
           department: newUser.department,
           job_role: newUser.job_role,
-          site_id: newUser.site_id
+          site_id: newUser.site_id,
+          phone: newUser.phone // Added phone field
         })
       });
 
@@ -225,7 +229,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           role: [],
           department: '',
           job_role: '',
-          site_id: ''
+          site_id: '',
+          phone: '' // Added phone field
         });
         await fetchUsers(true);
       } else {
@@ -247,7 +252,16 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(editFormData)
+        body: JSON.stringify({
+          full_name: editFormData.full_name,
+          email: editFormData.email,
+          password: editFormData.password,
+          role: editFormData.role,
+          department: editFormData.department,
+          job_role: editFormData.job_role,
+          site_id: editFormData.site_id,
+          phone: editFormData.phone // Added phone field
+        })
       });
 
       const data = await response.json();
@@ -307,7 +321,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       role: user.role,
       department: user.department_name || '',
       job_role: user.job_role || '',
-      site_id: user.site_id?.toString() || ''
+      site_id: user.site_id?.toString() || '',
+      phone: user.phone || '' // Added phone field
     });
     setShowEditModal(true);
   };
@@ -1112,19 +1127,14 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Job Role</label>
-                  <select
-                    value={newUser.job_role}
-                    onChange={(e) => setNewUser({ ...newUser, job_role: e.target.value })}
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Phone Number</label>
+                  <input
+                    type="text"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    placeholder="Enter phone number"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Select Job Role</option>
-                    {JOB_ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
             </div>
@@ -1256,19 +1266,13 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Job Role</label>
-                  <select
-                    value={editFormData.job_role}
-                    onChange={(e) => setEditFormData({ ...editFormData, job_role: e.target.value })}
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Phone</label>
+                  <input
+                    type="text"
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Select Job Role</option>
-                    {JOB_ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -1352,6 +1356,10 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Job Role</label>
                     <p className="mt-1 text-sm text-gray-900">{viewingUser.job_role || 'Not assigned'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <p className="mt-1 text-sm text-gray-900">{viewingUser.phone || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Status</label>

@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth.middleware');
+const emailService = require('../services/emailService');
 
 // Apply authentication to all routes
 router.use(authenticateToken);
@@ -443,6 +444,31 @@ router.post('/:extensionId/approve', async (req, res) => {
                 ]);
             }
 
+            // 📧 Send email for full extension approval
+            try {
+                const [userData] = await connection.query(
+                    'SELECT full_name, email FROM users WHERE id = ?',
+                    [ue.requested_by_user_id]
+                );
+
+                if (userData.length > 0 && userData[0].email) {
+                    await emailService.sendEmail({
+                        to: userData[0].email,
+                        subject: `✅ PTW Extension Approved: ${ext.permit_serial}`,
+                        text: `Your extension request for PTW ${ext.permit_serial} has been fully approved. New end time: ${new Date(ue.new_end_time).toLocaleString()}`,
+                        html: `
+                            <h3 style="color: #10b981;">PTW Extension Approved</h3>
+                            <p>Dear ${userData[0].full_name},</p>
+                            <p>Your extension request for Permit to Work <strong>${ext.permit_serial}</strong> has been <strong>FULLY APPROVED</strong>.</p>
+                            <p><strong>New End Time:</strong> ${new Date(ue.new_end_time).toLocaleString()}</p>
+                            <p>You may continue the work as permitted.</p>
+                        `
+                    });
+                }
+            } catch (emailErr) {
+                console.error(`❌ Failed to send extension approval email:`, emailErr.message);
+            }
+
             await connection.commit();
 
             res.json({
@@ -471,6 +497,30 @@ router.post('/:extensionId/approve', async (req, res) => {
                     'extension_partial',
                     `${fields.roleName} has approved your extension request for ${ext.permit_serial}. Waiting for other approvers.`
                 ]);
+            }
+
+            // 📧 Send email for partial extension approval
+            try {
+                const [userData] = await connection.query(
+                    'SELECT full_name, email FROM users WHERE id = ?',
+                    [ue.requested_by_user_id]
+                );
+
+                if (userData.length > 0 && userData[0].email) {
+                    await emailService.sendEmail({
+                        to: userData[0].email,
+                        subject: `PTW Extension Update: ${ext.permit_serial}`,
+                        text: `Your extension request for PTW ${ext.permit_serial} has been approved by ${fields.roleName}. Pending other approvals.`,
+                        html: `
+                            <h3>PTW Extension Update</h3>
+                            <p>Dear ${userData[0].full_name},</p>
+                            <p>Your extension request for Permit to Work <strong>${ext.permit_serial}</strong> has been approved by ${fields.roleName}.</p>
+                            <p><strong>Status:</strong> Partially Approved (Waiting for other approvers)</p>
+                        `
+                    });
+                }
+            } catch (emailErr) {
+                console.error(`❌ Failed to send partial extension email:`, emailErr.message);
             }
 
             await connection.commit();
@@ -608,6 +658,31 @@ router.post('/:extensionId/reject', async (req, res) => {
                 'extension_rejected',
                 `Your extension request for ${ext.permit_serial} was rejected by ${fields.roleName}. Reason: ${remarks}`
             ]);
+        }
+
+        // 📧 Send email for extension rejection
+        try {
+            const [userData] = await connection.query(
+                'SELECT full_name, email FROM users WHERE id = ?',
+                [ext.requested_by_user_id]
+            );
+
+            if (userData.length > 0 && userData[0].email) {
+                await emailService.sendEmail({
+                    to: userData[0].email,
+                    subject: `❌ PTW Extension Rejected: ${ext.permit_serial}`,
+                    text: `Your extension request for PTW ${ext.permit_serial} was rejected by ${fields.roleName}. Reason: ${remarks}`,
+                    html: `
+                        <h3 style="color: #ef4444;">PTW Extension Rejected</h3>
+                        <p>Dear ${userData[0].full_name},</p>
+                        <p>Your extension request for Permit to Work <strong>${ext.permit_serial}</strong> has been <strong>REJECTED</strong> by ${fields.roleName}.</p>
+                        <p><strong>Reason:</strong> ${remarks}</p>
+                        <p>Please take action to close the permit before it expires.</p>
+                    `
+                });
+            }
+        } catch (emailErr) {
+            console.error(`❌ Failed to send extension rejection email:`, emailErr.message);
         }
 
         // Update permit status to Extension_Rejected

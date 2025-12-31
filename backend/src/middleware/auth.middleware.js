@@ -38,7 +38,7 @@ const authenticateToken = async (req, res, next) => {
       if (decoded.userId) {
         try {
           const [users] = await pool.query(
-            'SELECT id, login_id, full_name, email, role FROM users WHERE id = ? AND is_active = TRUE',
+            'SELECT id, login_id, full_name, email, role, department_id FROM users WHERE id = ? AND is_active = TRUE',
             [decoded.userId]
           );
 
@@ -66,7 +66,7 @@ const authenticateToken = async (req, res, next) => {
         // Try to fetch fresh user data from DB
         try {
           const [users] = await pool.query(
-            'SELECT id, login_id, full_name, email, role FROM users WHERE id = ? AND is_active = TRUE',
+            'SELECT id, login_id, full_name, email, role, department_id FROM users WHERE id = ? AND is_active = TRUE',
             [decoded.id]
           );
 

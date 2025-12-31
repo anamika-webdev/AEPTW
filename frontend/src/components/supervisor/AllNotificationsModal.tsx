@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Check, Clock, AlertCircle, Calendar, Trash2 } from 'lucide-react';
+import { X, Check, Clock, AlertCircle, Calendar } from 'lucide-react';
 
 interface Notification {
     id: number;

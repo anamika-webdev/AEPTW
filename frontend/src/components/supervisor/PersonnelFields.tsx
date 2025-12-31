@@ -109,7 +109,6 @@ export default function PersonnelFields({ selectedCategories, formData, setFormD
                         onChange={(e) => handleTextChange(contactId, e.target.value)}
                         placeholder="Enter contact number"
                         required={required}
-                        required={required}
                         autoComplete="off"
                         className="bg-white"
                     />

@@ -208,9 +208,13 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Find user by login_id
+    // Find user by login_id - Join with sites and departments
     const [users] = await pool.query(
-      'SELECT * FROM users WHERE login_id = ? AND is_active = TRUE',
+      `SELECT u.*, d.name as department_name, s.name as site_name
+       FROM users u 
+       LEFT JOIN departments d ON u.department_id = d.id
+       LEFT JOIN sites s ON u.site_id = s.id
+       WHERE u.login_id = ? AND u.is_active = TRUE`,
       [login_id]
     );
 
@@ -247,9 +251,22 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    // Identify primary site_id
+    let primarySiteId = user.site_id;
+    if (!primarySiteId) {
+      const [reqSites] = await pool.query(
+        'SELECT site_id FROM requester_sites WHERE requester_user_id = ? LIMIT 1',
+        [user.id]
+      );
+      if (reqSites.length > 0) {
+        primarySiteId = reqSites[0].site_id;
+      }
+    }
+
     console.log('✅ Login successful:', {
       login_id: user.login_id,
-      role: user.role
+      role: user.role,
+      primarySiteId
     });
 
     res.json({
@@ -263,7 +280,12 @@ router.post('/login', async (req, res) => {
           full_name: user.full_name,
           email: user.email,
           role: user.role,
-          department: user.department_id
+          department: user.department_id,
+          department_name: user.department_name,
+          site_id: primarySiteId,
+          site_name: user.site_name,
+          job_role: user.job_role,
+          phone: user.phone
         }
       }
     });
@@ -283,9 +305,11 @@ router.get('/me', authenticateToken, async (req, res) => {
   try {
     const [users] = await pool.query(
       `SELECT u.id, u.login_id, u.full_name, u.email, u.role, 
-              u.department_id, d.name as department_name, u.created_at
+              u.department_id, d.name as department_name, u.site_id, s.name as site_name, 
+              u.job_role, u.phone, u.created_at
        FROM users u
        LEFT JOIN departments d ON u.department_id = d.id
+       LEFT JOIN sites s ON u.site_id = s.id
        WHERE u.id = ?`,
       [req.user.id]
     );
@@ -297,11 +321,21 @@ router.get('/me', authenticateToken, async (req, res) => {
       });
     }
 
+    const userData = users[0];
+    // If site_id is null, try to find one from requester_sites
+    if (!userData.site_id) {
+      const [reqSites] = await pool.query(
+        'SELECT site_id FROM requester_sites WHERE requester_user_id = ? LIMIT 1',
+        [userData.id]
+      );
+      if (reqSites.length > 0) {
+        userData.site_id = reqSites[0].site_id;
+      }
+    }
+
     res.json({
       success: true,
-      data: {
-        user: users[0]
-      }
+      data: userData
     });
   } catch (error) {
     console.error('Get current user error:', error);

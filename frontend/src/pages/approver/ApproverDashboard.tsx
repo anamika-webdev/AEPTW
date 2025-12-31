@@ -115,8 +115,8 @@ export default function ApproverDashboard({ initialTab = 'pending', onNavigate }
       clientY = (e as React.MouseEvent).clientY;
     }
 
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const x = (clientX - rect.left) * (canvas.width / rect.width);
+    const y = (clientY - rect.top) * (canvas.height / rect.height);
 
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -142,8 +142,8 @@ export default function ApproverDashboard({ initialTab = 'pending', onNavigate }
       clientY = (e as React.MouseEvent).clientY;
     }
 
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const x = (clientX - rect.left) * (canvas.width / rect.width);
+    const y = (clientY - rect.top) * (canvas.height / rect.height);
 
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -517,7 +517,7 @@ export default function ApproverDashboard({ initialTab = 'pending', onNavigate }
         ) : (
           <>
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
               <div className="p-6 bg-white rounded-lg shadow">
                 <div className="flex items-center justify-between">
                   <div>

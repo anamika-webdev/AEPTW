@@ -2,15 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
-const { authenticateToken } = require('../middleware/auth.middleware');
-
-// Admin authorization middleware
-const authorizeAdmin = (req, res, next) => {
-  if (!req.user || (req.user.role?.toLowerCase() !== 'admin' && req.user.role?.toLowerCase() !== 'administrator')) {
-    return res.status(403).json({ success: false, message: 'Access denied. Admin role required.' });
-  }
-  next();
-};
+const { authenticateToken, authorizeAdmin } = require('../middleware/auth.middleware');
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -19,15 +11,18 @@ router.use(authenticateToken);
 router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
-    const userRole = req.user.role?.toLowerCase();
+    const userRole = (req.user.role || '').toLowerCase();
+    const assignedOnly = req.query.assignedOnly === 'true';
+    const isAdmin = !assignedOnly && (userRole.includes('admin') || userRole.includes('administrator'));
+    const isRequester = userRole.includes('supervisor') || userRole.includes('requester') || assignedOnly;
 
-    console.log('📥 GET /api/sites - User:', userId, 'Role:', userRole);
+    console.log('📥 GET /api/sites - User:', userId, 'Role:', userRole, 'isAdmin:', isAdmin, 'isRequester:', isRequester, 'assignedOnly:', assignedOnly);
 
     let query;
     let params;
 
     // Admin sees all sites with permit counts
-    if (userRole === 'admin' || userRole === 'administrator') {
+    if (isAdmin) {
       query = `
         SELECT s.*, 
                COUNT(p.id) as permit_count
@@ -39,25 +34,29 @@ router.get('/', async (req, res) => {
       `;
       params = [];
     }
-    // Requesters/Supervisors see only their assigned sites with permit counts
-    else if (userRole === 'requester' || userRole === 'supervisor') {
+    // Requesters/Supervisors/Approvers see only their assigned sites
+    else if (isRequester) {
       query = `
         SELECT s.*, 
-               COUNT(p.id) as permit_count
+               COUNT(DISTINCT p.id) as permit_count
         FROM sites s
-        INNER JOIN requester_sites rs ON s.id = rs.site_id
         LEFT JOIN permits p ON s.id = p.site_id
-        WHERE s.is_active = TRUE AND rs.requester_user_id = ?
+        WHERE s.is_active = TRUE AND s.id IN (
+          SELECT site_id FROM requester_sites WHERE requester_user_id = ?
+          UNION
+          SELECT site_id FROM site_approvers 
+          WHERE area_manager_id = ? OR safety_officer_id = ? OR site_leader_id = ?
+        )
         GROUP BY s.id
         ORDER BY s.name
       `;
-      params = [userId];
+      params = [userId, userId, userId, userId];
     }
     // Other roles see all sites with permit counts
     else {
       query = `
         SELECT s.*, 
-               COUNT(p.id) as permit_count
+               COUNT(DISTINCT p.id) as permit_count
         FROM sites s
         LEFT JOIN permits p ON s.id = p.site_id
         WHERE s.is_active = TRUE
@@ -91,18 +90,20 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const userRole = req.user.role?.toLowerCase();
+    const userRole = (req.user.role || '').toLowerCase();
+    const isAdmin = userRole.includes('admin') || userRole.includes('administrator');
+    const isRequester = userRole.includes('supervisor') || userRole.includes('requester');
 
     let query;
     let params;
 
     // Admin can view any site
-    if (userRole === 'admin' || userRole === 'administrator') {
+    if (isAdmin) {
       query = 'SELECT * FROM sites WHERE id = ?';
       params = [id];
     }
     // Requesters can only view their assigned sites
-    else if (userRole === 'requester' || userRole === 'supervisor') {
+    else if (isRequester) {
       query = `
         SELECT s.* 
         FROM sites s

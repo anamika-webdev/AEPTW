@@ -1,5 +1,5 @@
 // frontend/src/components/common/UserProfile.tsx
-import { User, Mail, Building2, Shield, Calendar } from 'lucide-react';
+import { User, Mail, Building2, Shield, Calendar, Phone, Briefcase, MapPin } from 'lucide-react';
 
 interface UserData {
   id: number;
@@ -9,6 +9,10 @@ interface UserData {
   role: string;
   frontendRole?: 'Admin' | 'Supervisor' | 'Worker';
   department?: string;
+  department_name?: string;
+  job_role?: string;
+  phone?: string;
+  site_name?: string;
   auth_provider?: 'local' | 'google';
   created_at?: string;
 }
@@ -117,51 +121,88 @@ export default function UserProfile({ user, variant = 'card' }: UserProfileProps
         </div>
 
         {/* Details Grid */}
-        <div className="mt-6 space-y-3">
-          <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg bg-gray-50/50">
             <User className="flex-shrink-0 w-5 h-5 text-gray-400" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-500">Login ID</p>
+              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Login ID</p>
               <p className="text-sm font-semibold text-gray-900 truncate">{user.login_id}</p>
             </div>
           </div>
 
-          {user.department && (
-            <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
-              <Building2 className="flex-shrink-0 w-5 h-5 text-gray-400" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-500">Department</p>
-                <p className="text-sm font-semibold text-gray-900 truncate">{user.department}</p>
-              </div>
+          <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg bg-gray-50/50">
+            <Mail className="flex-shrink-0 w-5 h-5 text-gray-400" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Email Address</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{user.email}</p>
             </div>
-          )}
+          </div>
 
-          <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+          <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg bg-gray-50/50">
             <Shield className="flex-shrink-0 w-5 h-5 text-gray-400" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-500">Dashboard Access</p>
+              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Portal Access</p>
               <p className="text-sm font-semibold text-gray-900">
-                {user.frontendRole === 'Admin' ? 'Administrator Portal' : 'Supervisor Dashboard'}
+                {user.frontendRole === 'Admin' ? 'Administrator' : 'Supervisor'}
               </p>
             </div>
           </div>
 
+          {user.phone && (
+            <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg bg-gray-50/50">
+              <Phone className="flex-shrink-0 w-5 h-5 text-gray-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Phone Number</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{user.phone}</p>
+              </div>
+            </div>
+          )}
+
+          {(user.department_name || user.department) && (
+            <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg bg-gray-50/50">
+              <Building2 className="flex-shrink-0 w-5 h-5 text-gray-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Department</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {user.department_name && user.department_name !== user.department?.toString()
+                    ? user.department_name
+                    : (user.department || 'N/A')}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {user.job_role && (
+            <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg bg-gray-50/50">
+              <Briefcase className="flex-shrink-0 w-5 h-5 text-gray-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Job Role</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{user.job_role}</p>
+              </div>
+            </div>
+          )}
+
+          {user.site_name && (
+            <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg bg-gray-50/50">
+              <MapPin className="flex-shrink-0 w-5 h-5 text-gray-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Primary Site</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{user.site_name}</p>
+              </div>
+            </div>
+          )}
+
           {user.created_at && (
-            <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg bg-gray-50/50">
               <Calendar className="flex-shrink-0 w-5 h-5 text-gray-400" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-500">Member Since</p>
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Member Since</p>
                 <p className="text-sm font-semibold text-gray-900">{formatDate(user.created_at)}</p>
               </div>
             </div>
           )}
         </div>
 
-        {/* User ID Badge */}
-        <div className="flex items-center justify-center gap-2 p-3 mt-4 border border-gray-200 rounded-lg bg-gray-50">
-          <span className="text-xs font-medium text-gray-500">User ID:</span>
-          <span className="font-mono text-xs font-semibold text-gray-700">#{user.id}</span>
-        </div>
       </div>
     </div>
   );

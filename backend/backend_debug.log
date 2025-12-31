@@ -119,3 +119,9 @@
     - Files: 1
     - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, images_base64, descriptions, categories, timestamps, latitudes, longitudes
     
+    [2025-12-29T13:22:19.872Z] POST /close request:
+    - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryGzBbJKbkiByGRuAu
+    - User ID: 401
+    - Files: 1
+    - Body keys: housekeeping_done, tools_removed, locks_removed, area_restored, remarks, images_base64, descriptions, categories, timestamps, latitudes, longitudes
+    

@@ -5,7 +5,8 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth.middleware');
-const upload = require('../middleware/upload.middleware'); // Import upload middleware
+const upload = require('../middleware/upload.middleware');
+const emailService = require('../services/emailService');
 
 // Apply authentication to all routes
 router.use(authenticateToken);
@@ -168,6 +169,53 @@ router.post('/:id/request-extension', async (req, res) => {
 
     console.log(`✅ Created ${approverNotifications.length} extension approval notifications`);
 
+    // 📧 Send Emails to Approvers for Extension
+    for (const approver of approverNotifications) {
+      try {
+        const [userData] = await connection.query(
+          'SELECT full_name, email FROM users WHERE id = ?',
+          [approver.user_id]
+        );
+
+        if (userData.length > 0 && userData[0].email) {
+          await emailService.sendExtensionRequest({
+            recipientEmail: userData[0].email,
+            recipientName: userData[0].full_name,
+            permitSerial: permit.permit_serial,
+            requesterName: req.user.full_name || 'Supervisor',
+            extensionDetails: {
+              currentExpiry: new Date(permit.end_time).toLocaleString(),
+              newExpiry: new Date(new_end_time).toLocaleString(),
+              reason: reason
+            }
+          });
+          console.log(`📧 Extension request email sent to ${approver.role}: ${userData[0].email}`);
+        }
+      } catch (emailErr) {
+        console.error(`❌ Failed to send extension email to ${approver.role}:`, emailErr.message);
+      }
+    }
+
+    // 📧 Send Confirmation Email to Initiator
+    try {
+      await emailService.sendEmail({
+        to: req.user.email,
+        subject: `PTW Extension Requested: ${permit.permit_serial}`,
+        text: `Your extension request for PTW ${permit.permit_serial} until ${new Date(new_end_time).toLocaleString()} has been submitted.`,
+        html: `
+            <h3>PTW Extension Requested</h3>
+            <p>Dear ${req.user.full_name},</p>
+            <p>Your request to extend Permit to Work <strong>${permit.permit_serial}</strong> has been submitted.</p>
+            <p><strong>New End Time Requested:</strong> ${new Date(new_end_time).toLocaleString()}</p>
+            <p><strong>Reason:</strong> ${reason}</p>
+            <p>You will be notified once the extension is approved.</p>
+          `
+      });
+      console.log(`📧 Extension confirmation email sent to initiator: ${req.user.email}`);
+    } catch (initiatorEmailErr) {
+      console.error(`❌ Failed to send extension confirmation email to initiator:`, initiatorEmailErr.message);
+    }
+
     await connection.commit();
 
     res.json({
@@ -207,7 +255,7 @@ router.get('/my-initiated', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_owner_name,
+        am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -252,7 +300,7 @@ router.get('/my-approved', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_owner_name,
+        am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -336,7 +384,7 @@ router.get('/my-ready-to-start', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_owner_name,
+        am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -381,7 +429,7 @@ router.get('/my-active', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_owner_name,
+        am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -465,7 +513,7 @@ router.get('/my-extended', async (req, res) => {
         s.name as site_name,
         s.site_code,
         COUNT(DISTINCT ptm.id) as team_member_count,
-        am.full_name as area_owner_name,
+        am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name
       FROM permits p
@@ -513,7 +561,7 @@ router.get('/', async (req, res) => {
         s.name as site_name,
         s.site_code,
         u.full_name as created_by_name,
-        am.full_name as area_owner_name,
+        am.full_name as area_manager_name,
         so.full_name as safety_officer_name,
         sl.full_name as site_leader_name,
         COUNT(DISTINCT ptm.id) as team_member_count
@@ -616,8 +664,15 @@ router.post('/', async (req, res) => {
     const permit_serial = `PTW-${String(serialNumber).padStart(4, '0')}`;
 
     // Determine initial status
-    const hasApprovers = area_manager_id || safety_officer_id || site_leader_id;
+    const isWHSInitiator = req.user.department_id === 23;
+    const initialSafetyStatus = safety_officer_id ? (isWHSInitiator ? 'Approved' : 'Pending') : null;
+
+    const hasApprovers = area_manager_id || (safety_officer_id && !isWHSInitiator) || site_leader_id;
     const initialStatus = hasApprovers ? 'Initiated' : 'Active';
+
+    if (isWHSInitiator && safety_officer_id) {
+      console.log(`🛡️ WHS Initiator detected. Safety Officer status auto-set to 'Approved'.`);
+    }
 
     console.log(`✅ Creating PTW: ${permit_serial}, Status: ${initialStatus}`);
 
@@ -645,7 +700,7 @@ router.post('/', async (req, res) => {
       safety_officer_id || null,
       site_leader_id || null,
       area_manager_id ? 'Pending' : null,
-      safety_officer_id ? 'Pending' : null,
+      initialSafetyStatus,
       site_leader_id ? 'Pending' : null,
       initialStatus
     ];
@@ -784,7 +839,7 @@ router.post('/', async (req, res) => {
         });
       }
 
-      if (safety_officer_id) {
+      if (safety_officer_id && !isWHSInitiator) {
         approverNotifications.push({
           user_id: safety_officer_id,
           role: 'Safety Officer'
@@ -810,6 +865,54 @@ router.post('/', async (req, res) => {
       }
 
       console.log(`✅ Created ${approverNotifications.length} approval notifications`);
+
+      // 📧 Send Emails to Approvers
+      for (const approver of approverNotifications) {
+        try {
+          const [userData] = await connection.query(
+            'SELECT full_name, email FROM users WHERE id = ?',
+            [approver.user_id]
+          );
+
+          if (userData.length > 0 && userData[0].email) {
+            await emailService.sendPTWApprovalRequest({
+              recipientEmail: userData[0].email,
+              recipientName: userData[0].full_name,
+              permitSerial: permit_serial,
+              requesterName: req.user.full_name || 'Supervisor',
+              role: approver.role,
+              permitDetails: {
+                workType: Array.isArray(permit_types) ? permit_types.join(', ') : permit_types,
+                site: site_id, // Could fetch site name if needed
+                department: issue_department,
+                requestedDate: new Date().toLocaleDateString()
+              }
+            });
+            console.log(`📧 Approval request email sent to ${approver.role}: ${userData[0].email}`);
+          }
+        } catch (emailErr) {
+          console.error(`❌ Failed to send email to ${approver.role}:`, emailErr.message);
+        }
+      }
+
+      // 📧 Send Confirmation Email to Initiator
+      try {
+        await emailService.sendEmail({
+          to: req.user.email,
+          subject: `PTW Initiated: ${permit_serial}`,
+          text: `Your Permit to Work ${permit_serial} has been successfully initiated and is pending approval.`,
+          html: `
+            <h3>PTW Initiated Successfully</h3>
+            <p>Dear ${req.user.full_name},</p>
+            <p>Your Permit to Work <strong>${permit_serial}</strong> has been successfully initiated.</p>
+            <p><strong>Status:</strong> Pending Approval</p>
+            <p>You will be notified once the permit is approved or if more information is required.</p>
+          `
+        });
+        console.log(`📧 Confirmation email sent to initiator: ${req.user.email}`);
+      } catch (initiatorEmailErr) {
+        console.error(`❌ Failed to send confirmation email to initiator:`, initiatorEmailErr.message);
+      }
     }
 
     await connection.commit();

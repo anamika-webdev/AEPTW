@@ -1,9 +1,9 @@
 // src/components/supervisor/WorkerList.tsx
 import { useState, useEffect } from 'react';
-import { Search, Mail, Phone, User } from 'lucide-react';
+import { Search, Mail, User } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { usersAPI } from '../../services/api.bak.ts';
+import { usersAPI } from '../../services/api';
 import type { User as Worker } from '../../types';
 
 interface WorkerListProps {
@@ -27,7 +27,7 @@ export function WorkerList({ onBack }: WorkerListProps) {
   const loadWorkers = async () => {
     setIsLoading(true);
     try {
-      const response = await usersAPI.getWorkers();
+      const response = await usersAPI.getWorkers({ assignedOnly: true });
       if (response.success && response.data) {
         setWorkers(response.data);
         setFilteredWorkers(response.data);

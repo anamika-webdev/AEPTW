@@ -8,9 +8,19 @@ const getBase64FromUrl = async (url: string): Promise<string> => {
         // If url doesn't start with http/https, prepend API_URL
         // Ensure url has leading slash if needed
         let fullUrl = url;
-        if (!url.startsWith('http')) {
-            const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-            fullUrl = `${API_URL}${cleanUrl}`;
+        if (url.startsWith('http')) {
+            fullUrl = url;
+        } else if (url.startsWith('/')) {
+            // Local assets (like /QR.png) vs backend uploads
+            if (url.startsWith('/uploads') || url.startsWith('/api')) {
+                fullUrl = `${API_URL}${url}`;
+            } else {
+                // Public folder assets
+                fullUrl = window.location.origin + url;
+            }
+        } else {
+            // Relative paths are assumed to be backend uploads
+            fullUrl = `${API_URL}/${url}`;
         }
 
         console.log('Fetching image for PDF:', fullUrl);
@@ -306,7 +316,7 @@ export const downloadComprehensivePDF = async (permitsToDownload: any[]) => {
 
         // 10. Approvals
         addSection('APPROVALS', [
-            ['Area Manager', permit.area_manager_name || 'Not assigned'],
+            ['Area Owner', permit.area_manager_name || 'Not assigned'],
             ['AM Status', permit.area_manager_status || 'Pending'],
             ['AM Approved At', permit.area_manager_approved_at ? new Date(permit.area_manager_approved_at).toLocaleString() : 'N/A'],
             ['Safety Officer', permit.safety_officer_name || 'Not assigned'],
@@ -316,6 +326,51 @@ export const downloadComprehensivePDF = async (permitsToDownload: any[]) => {
             ['SL Status', permit.site_leader_status || 'Pending'],
             ['SL Approved At', permit.site_leader_approved_at ? new Date(permit.site_leader_approved_at).toLocaleString() : 'N/A'],
         ]);
+
+        // 10.5. Safety Observations (Dragonfly)
+        checkPageBreak(50);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setFillColor(230, 242, 255); // Light blue
+        doc.rect(margin, yPosition, pageWidth - 2 * margin, 7, 'F');
+        doc.setTextColor(0, 51, 102); // Dark blue
+        doc.text('SAFETY OBSERVATIONS (DRAGONFLY)', margin + 3, yPosition + 5);
+        yPosition += 12;
+
+        try {
+            const qrBase64 = await getBase64FromUrl('/QR.png');
+            if (qrBase64) {
+                // Adjusting to 80x25 to match the banner aspect ratio better and prevent squashing
+                doc.addImage(qrBase64, 'PNG', margin + 3, yPosition, 80, 25);
+                yPosition += 30;
+
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(0, 0, 0);
+                doc.text('Report safety concerns or observations during work execution.', margin + 3, yPosition);
+                yPosition += 7;
+
+                doc.setTextColor(0, 102, 204); // Link color
+                doc.setFont('helvetica', 'bold');
+                doc.text('Submit Safety Observation:', margin + 3, yPosition);
+                yPosition += 5;
+                doc.setFont('helvetica', 'normal');
+                doc.textWithLink('https://atoz.amazon.work/safety_observations', margin + 3, yPosition, { url: 'https://atoz.amazon.work/safety_observations' });
+
+                doc.setTextColor(0, 0, 0); // Reset
+                doc.setFontSize(8);
+                doc.text('Scan the QR code or click the link above to access the system.', margin + 3, yPosition + 7);
+
+                yPosition += 15;
+            } else {
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Dragonfly System: https://atoz.amazon.work/safety_observations', margin + 3, yPosition);
+                yPosition += 10;
+            }
+        } catch (e) {
+            console.error('Error adding Dragonfly section', e);
+        }
 
         // 11. Signatures
         checkPageBreak(60);
@@ -329,7 +384,7 @@ export const downloadComprehensivePDF = async (permitsToDownload: any[]) => {
         const signatures = [
             { label: 'Issuer', data: permit.issuer_signature },
             { label: 'Receiver', data: permit.receiver_signature },
-            { label: 'Area Manager', data: permit.area_manager_signature },
+            { label: 'Area Owner', data: permit.area_manager_signature },
             { label: 'Safety Officer', data: permit.safety_officer_signature },
             { label: 'Site Leader', data: permit.site_leader_signature }
         ];
