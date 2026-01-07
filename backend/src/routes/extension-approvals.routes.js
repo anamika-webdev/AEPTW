@@ -469,6 +469,26 @@ router.post('/:extensionId/approve', async (req, res) => {
                 console.error(`❌ Failed to send extension approval email:`, emailErr.message);
             }
 
+            // 📧 Send Confirmation Email to Performer (Approver) - FULL EXTENSION
+            try {
+                if (req.user.email) {
+                    await emailService.sendEmail({
+                        to: req.user.email,
+                        subject: `✅ Extension Approved: ${ext.permit_serial}`,
+                        text: `You have successfully APPROVED the extension for PTW ${ext.permit_serial}.`,
+                        html: `
+                            <h3>Action Confirmed: Extension Approved</h3>
+                            <p>Dear ${req.user.full_name},</p>
+                            <p>You have <strong>APPROVED</strong> the extension request for PTW <strong>${ext.permit_serial}</strong>.</p>
+                            <p>The permit extension is now fully approved.</p>
+                        `
+                    });
+                    console.log(`📧 Performer confirmed (Full Extension): ${req.user.email}`);
+                }
+            } catch (performerErr) {
+                console.error(`❌ Failed to send performer confirmation:`, performerErr.message);
+            }
+
             await connection.commit();
 
             res.json({
@@ -521,6 +541,26 @@ router.post('/:extensionId/approve', async (req, res) => {
                 }
             } catch (emailErr) {
                 console.error(`❌ Failed to send partial extension email:`, emailErr.message);
+            }
+
+            // 📧 Send Confirmation Email to Performer (Approver) - PARTIAL EXTENSION
+            try {
+                if (req.user.email) {
+                    await emailService.sendEmail({
+                        to: req.user.email,
+                        subject: `✅ Extension Approved (Partial): ${ext.permit_serial}`,
+                        text: `You have approved the extension for PTW ${ext.permit_serial}. Waiting for other approvers.`,
+                        html: `
+                            <h3>Action Confirmed: Extension Approved</h3>
+                            <p>Dear ${req.user.full_name},</p>
+                            <p>You have <strong>APPROVED</strong> the extension request for PTW <strong>${ext.permit_serial}</strong>.</p>
+                            <p><strong>Status:</strong> Partially Approved (Waiting for other approvers)</p>
+                        `
+                    });
+                    console.log(`📧 Performer confirmed (Partial Extension): ${req.user.email}`);
+                }
+            } catch (performerErr) {
+                console.error(`❌ Failed to send performer confirmation:`, performerErr.message);
             }
 
             await connection.commit();
@@ -683,6 +723,26 @@ router.post('/:extensionId/reject', async (req, res) => {
             }
         } catch (emailErr) {
             console.error(`❌ Failed to send extension rejection email:`, emailErr.message);
+        }
+
+        // 📧 Send Confirmation Email to Performer (Rejector)
+        try {
+            if (req.user.email) {
+                await emailService.sendEmail({
+                    to: req.user.email,
+                    subject: `❌ Extension Rejected: ${ext.permit_serial}`,
+                    text: `You have REJECTED the extension for PTW ${ext.permit_serial}. Reason: ${remarks}`,
+                    html: `
+                        <h3>Action Confirmed: Extension Rejected</h3>
+                        <p>Dear ${req.user.full_name},</p>
+                        <p>You have <strong>REJECTED</strong> the extension request for PTW <strong>${ext.permit_serial}</strong>.</p>
+                        <p><strong>Reason:</strong> ${remarks}</p>
+                    `
+                });
+                console.log(`📧 Performer confirmed (Extension Rejection): ${req.user.email}`);
+            }
+        } catch (performerErr) {
+            console.error(`❌ Failed to send performer confirmation:`, performerErr.message);
         }
 
         // Update permit status to Extension_Rejected

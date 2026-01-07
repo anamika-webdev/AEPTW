@@ -198,23 +198,26 @@ router.post('/:id/request-extension', async (req, res) => {
 
     // 📧 Send Confirmation Email to Initiator
     try {
-      await emailService.sendEmail({
-        to: req.user.email,
-        subject: `PTW Extension Requested: ${permit.permit_serial}`,
-        text: `Your extension request for PTW ${permit.permit_serial} until ${new Date(new_end_time).toLocaleString()} has been submitted.`,
-        html: `
-            <h3>PTW Extension Requested</h3>
+      if (req.user.email) {
+        await emailService.sendEmail({
+          to: req.user.email,
+          subject: `Extension Requested: ${permit.permit_serial}`,
+          text: `You have successfully requested an extension for PTW ${permit.permit_serial} until ${new Date(new_end_time).toLocaleString()}.`,
+          html: `
+            <h3>Action Confirmed: Extension Requested</h3>
             <p>Dear ${req.user.full_name},</p>
-            <p>Your request to extend Permit to Work <strong>${permit.permit_serial}</strong> has been submitted.</p>
-            <p><strong>New End Time Requested:</strong> ${new Date(new_end_time).toLocaleString()}</p>
+            <p>You have successfully requested an extension for Permit to Work <strong>${permit.permit_serial}</strong>.</p>
+            <p><strong>New Requested End Time:</strong> ${new Date(new_end_time).toLocaleString()}</p>
             <p><strong>Reason:</strong> ${reason}</p>
-            <p>You will be notified once the extension is approved.</p>
+            <p>Status: Pending Approval</p>
           `
-      });
-      console.log(`📧 Extension confirmation email sent to initiator: ${req.user.email}`);
+        });
+        console.log(`📧 Performer confirmed (Extension Request): ${req.user.email}`);
+      }
     } catch (initiatorEmailErr) {
-      console.error(`❌ Failed to send extension confirmation email to initiator:`, initiatorEmailErr.message);
+      console.error(`❌ Failed to send confirmation email to initiator:`, initiatorEmailErr.message);
     }
+
 
     await connection.commit();
 

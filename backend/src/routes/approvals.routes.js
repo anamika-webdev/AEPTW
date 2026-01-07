@@ -456,6 +456,26 @@ router.post('/:ptwId/approve', async (req, res) => {
       } catch (emailErr) {
         console.error(`❌ Failed to send approval email:`, emailErr.message);
       }
+
+      // 📧 Send Confirmation Email to Performer (Approver) - FULL APPROVAL
+      try {
+        if (req.user.email) {
+          await emailService.sendEmail({
+            to: req.user.email,
+            subject: `✅ Approved: ${p.permit_serial}`,
+            text: `You have successfully APPROVED the Permit to Work ${p.permit_serial}.`,
+            html: `
+              <h3>Action Confirmed: PTW Approved</h3>
+              <p>Dear ${req.user.full_name},</p>
+              <p>You have successfully <strong>APPROVED</strong> the Permit to Work <strong>${p.permit_serial}</strong>.</p>
+              <p>The permit is now fully approved.</p>
+            `
+          });
+          console.log(`📧 Performer confirmed (Full Approval): ${req.user.email}`);
+        }
+      } catch (performerErr) {
+        console.error(`❌ Failed to send performer confirmation:`, performerErr.message);
+      }
     } else {
       console.log(`⏳ PTW ${ptwId} partially approved, waiting for other approvers`);
 
@@ -492,6 +512,26 @@ router.post('/:ptwId/approve', async (req, res) => {
         }
       } catch (emailErr) {
         console.error(`❌ Failed to send partial approval email:`, emailErr.message);
+      }
+
+      // 📧 Send Confirmation Email to Performer (Approver) - PARTIAL APPROVAL
+      try {
+        if (req.user.email) {
+          await emailService.sendEmail({
+            to: req.user.email,
+            subject: `✅ Approved (Partial): ${p.permit_serial}`,
+            text: `You have approved the Permit to Work ${p.permit_serial}. It is pending other approvals.`,
+            html: `
+              <h3>Action Confirmed: PTW Approved</h3>
+              <p>Dear ${req.user.full_name},</p>
+              <p>You have successfully approved the Permit to Work <strong>${p.permit_serial}</strong>.</p>
+              <p><strong>Status:</strong> Partially Approved (Waiting for other approvers)</p>
+            `
+          });
+          console.log(`📧 Performer confirmed (Partial Approval): ${req.user.email}`);
+        }
+      } catch (performerErr) {
+        console.error(`❌ Failed to send performer confirmation:`, performerErr.message);
       }
     }
 
@@ -617,6 +657,26 @@ router.post('/:ptwId/reject', async (req, res) => {
       }
     } catch (emailErr) {
       console.error(`❌ Failed to send rejection email:`, emailErr.message);
+    }
+
+    // 📧 Send Confirmation Email to Performer (Rejector)
+    try {
+      if (req.user.email) {
+        await emailService.sendEmail({
+          to: req.user.email,
+          subject: `❌ Rejected: ${permit[0].permit_serial}`,
+          text: `You have REJECTED the Permit to Work ${permit[0].permit_serial}. Reason: ${reason}`,
+          html: `
+              <h3>Action Confirmed: PTW Rejected</h3>
+              <p>Dear ${req.user.full_name},</p>
+              <p>You have <strong>REJECTED</strong> the Permit to Work <strong>${permit[0].permit_serial}</strong>.</p>
+              <p><strong>Reason:</strong> ${reason}</p>
+            `
+        });
+        console.log(`📧 Performer confirmed (Rejection): ${req.user.email}`);
+      }
+    } catch (performerErr) {
+      console.error(`❌ Failed to send performer confirmation:`, performerErr.message);
     }
 
     res.json({
